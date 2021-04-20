@@ -160,6 +160,12 @@ climate:
     - name: "My awesome air conditioner"
 ```
 
+## Example ##
+Files `ac_common.yaml`, `ac_kitchen.yaml` and `ac_livingroom.yaml` shows standard way to use aux_ac custom component.
+`ac_common.yaml` contains common configuration part for two air conditioners. One of ACs is located in a kitchen, the second one is in a living room.
+`ac_kitchen.yaml` and `ac_livingroom.yaml` contains specific parts of configuration: IP-addresses, device names etc.
+If you try to compile `ac_common.yaml` it will rise errors. You need to compile `ac_kitchen.yaml` or `ac_livingroom.yaml` instead.
+
 ## Additional functionality ##
 Aux_ac component provides three additional sensors: two temperatures and firmware version.
 
