@@ -2,7 +2,7 @@
 For communication about this project [join telegram chat](https://t.me/aux_ac). 
 
 ## DISCLAIMER ##
-This software and hardware are provided 'AS IS'. Everything you do with your devices you are doing at your own risk. If you aren't strongly understand what you are doing, just buy wifi-module from your air conditioner manufacturer.
+This software and hardware are provided **'AS IS'**. Everything you do with your devices you are doing at your own risk. If you aren't strongly understand what you are doing, just buy wifi-module from your air conditioner manufacturer.
 
 
 ## Short description ##
@@ -63,6 +63,7 @@ If you are tested your air conditioner and aux_ac works with it please let me kn
 ### Hardware ###
 I tested it with esp8266 chip (esp-12e). Minimal scheme:
 ![scheme](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/scheme.png?raw=true)
+In real life looks minimal too:
 ![esp-12e minimal photo](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/esp-12e.jpg?raw=true)
 
 At the first time IO0 (GPIO0) must be pulled down to GND at the boot and ESPHome can be uploaded through UART0. If your ESPHome configuration contains OTA you can pullup IO0 or leave it floating. All further updates can be uploaded over-the-air.
@@ -70,13 +71,13 @@ At the first time IO0 (GPIO0) must be pulled down to GND at the boot and ESPHome
 Air conditioner internal block has 5-wire connection to the wifi-module. Connector is [JST SM](https://www.jst-mfg.com/product/pdf/eng/eSM.pdf).
 
 Wires:
-1. Yellow: +14V DC. Measured +14.70V max and +13.70V min. Service manual declares up to +16V).
+1. Yellow: +14V DC. Measured +14.70V max and +13.70V min. Service manual declares up to +16V.
 2. Black: ground.
-3. White: +5V DC (max: +5.63V; min: +4.43V) I have no idea what this is for. It goes directly to air conditioner microcontroller through resistor 1kOhm.
+3. White: +5V DC (max: +5.63V; min: +4.43V) I have no idea what this is for. It goes directly to air conditioner microcontroller through resistor 1kOhm and it does not affect the operation of the module.
 4. Blue: TX of air conditioner. High is +5V.
 5. Red: RX of air conditioner. High is +5V.
 
-For power supply it is possible to use any kind of modules. I use this:
+For power supply it is possible to use any kind of suitable modules. I use this:
 ![power module](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/DD4012SA.jpg?raw=true).
 
 Black wire of AC's connector goes to middle pin of power module and to GND pin of esp-12e.
@@ -88,21 +89,25 @@ All connections in custom 3d-printed case looks like this:
 ![module assembled](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/assembled.JPG?raw=true)
 
 Cause I haven't JST SM connector I made own:
-![JST SM connector replica](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/connector.JPG?raw=true)
-It mades of standart 2.54mm pins and 3D-printed case.
+![JST SM connector replica](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/connector.JPG?raw=true).
+
+It made of standard 2.54mm pins and 3D-printed case.
 
 All models for 3D-printing are available too: [STL-files for connector](https://github.com/GrKoR/esphome_aux_ac_component/tree/master/enclosure/JST%20SM%20connector), [models of case parts](https://github.com/GrKoR/esphome_aux_ac_component/tree/master/enclosure/case). 
 
-Final:
+The result:
+
 ![photo 1](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/real-1.JPG?raw=true)
 ![photo 2](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/real-2.JPG?raw=true)
 ![photo 3](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/real-3.JPG?raw=true)
+
+
 
 ### Firmware: Integration aux_ac to your configuration ###
 Copy aux_ac_custom_component.h to folder with your ESPHome YAML file.
 
 At the header of your YAML add include instruction like this:
-```
+```yaml
 esphome:
   name: $devicename
   platform: ESP8266
@@ -112,7 +117,7 @@ esphome:
 ```
 
 Configure UART to communicate with air conditioner:
-```
+```yaml
 uart:
   id: ac_uart_bus
   tx_pin: GPIO1
@@ -124,7 +129,7 @@ uart:
 ```
 
 ESP8266 has two hardware UARTs: UART0 and UART1. Only UART0 suits for aux_ac cause only it has both TX and RX. In **uart:** section above we configure UART0 for aux_ac. But it used by **logger:**. So it is necessary to redefine UART for logger:
-```
+```yaml
 logger:
     level: DEBUG
     # important: for avoiding collisions logger works with UART1 (for esp8266 tx = GPIO2, rx = None)
@@ -132,7 +137,7 @@ logger:
 ```
 
 Finally define climate component:
-```
+```yaml
 climate:
 - platform: custom
   lambda: |-
@@ -149,7 +154,7 @@ Aux_ac component provides three additional sensors: two temperatures and firmwar
 
 ### Ambient temperature ###
 This is current room air temperature from AC's sensor. If you need it in your configuration place this code to YAML file:
-```
+```yaml
 sensor:
   - platform: custom
     lambda: |-
@@ -166,7 +171,7 @@ sensor:
 ### Outdoor temperature ###
 Currently it shows weather on Mars =) May be it will change if we get more statistics and some smart guys for decoding.
 If in spite of everthing, you still want it in your configuration, just use this code:
-```
+```yaml
 sensor:
   - platform: custom
     lambda: |-
@@ -182,7 +187,7 @@ sensor:
 
 ### Both temperatures in one declaration ###
 It is possible to add room and outdoor temperatures to your configuration with one yaml block:
-```
+```yaml
 sensor:
   - platform: custom
     lambda: |-
@@ -201,7 +206,7 @@ sensor:
 
 ### Firmware version ###
 Aux_ac component also gives information about source code version. You can add it to your config with this code:
-```
+```yaml
 text_sensor:
 - platform: custom
   lambda: |-
