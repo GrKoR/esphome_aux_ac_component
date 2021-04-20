@@ -1,6 +1,9 @@
 # ESPHome AUX air conditioner custom component (aux_ac) #
 For communication about this project [join telegram chat](https://t.me/aux_ac). 
 
+For issues or feature requests, please go to [the issue section](https://github.com/GrKoR/esphome_aux_ac_component/issues).
+
+
 ## DISCLAIMER ##
 This software and hardware are provided **'AS IS'**. Everything you do with your devices you are doing at your own risk. If you aren't strongly understand what you are doing, just buy wifi-module from your air conditioner manufacturer.
 
@@ -63,7 +66,8 @@ If you are tested your air conditioner and aux_ac works with it please let me kn
 ### Hardware ###
 I tested it with esp8266 chip (esp-12e). Minimal scheme:
 ![scheme](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/scheme.png?raw=true)
-In real life looks minimal too:
+
+In real life looks minimalistic too:
 ![esp-12e minimal photo](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/esp-12e.jpg?raw=true)
 
 At the first time IO0 (GPIO0) must be pulled down to GND at the boot and ESPHome can be uploaded through UART0. If your ESPHome configuration contains OTA you can pullup IO0 or leave it floating. All further updates can be uploaded over-the-air.
