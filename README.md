@@ -64,10 +64,10 @@ If you are tested your air conditioner and aux_ac works with it please let me kn
 
 ## How to use it ##
 ### Hardware ###
-I tested it with esp8266 chip (esp-12e). Minimal scheme:
+I tested it with esp8266 chip (esp-12e). Minimal scheme: 
 ![scheme](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/scheme.png?raw=true)
 
-In real life looks minimalistic too:
+In real life looks minimalistic too: 
 ![esp-12e minimal photo](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/esp-12e.jpg?raw=true)
 
 At the first time IO0 (GPIO0) must be pulled down to GND at the boot and ESPHome can be uploaded through UART0. If your ESPHome configuration contains OTA you can pullup IO0 or leave it floating. All further updates can be uploaded over-the-air.
