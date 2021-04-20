@@ -64,10 +64,12 @@ If you are tested your air conditioner and aux_ac works with it please let me kn
 
 ## How to use it ##
 ### Hardware ###
-I tested it with esp8266 chip (esp-12e). Minimal scheme: 
+I tested it with esp8266 chip (esp-12e). Minimal scheme:
+
 ![scheme](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/scheme.png?raw=true)
 
-In real life looks minimalistic too: 
+In real life looks minimalistic too:
+
 ![esp-12e minimal photo](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/esp-12e.jpg?raw=true)
 
 At the first time IO0 (GPIO0) must be pulled down to GND at the boot and ESPHome can be uploaded through UART0. If your ESPHome configuration contains OTA you can pullup IO0 or leave it floating. All further updates can be uploaded over-the-air.
@@ -82,6 +84,7 @@ Wires:
 5. Red: RX of air conditioner. High is +5V.
 
 For power supply it is possible to use any kind of suitable modules. I use this:
+
 ![power module](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/DD4012SA.jpg?raw=true).
 
 Black wire of AC's connector goes to middle pin of power module and to GND pin of esp-12e.
@@ -90,9 +93,11 @@ Blue wire is connected to RXD pin of esp-12e.
 Red wire is connected to TXD pin of esp-12e.
 
 All connections in custom 3d-printed case looks like this:
+
 ![module assembled](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/assembled.JPG?raw=true)
 
 Cause I haven't JST SM connector I made own:
+
 ![JST SM connector replica](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/connector.JPG?raw=true).
 
 It made of standard 2.54mm pins and 3D-printed case.
@@ -102,7 +107,9 @@ All models for 3D-printing are available too: [STL-files for connector](https://
 The result:
 
 ![photo 1](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/real-1.JPG?raw=true)
+
 ![photo 2](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/real-2.JPG?raw=true)
+
 ![photo 3](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/real-3.JPG?raw=true)
 
 
