@@ -1,0 +1,17 @@
+# compile this file with ESPHome
+# This file contains unique settings for specific air conditioner
+
+#===================================================================================
+#   LIVINGROOM AIR CONDITIONER
+#===================================================================================
+
+substitutions:
+  devicename: livingroom_ac
+  upper_devicename: Livingroom AC
+  
+  # use different wifi_ip and wifi_ota_ip in case of esp ip-address change
+  # if ip haven't changed wifi_ip and wifi_ota_ip should be the same
+  wifi_ip: !secret wifi_ip_livingroom
+  wifi_ota_ip: !secret wifi_ota_ip_livingroom
+
+<<: !include ac_common.yaml

@@ -1,0 +1,104 @@
+# DON'T COMPILE THIS FILE
+# This file contains common settings for all air conditioners of your house
+
+esphome:
+  name: $devicename
+  platform: ESP8266
+  board: esp12e
+  includes:
+    - aux_ac_custom_component.h
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pass
+  manual_ip:
+    static_ip: ${wifi_ip}
+    gateway: !secret wifi_gateway
+    subnet: !secret wifi_subnet
+  ap:
+    ssid: ${upper_devicename} Hotspot
+    password: !secret wifi_ap_pass
+  use_address: ${wifi_ota_ip}
+
+captive_portal:
+debug:
+
+logger:
+    level: DEBUG
+    # important: for avoiding collisions logger works with UART1 (for esp8266 tx = GPIO2, rx = None)
+    hardware_uart: UART1
+
+api:
+  password: !secret api_pass
+
+ota:
+  password: !secret ota_pass
+
+web_server:
+  port: 80
+  auth:
+    username: !secret web_server_user
+    password: !secret web_server_password
+
+# UART0 configuration for AUX air conditioner communication
+uart:
+  id: ac_uart_bus
+  tx_pin: GPIO1
+  rx_pin: GPIO3
+  baud_rate: 4800
+  data_bits: 8
+  parity: EVEN
+  stop_bits: 1
+
+
+
+climate:
+# register custom AC climate
+- platform: custom
+  lambda: |-
+    extern AirCon acAirCon;
+    if (!acAirCon.get_initialized()) acAirCon.initAC(id(ac_uart_bus));
+    App.register_component(&acAirCon);
+    return {&acAirCon};
+  climates:
+    - name: ${upper_devicename}
+
+
+
+sensor:
+  # just wifi signal strength for debug purpose only
+  - platform: wifi_signal
+    name: ${upper_devicename} WiFi Signal
+    update_interval: 30s
+    unit_of_measurement: "dBa"
+    accuracy_decimals: 0
+
+  - platform: custom
+    # temperature sensors of AC
+    # outdoor temperature currently shows weather on Mars; need more statistics and some smart guys for decoding =)
+    # ambient temperature is an air temperature from indor AC unit
+    lambda: |-
+      extern AirCon acAirCon;
+      if (!acAirCon.get_initialized()) acAirCon.initAC(id(ac_uart_bus));
+      App.register_component(&acAirCon);
+      return {acAirCon.sensor_outdoor_temperature, acAirCon.sensor_ambient_temperature};
+    sensors:
+    - name: ${upper_devicename} outdoor temperature
+      unit_of_measurement: "°C"
+      accuracy_decimals: 1
+    - name: ${upper_devicename} ambient temperature
+      unit_of_measurement: "°C"
+      accuracy_decimals: 1
+
+
+
+text_sensor:
+# firmvare version - version of custom component
+- platform: custom
+  lambda: |-
+    auto aircon_firmware_version = new AirConFirmwareVersion();
+    App.register_component(aircon_firmware_version);
+    return {aircon_firmware_version};
+  text_sensors:
+    name: ${upper_devicename} firmware version
+    icon: "mdi:chip"
