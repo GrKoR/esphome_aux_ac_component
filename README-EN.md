@@ -5,16 +5,13 @@ For issues or feature requests, please go to [the issue section](https://github.
  
  
 ## DISCLAIMER ##
-This software and hardware are provided **'AS IS'**. Everything you do with your devices you are doing at your own risk. If you don't strongly understand what you are doing, just buy wifi-module from your air conditioner manufacturer.
- 
+1. All data of this project (software, firmware, schemes, 3d-models etc.) are provided **'AS IS'**. Everything you do with your devices you are doing at your own risk. If you don't strongly understand what you are doing, just buy wifi-module from your air conditioner manufacturer.
+2. I am not a programmer. So source code is certainly not optimal and badly decorated (but there are alot of comments in it; sorry, a significant part of it is in Russian). Also code may be written unsafe. I tried to test all parts of the code but I'm sure I missed a lot of things. So treat it with suspicion, expect a trick from it, and if you discover something wrong write an issue here.
+3. [Russian](https://github.com/GrKoR/esphome_aux_ac_component#readme) and English readmes are substantially identical in meaning. But in case of differences the Russian version is more significant.
  
 ## Short description ##
 This custom component allows you to control your air conditioner through wifi if it is made in the AUX factory.
 Component tested with ESPHome 1.15.3 and Rovex ALS1 air conditioner. It looks like many other air conditioners can be controlled by aux_ac but this possibility isn't tested. See list of testetd ACs below for more details.
- 
-For issues, please go to [the issue tracker](https://github.com/esphome/issues/issues).
- 
-For feature requests, please see [feature requests](https://github.com/esphome/feature-requests/issues).
  
  
 ## Supported air conditioners ##
@@ -57,11 +54,14 @@ Internet says that following air conditioners may test with aux_ac component:
 + Supra
 + Vertex
 + Zanussi
- 
-If the User Manual of your HVAC describes connection to wifi with mobile app ACFreedom it seems you may go deeper with aux_ac. But try all soft and hardware for your own risk. You must clearly understand what you are doing. It is better not to use the aux_ac component if you are unsure.
- 
-If you are tested your air conditioner and aux_ac works with it please let me know about it. I'll add this info to the list of tested ACs above.
- 
+
+If the User Manual of your HVAC describes connection to wifi with mobile app ACFreedom it seems you may go deeper with aux_ac. But try all soft and hardware for your own risk. You must clearly understand what you are doing.
+If you are unsure it is better to wait while other users will test your model of AC (but it may never). Or please [go to telegram-chat](https://t.me/aux_ac) with your questions. Maybe you will get help there.
+
+If you have tested your air conditioner and `aux_ac` works with it please let me know about it. I'll add this info to the list of tested ACs above.
+The best way to report about your test results is write a message [in the issue section](https://github.com/GrKoR/esphome_aux_ac_component/issues). Direct message in the telegram is possible too but probably I can miss your message among many others.
+
+
 ## How to use it ##
 ### Hardware ###
 I tested it with an esp8266 chip (esp-12e). Minimal scheme:
@@ -115,9 +115,8 @@ The result:
  
  
 ### Firmware: Integration aux_ac to your configuration ###
-Copy aux_ac_custom_component.h to folder with your ESPHome YAML file.
- 
-At the header of your YAML add include instruction like this:
+1. Copy aux_ac_custom_component.h to folder with your ESPHome YAML file.
+2. At the header of your YAML add include instruction like this:
 ```yaml
 esphome:
   name: $devicename
@@ -126,8 +125,7 @@ esphome:
   includes:
     - aux_ac_custom_component.h
 ```
- 
-Configure UART to communicate with air conditioner:
+3. Configure UART to communicate with air conditioner:
 ```yaml
 uart:
   id: ac_uart_bus
@@ -138,16 +136,14 @@ uart:
   parity: EVEN
   stop_bits: 1
 ```
- 
-ESP8266 has two hardware UARTs: UART0 and UART1. Only UART0 suits for aux_ac cause only it has both TX and RX. In **uart:** section above we configure UART0 for aux_ac. But it used by **logger:**. So it is necessary to redefine UART for logger:
+4. ESP8266 has two hardware UARTs: UART0 and UART1. Only UART0 suits for aux_ac cause only it has both TX and RX. In **uart:** section above we configure UART0 for aux_ac. But it used by **logger:**. So it is necessary to redefine UART for logger:
 ```yaml
 logger:
     level: DEBUG
     # important: for avoiding collisions logger works with UART1 (for esp8266 tx = GPIO2, rx = None)
     hardware_uart: UART1
 ```
- 
-Finally define climate component:
+5. Finally define climate component:
 ```yaml
 climate:
 - platform: custom
