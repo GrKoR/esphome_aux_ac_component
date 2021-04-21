@@ -11,7 +11,7 @@ For issues or feature requests, please go to [the issue section](https://github.
  
 ## Short description ##
 This custom component allows you to control your air conditioner through wifi if it is made in the AUX factory.
-Component tested with ESPHome 1.15.3 and Rovex ALS1 air conditioner. It looks like many other air conditioners can be controlled by aux_ac but this possibility isn't tested. See list of testetd ACs below for more details.
+Component tested with ESPHome 1.15.3 and Rovex ALS1 air conditioner. It looks like many other air conditioners can be controlled by `aux_ac` but this possibility isn't tested. See list of testetd ACs below for more details.
  
  
 ## Supported air conditioners ##
@@ -23,8 +23,8 @@ These ACs were tested by the author or by users.
  
 ### List of potential compatible ACs ###
 **NOT TESTED! TRY AT YOUR OWN RISK!**
-AUX is one of the OEM air conditioner manufacturers. They produce ACs for many brands.
-Internet says that following air conditioners may test with aux_ac component:
+AUX is one of the OEM air conditioner manufacturers. AUX produce ACs for many brands.
+Internet says that following air conditioners may test with `aux_ac` component:
 + AUX
 + Abion
 + AC ELECTRIC
@@ -55,7 +55,9 @@ Internet says that following air conditioners may test with aux_ac component:
 + Vertex
 + Zanussi
 
-If the User Manual of your HVAC describes connection to wifi with mobile app ACFreedom it seems you may go deeper with aux_ac. But try all soft and hardware for your own risk. You must clearly understand what you are doing.
+If your AC is listed above you you should take a closer look at `aux_ac`.
+
+If the User Manual of your HVAC describes connection to wifi with mobile app ACFreedom it seems you may go deeper with `aux_ac`. But try all soft and hardware for your own risk. You must clearly understand what you are doing.
 If you are unsure it is better to wait while other users will test your model of AC (but it may never). Or please [go to telegram-chat](https://t.me/aux_ac) with your questions. Maybe you will get help there.
 
 If you have tested your air conditioner and `aux_ac` works with it please let me know about it. I'll add this info to the list of tested ACs above.
@@ -68,11 +70,12 @@ I tested it with an esp8266 chip (esp-12e). Minimal scheme:
  
 ![scheme](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/scheme.png?raw=true)
  
-In real life looks minimalistic too:
+At the first time in addition to scheme above IO0 (GPIO0) must be pulled down to GND at the boot and ESPHome can be uploaded through UART0. If your ESPHome configuration contains OTA you can pull up IO0 or leave it floating. All further updates can be uploaded over-the-air.
+I leave GPIO0 in air cause I don't see any reason to solder additional components for single use.
+
+ESP-12E before DC-DC and air conditioner connected:
  
 ![esp-12e minimal photo](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/esp-12e.jpg?raw=true)
- 
-At the first time IO0 (GPIO0) must be pulled down to GND at the boot and ESPHome can be uploaded through UART0. If your ESPHome configuration contains OTA you can pull up IO0 or leave it floating. All further updates can be uploaded over-the-air.
  
 Air conditioner internal block has a 5-wire connection to the wifi-module. Connector is [JST SM](https://www.jst-mfg.com/product/pdf/eng/eSM.pdf).
  
@@ -136,7 +139,7 @@ uart:
   parity: EVEN
   stop_bits: 1
 ```
-4. ESP8266 has two hardware UARTs: UART0 and UART1. Only UART0 suits for aux_ac cause only it has both TX and RX. In **uart:** section above we configure UART0 for aux_ac. But it used by **logger:**. So it is necessary to redefine UART for logger:
+4. ESP8266 has two hardware UARTs: UART0 and UART1. Only UART0 suits for `aux_ac` cause only it has both TX and RX. In **uart:** section above we configure UART0 for `aux_ac`. But it used by **logger:**. So it is necessary to redefine UART for logger:
 ```yaml
 logger:
     level: DEBUG
@@ -157,13 +160,16 @@ climate:
 ```
  
 ## Example ##
-Files `ac_common.yaml`, `ac_kitchen.yaml` and `ac_livingroom.yaml` show standard way to use aux_ac custom component.
+Files `ac_common.yaml`, `ac_kitchen.yaml` and `ac_livingroom.yaml` show standard way to use `aux_ac` custom component.
+
 `ac_common.yaml` contains a common configuration part for two air conditioners. One of the ACs is located in a kitchen, the second one is in a living room.
+
 `ac_kitchen.yaml` and `ac_livingroom.yaml` contain specific parts of configuration: IP-addresses, device names etc.
+
 If you try to compile `ac_common.yaml` it will raise errors. You need to compile `ac_kitchen.yaml` or `ac_livingroom.yaml` instead.
  
 ## Additional functionality ##
-Aux_ac component provides three additional sensors: two temperatures and firmware version.
+`Aux_ac` component provides three additional sensors: two temperatures and firmware version.
  
 ### Ambient temperature ###
 This is the current room air temperature from AC's sensor. If you need it in your configuration place this code to YAML file:
@@ -218,7 +224,7 @@ sensor:
 ```
  
 ### Firmware version ###
-Aux_ac component also gives information about source code version. You can add it to your config with this code:
+`Aux_ac` component also gives information about source code version. You can add it to your config with this code:
 ```yaml
 text_sensor:
 - platform: custom
