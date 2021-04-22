@@ -25,17 +25,17 @@ These ACs were tested by the author or by users.
 AUX is one of the OEM air conditioner manufacturers. AUX produce ACs for many brands.
 
 Internet says that following air conditioners may work with `aux_ac` component:
-+ AUX
++ AUX (AUX ASW-H09A4/LK-700R1 in progress)
 + Abion
 + AC ELECTRIC
 + Almacom
-+ Ballu
++ Ballu (ballu bsli-09hn1 in progress)
 + CENTEK
 + Energolux
 + ERISSON
 + Green Energy
 + Hyundai
-+ Kentatsu (some series)
++ Kentatsu (some series; Kentatsu KSGMA26HFAN1 tested and **isn't supported**)
 + Klimaire
 + KOMANCHI
 + LANZKRAFT

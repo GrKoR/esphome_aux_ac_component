@@ -34,17 +34,17 @@ Readme in english [is here](README-EN.md#esphome-aux-air-conditioner-custom-comp
 AUX - это один из нескольких OEM-производителей кондиционеров. AUX производят кондиционеры как под собственным брендом, так и для внешних заказчиков. Поэтому есть шанс, что произведенный на их фабрике кондиционер неизвестного бренда с `aux_ac` так же заработает.
 
 В интернете есть такой перечень производившихся на фабриках AUX брендов:
-+ AUX
++ AUX (AUX ASW-H09A4/LK-700R1 in progress)
 + Abion
 + AC ELECTRIC
 + Almacom
-+ Ballu
++ Ballu (ballu bsli-09hn1 in progress)
 + CENTEK
 + Energolux
 + ERISSON
 + Green Energy
 + Hyundai
-+ Kentatsu (некоторые серии)
++ Kentatsu (некоторые серии; Kentatsu KSGMA26HFAN1 протестирован и **точно не поддерживается**)
 + Klimaire
 + KOMANCHI
 + LANZKRAFT
