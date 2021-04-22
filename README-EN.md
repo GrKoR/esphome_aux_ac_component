@@ -10,21 +10,21 @@ For issues or feature requests, please go to [the issue section](https://github.
 3. [Russian](https://github.com/GrKoR/esphome_aux_ac_component#readme) and English readmes are substantially identical in meaning. But in case of differences the Russian version is more significant.
  
 ## Short description ##
-This custom component allows you to control your air conditioner through wifi if it is made in the AUX factory.
+This custom component allows you to control your air conditioner through wifi if it is made in the AUX factory.<br />
 Component tested with ESPHome 1.15.3 and Rovex ALS1 air conditioner. It looks like many other air conditioners can be controlled by `aux_ac` but this possibility isn't tested. See list of testetd ACs below for more details.
  
  
 ## Supported air conditioners ##
- 
 ### List of compatible ACs (tested) ###
 These ACs were tested by the author or by users.
 + Rovex (models: ALS1)
- 
- 
+
+
 ### List of potential compatible ACs ###
-**NOT TESTED! TRY AT YOUR OWN RISK!**
+**NOT TESTED! TRY AT YOUR OWN RISK!**<br />
 AUX is one of the OEM air conditioner manufacturers. AUX produce ACs for many brands.
-Internet says that following air conditioners may test with `aux_ac` component:
+
+Internet says that following air conditioners may work with `aux_ac` component:
 + AUX
 + Abion
 + AC ELECTRIC
@@ -55,26 +55,23 @@ Internet says that following air conditioners may test with `aux_ac` component:
 + Vertex
 + Zanussi
 
-If your AC is listed above you you should take a closer look at `aux_ac`.
-
-If the User Manual of your HVAC describes connection to wifi with mobile app ACFreedom it seems you may go deeper with `aux_ac`. But try all soft and hardware for your own risk. You must clearly understand what you are doing.
+If your AC is listed above you you should take a closer look at `aux_ac`.<br />
+If the User Manual of your HVAC describes connection to wifi with mobile app ACFreedom it seems you may go deeper with `aux_ac`. But try all soft and hardware for your own risk. You must clearly understand what you are doing.<br />
 If you are unsure it is better to wait while other users will test your model of AC (but it may never). Or please [go to telegram-chat](https://t.me/aux_ac) with your questions. Maybe you will get help there.
 
 If you have tested your air conditioner and `aux_ac` works with it please let me know about it. I'll add this info to the list of tested ACs above.
-The best way to report about your test results is write a message [in the issue section](https://github.com/GrKoR/esphome_aux_ac_component/issues). Direct message in the telegram is possible too but probably I can miss your message among many others.
+The best way to report about your test results is write a message [in the issue section](https://github.com/GrKoR/esphome_aux_ac_component/issues). Direct message in the [telegram](https://t.me/aux_ac) is possible too but probably I can miss your message among many others.
 
 
 ## How to use it ##
 ### Hardware ###
-I tested it with an esp8266 chip (esp-12e). Minimal scheme:
- 
+I tested it with an esp8266 chip (esp-12e). Minimal scheme:<br />
 ![scheme](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/scheme.png?raw=true)
  
-At the first time in addition to scheme above IO0 (GPIO0) must be pulled down to GND at the boot and ESPHome can be uploaded through UART0. If your ESPHome configuration contains OTA you can pull up IO0 or leave it floating. All further updates can be uploaded over-the-air.
+At the first time in addition to scheme above IO0 (GPIO0) must be pulled down to GND at the boot and ESPHome can be uploaded through UART0. If your ESPHome configuration contains OTA you can pull up IO0 or leave it floating. All further updates can be uploaded over-the-air.<br />
 I leave GPIO0 in air cause I don't see any reason to solder additional components for single use.
 
-ESP-12E before DC-DC and air conditioner connected:
- 
+ESP-12E before DC-DC and air conditioner connected:<br />
 ![esp-12e minimal photo](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/esp-12e.jpg?raw=true)
  
 Air conditioner internal block has a 5-wire connection to the wifi-module. Connector is [JST SM](https://www.jst-mfg.com/product/pdf/eng/eSM.pdf).
@@ -86,41 +83,33 @@ Wires:
 4. Blue: TX of air conditioner. High is +5V.
 5. Red: RX of air conditioner. High is +5V.
  
-For power supply it is possible to use any kind of suitable modules. I use this:
- 
+For power supply it is possible to use any kind of suitable modules. I use this:<br />
 ![power module](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/DD4012SA.jpg?raw=true).
  
-Black wire of AC's connector goes to the middle pin of the power module and to the GND pin of esp-12e.
-Yellow wire is connected to the Vin pin of the power module.
-Blue wire is connected to the RXD pin of esp-12e.
-Red wire is connected to the TXD pin of esp-12e.
+Black wire of AC's connector goes to the middle pin of the power module and to the GND pin of esp-12e.<br />
+Yellow wire is connected to the Vin pin of the power module.<br />
+Blue wire is connected to the RXD pin of esp-12e.<br />
+Red wire is connected to the TXD pin of esp-12e.<br />
 
-Here is it:
-
+Here is it:<br />
 ![connections](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/connections.png?raw=true)
  
-All connections in custom 3d-printed case looks like this:
- 
+All connections in custom 3d-printed case looks like this:<br />
 ![module assembled](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/assembled.JPG?raw=true)
  
-Cause I haven't JST SM connector I made own:
- 
+Cause I haven't JST SM connector I made own:<br />
 ![JST SM connector replica](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/connector.JPG?raw=true).
  
-It is made of standard 2.54mm pins and 3D-printed case.
- 
+It is made of standard 2.54mm pins and 3D-printed case.<br />
 All models for 3D-printing are available too: [STL-files for connector](https://github.com/GrKoR/esphome_aux_ac_component/tree/master/enclosure/JST%20SM%20connector), [models of case parts](https://github.com/GrKoR/esphome_aux_ac_component/tree/master/enclosure/case). 
  
-The result:
- 
-![photo 1](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/real-1.JPG?raw=true)
- 
-![photo 2](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/real-2.JPG?raw=true)
- 
+Here is the result:<br />
+![photo 1](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/real-1.JPG?raw=true)<br />
+![photo 2](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/real-2.JPG?raw=true)<br />
 ![photo 3](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/real-3.JPG?raw=true)
- 
- 
- 
+
+
+
 ### Firmware: Integration aux_ac to your configuration ###
 1. Copy aux_ac_custom_component.h to folder with your ESPHome YAML file.
 2. At the header of your YAML add include instruction like this:
@@ -143,12 +132,14 @@ uart:
   parity: EVEN
   stop_bits: 1
 ```
-4. ESP8266 has two hardware UARTs: UART0 and UART1. Only UART0 suits for `aux_ac` cause only it has both TX and RX. In **uart:** section above we configure UART0 for `aux_ac`. But it used by **logger:**. So it is necessary to redefine UART for logger:
+4. ESP8266 has two hardware UARTs: UART0 and UART1. Only UART0 suits for `aux_ac` cause only it has both TX and RX. In **uart:** section above we configure UART0 for `aux_ac`. But it used by **logger:**. So it is necessary to redefine UART for logger or switch it off:
 ```yaml
 logger:
     level: DEBUG
-    # important: for avoiding collisions logger works with UART1 (for esp8266 tx = GPIO2, rx = None)
-    hardware_uart: UART1
+    baud_rate: 0
+    # set hardware_uart to UART1 and comment out baud_rate above in case of boot crashes
+    # it is suitable if you need hardware loggin
+    # hardware_uart: UART1
 ```
 5. Finally define climate component:
 ```yaml
@@ -162,13 +153,21 @@ climate:
   climates:
     - name: "My awesome air conditioner"
 ```
- 
-## Example ##
-Files `ac_common.yaml`, `ac_kitchen.yaml` and `ac_livingroom.yaml` show standard way to use `aux_ac` custom component.
 
-`ac_common.yaml` contains a common configuration part for two air conditioners. One of the ACs is located in a kitchen, the second one is in a living room.
+## Simple example ##
+The source code of this example is located in the [aux_ac_simple.yaml](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/examples/simple/aux_ac_simple.yaml) file.
 
-`ac_kitchen.yaml` and `ac_livingroom.yaml` contain specific parts of configuration: IP-addresses, device names etc.
+All settings in it is trivial. Just copy file to your local folder, specify your wifi settings and compile YAML with ESPHome.
+
+
+## Advanced example ##
+All sources are located [in advanced example folder](https://github.com/GrKoR/esphome_aux_ac_component/tree/master/examples/advanced).
+
+This time we'll configure two relative identical air conditioners with `aux_ac` custom component.<br />
+Let's imagine we have ACs in a kitchen and in a living room. All ACs are the same brand and can be controlled by `aux_ac`.<br />  
+Cause we are lazy we'll define all common configuration parts for two air conditioners in one `ac_common.yaml` file.<br />
+All specific parts of configuration are located in the `ac_kitchen.yaml` and `ac_livingroom.yaml`. Here we set `devicename` and `upper_devicename` for correct sensors and component naming. And here we specify the correct IP-address of the device from `secrets.yaml`.<br />
+**Don't forget** to specify `wifi_ip_kitchen`, `wifi_ota_ip_kitchen`, `wifi_ip_livingroom` and `wifi_ota_ip_livingroom` in the `secrets.yaml` along with the other sensitive information, such as passwords, tokens etc.
 
 If you try to compile `ac_common.yaml` it will raise errors. You need to compile `ac_kitchen.yaml` or `ac_livingroom.yaml` instead.
  
@@ -192,7 +191,7 @@ sensor:
 ```
  
 ### Outdoor temperature ###
-Currently it shows weather on Mars =) Maybe it will change if we get more statistics and some smart guys for decoding.
+Currently it shows weather on Mars =) Maybe it will change if we get more statistics and some smart guys for decoding.<br />
 If in spite of everything, you still want it in your configuration, just use this code:
 ```yaml
 sensor:
