@@ -1,9 +1,9 @@
 # Компонент для ESPHome. #
+Readme in english [is here](README-EN.md#esphome-aux-air-conditioner-custom-component-aux_ac). 
 
 Управляет кондиционерами на базе AUX по wifi.<br />
 По тексту ниже для компонента используется сокращение `aux_ac`.
 
-Readme in english [is here](README-EN.md#esphome-aux-air-conditioner-custom-component-aux_ac). 
 
 Обсудить проект можно [в чате Телеграм](https://t.me/aux_ac). 
  
