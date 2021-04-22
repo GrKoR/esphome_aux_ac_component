@@ -1,0 +1,72 @@
+esphome:
+  name: aux_air_conditioner
+  platform: ESP8266
+  board: esp12e
+  includes:
+    - aux_ac_custom_component.h
+
+# don't forget to set your's wifi settings!
+wifi:
+  ssid: "WIFI SSID"
+  password: "seCRETpassWORD"
+  manual_ip:
+    static_ip: 192.168.0.2
+    gateway: 192.168.0.1
+    subnet: 255.255.255.0
+  ap:
+    ssid: AUX Hotspot
+    password: "seCREThotSPOTpassWORD"
+
+captive_portal:
+debug:
+
+logger:
+    level: DEBUG
+    baud_rate: 0
+
+api:
+
+ota:
+
+# UART0 configuration for AUX air conditioner communication
+uart:
+  id: ac_uart_bus
+  tx_pin: GPIO1
+  rx_pin: GPIO3
+  baud_rate: 4800
+  data_bits: 8
+  parity: EVEN
+  stop_bits: 1
+
+climate:
+# register custom AC climate
+- platform: custom
+  lambda: |-
+    extern AirCon acAirCon;
+    if (!acAirCon.get_initialized()) acAirCon.initAC(id(ac_uart_bus));
+    App.register_component(&acAirCon);
+    return {&acAirCon};
+  climates:
+    - name: AUX hvac
+
+sensor:
+  - platform: custom
+    lambda: |-
+      extern AirCon acAirCon;
+      if (!acAirCon.get_initialized()) acAirCon.initAC(id(ac_uart_bus));
+      App.register_component(&acAirCon);
+      return {acAirCon.sensor_ambient_temperature};
+    sensors:
+    - name: AUX ambient temperature
+      unit_of_measurement: "°C"
+      accuracy_decimals: 1
+
+text_sensor:
+- platform: custom
+  lambda: |-
+    auto aircon_firmware_version = new AirConFirmwareVersion();
+    App.register_component(aircon_firmware_version);
+    return {aircon_firmware_version};
+  text_sensors:
+    name: AUX firmware version
+    icon: "mdi:chip"

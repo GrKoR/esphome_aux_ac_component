@@ -25,8 +25,7 @@ debug:
 
 logger:
     level: DEBUG
-    # important: for avoiding collisions logger works with UART1 (for esp8266 tx = GPIO2, rx = None)
-    hardware_uart: UART1
+    baud_rate: 0
 
 api:
   password: !secret api_pass
