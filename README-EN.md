@@ -94,6 +94,10 @@ Black wire of AC's connector goes to the middle pin of the power module and to t
 Yellow wire is connected to the Vin pin of the power module.
 Blue wire is connected to the RXD pin of esp-12e.
 Red wire is connected to the TXD pin of esp-12e.
+
+Here is it:
+
+![connections](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/connections.png?raw=true)
  
 All connections in custom 3d-printed case looks like this:
  
