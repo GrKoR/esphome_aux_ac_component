@@ -26,6 +26,9 @@ debug:
 logger:
     level: DEBUG
     baud_rate: 0
+    # set hardware_uart to UART1 and comment out baud_rate above in case of boot crashes
+    # it is suitable if you need hardware loggin
+    # hardware_uart: UART1
 
 api:
   password: !secret api_pass
