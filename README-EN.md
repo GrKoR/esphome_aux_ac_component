@@ -17,7 +17,8 @@ Component tested with ESPHome 1.15.3 and Rovex ALS1 air conditioner. It looks li
 ## Supported air conditioners ##
 ### List of compatible ACs (tested) ###
 These ACs were tested by the author or by users.
-+ Rovex (models: ALS1)
++ Rovex (models: RS-09ALS1, RS-09ALS1)
++ AUX (models: ASW-H09A4/LK-700R1)
 
 
 ### List of potential compatible ACs ###
@@ -25,13 +26,12 @@ These ACs were tested by the author or by users.
 AUX is one of the OEM air conditioner manufacturers. AUX produce ACs for many brands.
 
 Internet says that following air conditioners may work with `aux_ac` component:
-+ AUX (AUX ASW-H09A4/LK-700R1 in progress)
 + Abion
 + AC ELECTRIC
 + Almacom
 + Ballu (ballu bsli-09hn1 in progress)
 + CENTEK
-+ Energolux
++ Energolux (sas12z3-ai in progress)
 + ERISSON
 + Green Energy
 + Hyundai
