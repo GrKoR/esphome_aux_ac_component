@@ -7,7 +7,7 @@ For issues or feature requests, please go to [the issue section](https://github.
 ## DISCLAIMER ##
 1. All data of this project (software, firmware, schemes, 3d-models etc.) are provided **'AS IS'**. Everything you do with your devices you are doing at your own risk. If you don't strongly understand what you are doing, just buy wifi-module from your air conditioner manufacturer.
 2. I am not a programmer. So source code is certainly not optimal and badly decorated (but there are alot of comments in it; sorry, a significant part of it is in Russian). Also code may be written unsafe. I tried to test all parts of the code but I'm sure I missed a lot of things. So treat it with suspicion, expect a trick from it, and if you discover something wrong write an issue here.
-3. [Russian](https://github.com/GrKoR/esphome_aux_ac_component#readme) and English readmes are substantially identical in meaning. But in case of differences the Russian version is more significant.
+3. Russian and English readmes are substantially identical in meaning. But in case of differences the [Russian](https://github.com/GrKoR/esphome_aux_ac_component#readme) version is more significant.
  
 ## Short description ##
 This custom component allows you to control your air conditioner through wifi if it is made in the AUX factory.<br />
