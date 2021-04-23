@@ -1,6 +1,6 @@
 // Custom ESPHome component for AUX-based air conditioners
 // Need some soldering skills
-// Detailed connection instruction is available on github: https://github.com/GrKoR/esphome_aux_ac_component
+// Source code and detailed instructions are available on github: https://github.com/GrKoR/esphome_aux_ac_component
 
 #include "esphome.h"
 #include <stdarg.h>
