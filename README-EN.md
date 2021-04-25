@@ -62,7 +62,7 @@ Internet says that following air conditioners may work with `aux_ac` component:
 + Vertex
 + Zanussi
 
-If your AC is listed above you you should take a closer look at `aux_ac`.<br />
+If your AC is listed above you should take a closer look at `aux_ac`.<br />
 If the User Manual of your HVAC describes connection to wifi with mobile app ACFreedom it seems you may go deeper with `aux_ac`. But try all soft and hardware for your own risk. You must clearly understand what you are doing.<br />
 If you are unsure it is better to wait while other users will test your model of AC (but it may never). Or please [go to telegram-chat](https://t.me/aux_ac) with your questions. Maybe you will get help there.
 
