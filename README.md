@@ -38,20 +38,25 @@ AUX - это один из нескольких OEM-производителей
 + Abion
 + AC ELECTRIC
 + Almacom
-+ Ballu (ballu bsli-09hn1 in progress)
++ Ballu (bsli-09hn1 in progress)
 + CENTEK
++ Climer
++ DAX
 + Energolux (sas12z3-ai in progress)
 + ERISSON
 + Green Energy
 + Hyundai
++ IGC
 + Kentatsu (некоторые серии; Kentatsu KSGMA26HFAN1 протестирован и **точно не поддерживается**)
 + Klimaire
 + KOMANCHI
 + LANZKRAFT
 + LEBERG
++ LGen
 + Monroe
 + Neoclima
 + NEOLINE
++ One Air
 + Pioneer (до 2016 года)
 + Roda
 + Royal Clima
@@ -59,8 +64,10 @@ AUX - это один из нескольких OEM-производителей
 + SATURN
 + Scarlett
 + SmartWay
++ Soling
 + SUBTROPIC
 + Supra
++ Timberk
 + Vertex
 + Zanussi
 

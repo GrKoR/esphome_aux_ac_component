@@ -29,29 +29,36 @@ Internet says that following air conditioners may work with `aux_ac` component:
 + Abion
 + AC ELECTRIC
 + Almacom
-+ Ballu (ballu bsli-09hn1 in progress)
++ Ballu (bsli-09hn1 in progress)
 + CENTEK
++ Climer
++ DAX
 + Energolux (sas12z3-ai in progress)
 + ERISSON
 + Green Energy
 + Hyundai
-+ Kentatsu (some series; Kentatsu KSGMA26HFAN1 tested and **isn't supported**)
++ IGC
++ Kentatsu (some series; Kentatsu KSGMA26HFAN1 was tested and **isn't supported**)
 + Klimaire
 + KOMANCHI
 + LANZKRAFT
 + LEBERG
++ LGen
 + Monroe
 + Neoclima
 + NEOLINE
-+ Pioneer (before 2016)
++ One Air
++ Pioneer (до 2016 года)
 + Roda
 + Royal Clima
 + SAKATA
 + SATURN
 + Scarlett
 + SmartWay
++ Soling
 + SUBTROPIC
 + Supra
++ Timberk
 + Vertex
 + Zanussi
 
