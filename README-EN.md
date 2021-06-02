@@ -19,6 +19,7 @@ Component tested with ESPHome 1.15.3 and Rovex ALS1 air conditioner. It looks li
 These ACs were tested by the author or by users.
 + Rovex (models: RS-09ALS1, RS-09ALS1)
 + AUX (models: ASW-H09A4/LK-700R1)
++ IGC (models: RAK-07NH multysplit)
 
 
 ### List of potential compatible ACs ###
@@ -37,7 +38,6 @@ Internet says that following air conditioners may work with `aux_ac` component:
 + ERISSON
 + Green Energy
 + Hyundai
-+ IGC
 + Kentatsu (some series; Kentatsu KSGMA26HFAN1 was tested and **isn't supported**)
 + Klimaire
 + KOMANCHI

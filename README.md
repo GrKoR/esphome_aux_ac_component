@@ -29,6 +29,7 @@ Readme in english [is here](README-EN.md#esphome-aux-air-conditioner-custom-comp
 Протестированы:
 + Rovex (models: RS-09ALS1, RS-09ALS1)
 + AUX (models: ASW-H09A4/LK-700R1)
++ IGC (models: RAK-07NH multysplit)
 
  
 ### Список потенциально совместимых кондиционеров ###
@@ -47,7 +48,6 @@ AUX - это один из нескольких OEM-производителей
 + ERISSON
 + Green Energy
 + Hyundai
-+ IGC
 + Kentatsu (некоторые серии; Kentatsu KSGMA26HFAN1 протестирован и **точно не поддерживается**)
 + Klimaire
 + KOMANCHI
