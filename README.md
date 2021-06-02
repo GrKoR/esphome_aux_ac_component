@@ -6,6 +6,7 @@ Readme in english [is here](README-EN.md#esphome-aux-air-conditioner-custom-comp
 
 Обсудить проект можно [в чате Телеграм](https://t.me/aux_ac).<br /> 
 Отзывы о багах и ошибках, а так же запросы на дополнительный функционал оставляйте [в соответствующем разделе](https://github.com/GrKoR/esphome_aux_ac_component/issues).
+Будет просто отлично, если к своему сообщению вы добавите лог и подробное описание. Для сбора логов я написал [специальный скрипт на Python](https://github.com/GrKoR/ac_python_logger). С его помощью вы сможете сохранить в csv-файл все пакеты, которыми обменивается wifi-модуль и сплит-система. Если такой лог дополнить описанием, в какое время и что именно вы пытались включить, то это сильно ускорит исправление багов.
 
 
 ## ДИСКЛЭЙМЕР (ОТМАЗКИ) ##
@@ -38,11 +39,11 @@ AUX - это один из нескольких OEM-производителей
 + Abion
 + AC ELECTRIC
 + Almacom
-+ Ballu (bsli-09hn1 in progress)
++ Ballu 
 + CENTEK
 + Climer
 + DAX
-+ Energolux (sas12z3-ai in progress)
++ Energolux
 + ERISSON
 + Green Energy
 + Hyundai

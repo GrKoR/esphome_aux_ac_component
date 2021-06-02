@@ -1,7 +1,7 @@
 # ESPHome AUX air conditioner custom component (aux_ac) #
 For communication about this project [join telegram chat](https://t.me/aux_ac). 
  
-For issues or feature requests, please go to [the issue section](https://github.com/GrKoR/esphome_aux_ac_component/issues).
+For issues or feature requests, please go to [the issue section](https://github.com/GrKoR/esphome_aux_ac_component/issues). It will be perfect if you adds log to your issue. Log you can collect with [this python script](https://github.com/GrKoR/ac_python_logger). It helps you to save all data frames from the UART bus to a csv-file. This log combined with the detailed situation description will significantly speed up bug correction.
  
  
 ## DISCLAIMER ##
@@ -29,11 +29,11 @@ Internet says that following air conditioners may work with `aux_ac` component:
 + Abion
 + AC ELECTRIC
 + Almacom
-+ Ballu (bsli-09hn1 in progress)
++ Ballu
 + CENTEK
 + Climer
 + DAX
-+ Energolux (sas12z3-ai in progress)
++ Energolux
 + ERISSON
 + Green Energy
 + Hyundai
