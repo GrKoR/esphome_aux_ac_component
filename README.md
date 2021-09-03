@@ -27,11 +27,11 @@ Readme in english [is here](README-EN.md#esphome-aux-air-conditioner-custom-comp
 Проведенное автором или пользователями тестирование может не включать какие-то функции по причине их отсутствия в кондиционере тестировщика. Но как минимум присутствие вашего кондиционера в списке протестированных позволяет говорить, что у кого-то из пользователей компонента своим кондиционером этого бренда управлять получилось. Так что с должной осмотрительностью можно пробовать запускать у себя.
 
 Протестированы:
-+ Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)
 + AUX (models: ASW-H09A4/LK-700R1, ASW-H09B4/LK-700R1, AMWM-xxx multysplit)
-+ IGC (models: RAK-07NH multysplit)
 + Centek (models: CT-65Q09)
++ IGC (models: RAK-07NH multysplit)
 + Roda (models: RS-AL09F)
++ Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)
 
  
 ### Список потенциально совместимых кондиционеров ###
