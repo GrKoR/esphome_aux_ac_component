@@ -43,7 +43,6 @@ AUX - это один из нескольких OEM-производителей
 + AC ELECTRIC
 + Almacom
 + Ballu 
-+ CENTEK
 + Climer
 + DAX
 + Energolux
@@ -61,7 +60,6 @@ AUX - это один из нескольких OEM-производителей
 + NEOLINE
 + One Air
 + Pioneer (до 2016 года)
-+ Roda
 + Royal Clima
 + SAKATA
 + SATURN
