@@ -33,7 +33,6 @@ Internet says that following air conditioners may work with `aux_ac` component:
 + AC ELECTRIC
 + Almacom
 + Ballu
-+ CENTEK
 + Climer
 + DAX
 + Energolux
@@ -51,7 +50,6 @@ Internet says that following air conditioners may work with `aux_ac` component:
 + NEOLINE
 + One Air
 + Pioneer (до 2016 года)
-+ Roda
 + Royal Clima
 + SAKATA
 + SATURN
