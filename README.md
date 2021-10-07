@@ -32,6 +32,7 @@ Readme in english [is here](README-EN.md#esphome-aux-air-conditioner-custom-comp
 + IGC (models: RAK-07NH multysplit)
 + Roda (models: RS-AL09F)
 + Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)
++ Samurai (models: SMA-09HRN1 ION)
 
  
 ### Список потенциально совместимых кондиционеров ###
