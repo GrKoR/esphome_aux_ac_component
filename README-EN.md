@@ -22,6 +22,7 @@ These ACs were tested by the author or by users.
 + IGC (models: RAK-07NH multysplit)
 + Roda (models: RS-AL09F)
 + Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)
++ Samurai (models: SMA-09HRN1 ION)
 
 
 ### List of potential compatible ACs ###
