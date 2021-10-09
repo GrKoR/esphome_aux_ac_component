@@ -29,10 +29,11 @@ Readme in english [is here](README-EN.md#esphome-aux-air-conditioner-custom-comp
 Протестированы:
 + AUX (models: ASW-H09A4/LK-700R1, ASW-H09B4/LK-700R1, AMWM-xxx multysplit)
 + Centek (models: CT-65Q09, CT-65Z10)
++ Hyundai (models: H-AR21-09H)
 + IGC (models: RAK-07NH multysplit)
 + Roda (models: RS-AL09F)
 + Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)
-+ Samurai (models: SMA-09HRN1 ION)
++ Samurai (models: SMA-07HRN1 ION, SMA-09HRN1 ION)
 
  
 ### Список потенциально совместимых кондиционеров ###
@@ -49,7 +50,6 @@ AUX - это один из нескольких OEM-производителей
 + Energolux
 + ERISSON
 + Green Energy
-+ Hyundai
 + Kentatsu (некоторые серии; Kentatsu KSGMA26HFAN1 протестирован и **точно не поддерживается**)
 + Klimaire
 + KOMANCHI
