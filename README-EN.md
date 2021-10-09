@@ -19,10 +19,11 @@ Component tested with ESPHome 1.15.3 and Rovex ALS1 air conditioner. It looks li
 These ACs were tested by the author or by users.
 + AUX (models: ASW-H09A4/LK-700R1, ASW-H09B4/LK-700R1, AMWM-xxx multysplit)
 + Centek (models: CT-65Q09, CT-65Z10)
++ Hyundai (models: H-AR21-09H)
 + IGC (models: RAK-07NH multysplit)
 + Roda (models: RS-AL09F)
 + Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)
-+ Samurai (models: SMA-09HRN1 ION)
++ Samurai (models: SMA-07HRN1 ION, SMA-09HRN1 ION)
 
 
 ### List of potential compatible ACs ###
@@ -39,7 +40,6 @@ Internet says that following air conditioners may work with `aux_ac` component:
 + Energolux
 + ERISSON
 + Green Energy
-+ Hyundai
 + Kentatsu (some series; Kentatsu KSGMA26HFAN1 was tested and **isn't supported**)
 + Klimaire
 + KOMANCHI
