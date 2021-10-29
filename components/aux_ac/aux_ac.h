@@ -973,7 +973,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             
                             // некая температура из наружного блока, скорее всего температура испарителя
                             // TODO: формула расчета неправильная! Нужно исследовать на опыте, какая температура при каких условиях
-                            stateFloat = big_info_body->outdoor_temperature - 0x20;
+                            //stateFloat = big_info_body->outdoor_temperature - 0x20;
+                            stateFloat = big_info_body->outdoor_temperature;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.temp_outdoor != stateFloat);
                             _current_ac_state.temp_outdoor = stateFloat;
 
@@ -1495,7 +1496,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
     public:
         // сенсоры, отображающие параметры сплита
         esphome::sensor::Sensor *sensor_ambient_temperature = new esphome::sensor::Sensor();
-        esphome::sensor::Sensor *sensor_outdoor_temperature = new esphome::sensor::Sensor();
+        // TODO: если расшифруем формулу для уличной температуры, то можно будет вернуть
+        //esphome::sensor::Sensor *sensor_outdoor_temperature = new esphome::sensor::Sensor();
 
         AirCon(){ initAC(); };
 
@@ -1768,7 +1770,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             // температура в комнате
             sensor_ambient_temperature->publish_state(_current_ac_state.temp_ambient);
             // температура уличного блока
-            sensor_outdoor_temperature->publish_state(_current_ac_state.temp_outdoor);
+            // TODO: если расшифруем формулу для уличной температуры, то можно будет вернуть
+            //sensor_outdoor_temperature->publish_state(_current_ac_state.temp_outdoor);
         }
 
         // вывод в дебаг текущей конфигурации компонента
