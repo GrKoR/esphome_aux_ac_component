@@ -2289,6 +2289,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 _debugMsg(F("current status:"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__);
                 _debugMsg(F("   _hw_initialized = %02X"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__, this->_hw_initialized);
                 _debugMsg(F("   _has_connection = %02X"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__, this->_has_connection);
+                _debugMsg(F("   _ac_state = %02X"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__, this->_ac_state);
             }
 
             if (!get_hw_initialized()) return;
