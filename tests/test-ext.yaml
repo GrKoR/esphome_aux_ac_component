@@ -1,0 +1,78 @@
+external_components:
+  - source: github://GrKoR/esphome_aux_ac_component@dev
+    components: [ aux_ac ]
+
+esphome:
+  name: test_aux_ac_local
+  platform: ESP8266
+  board: esp12e
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pass
+  manual_ip:
+    static_ip: !secret wifi_ip
+    gateway: !secret wifi_gateway
+    subnet: !secret wifi_subnet
+    dns1: 8.8.8.8
+    dns2: 1.1.1.1
+  reboot_timeout: 0s
+  ap:
+    ssid: Test AUX Fallback Hotspot
+    password: !secret wifi_ap_pass
+
+logger:
+  level: DEBUG
+  baud_rate: 0
+
+api:
+  password: !secret api_pass
+  reboot_timeout: 0s
+
+ota: 
+  password: !secret ota_pass
+
+uart:
+  id: ac_uart_bus
+  tx_pin: GPIO1
+  rx_pin: GPIO3
+  baud_rate: 4800
+  data_bits: 8
+  parity: EVEN
+  stop_bits: 1
+
+sensor:
+  - platform: uptime
+    name: Uptime Sensor
+
+climate:
+  - platform: aux_ac
+    name: "AC Name"
+    id: aux_id
+    uart_id: ac_uart_bus
+    period: 7s            # период опроса состояния сплита, по дефолту 7 сек
+    show_action: true     # надо ли показывать текущий режим работы: при HEAT_COOL mode сплит может греть (HEAT), охлаждать (COOL) или бездействовать (IDLE)
+    visual:
+      min_temperature: 16
+      max_temperature: 32
+      temperature_step: 0.5
+    supported_modes:
+      - HEAT_COOL   # не AUTO, так как только нагревает и остужает. В доках на ESPHome говорится, что AUTO - это если у устройства есть календарь и какие-то установки по расписанию.
+      - COOL
+      - HEAT
+      - DRY
+      - FAN_ONLY
+    custom_fan_modes:
+      - MUTE
+      - TURBO
+    supported_presets:
+      - SLEEP
+    custom_presets:
+      - CLEAN
+      - FEEL
+      - HEALTH
+      - ANTIFUNGUS
+    supported_swing_modes:
+      - VERTICAL
+      - HORIZONTAL
+      - BOTH

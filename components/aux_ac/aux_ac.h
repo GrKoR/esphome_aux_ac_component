@@ -2284,6 +2284,13 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         };
 
         void loop() override {
+            if ((millis()-_dataMillis) > 3000){
+                _dataMillis = millis();
+                _debugMsg(F("current status:"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__);
+                _debugMsg(F("   _hw_initialized = %02X"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__, this->_hw_initialized);
+                _debugMsg(F("   _has_connection = %02X"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__, this->_has_connection);
+            }
+
             if (!get_hw_initialized()) return;
 
             /// отрабатываем состояния конечного автомата
@@ -2313,6 +2320,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             if ((millis()-_dataMillis) > _update_period){
                 _dataMillis = millis();
 
+                _debugMsg(F("update period:"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__);
+                _debugMsg(F("   _hw_initialized = %02X)"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__, this->_hw_initialized);
+                _debugMsg(F("   _has_connection = %02X)"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__, this->_has_connection);
                 // обычный wifi-модуль запрашивает маленький пакет статуса
                 // но нам никто не мешает запрашивать и большой и маленький, чтобы чаще обновлять комнатную температуру
                 // делаем этот запросом только в случае, если есть коннект с кондиционером
@@ -2320,22 +2330,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             }
         };
 };
-
-//AirCon acAirCon;
-
-/*
-class AirConFirmwareVersion: public esphome::PollingComponent, public esphome::text_sensor::TextSensor {
-    public:
-        AirConFirmwareVersion() :  PollingComponent(1*60*1000) {}   // 1 minute update interval
-
-        void setup() override {
-        }
-
-        void update() override {
-            publish_state(Constants::AC_ROVEX_FIRMWARE_VERSION);
-        }
-};
-*/
 
 } // namespace aux_ac
 } // namespace esphome
