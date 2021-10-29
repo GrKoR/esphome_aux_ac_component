@@ -90,6 +90,10 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await climate.register_climate(var, config)
+    
+    parent = await cg.get_variable(config[CONF_UART_ID])
+    cg.add(var.initAC(parent))
+
     cg.add(var.set_period(config[CONF_PERIOD].total_milliseconds))
     cg.add(var.set_show_action(config[CONF_SHOW_ACTION]))
     if CONF_SUPPORTED_MODES in config:

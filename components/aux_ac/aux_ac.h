@@ -429,15 +429,19 @@ enum sequence_packet_type_t : uint8_t {
     AC_SPT_SENT_PACKET      = 0x02      // отправленный пакет
 };
 
-// элемент последовательности
+/** элемент последовательности
+ *  Поля item_type, func, timeout и cmd устанавливаются ручками и задают параметры выполнения шага последовательности.
+ *  Поля msec, packet_type и packet заполняются движком при обработке последовательности.
+ **/
 struct sequence_item_t {
     sequence_item_type_t    item_type;      // тип элемента последовательности
     bool                    (AirCon::*func)();      // указатель на функцию, отрабатывающую шаг последовательности
     uint16_t                timeout;        // допустимый таймаут в ожидании пакета (применим только для входящих пакетов)
+    ac_command_t            cmd;            // новое состояние сплита, нужно для передачи кондиционеру команд
+    //******* поля ниже заполняются функциями обработки последовательности ***********
     uint32_t                msec;           // время старта текущего шага последовательности (для входящего пакета и паузы)
     sequence_packet_type_t  packet_type;    // тип пакета (входящий, исходящий или вовсе не пакет)
     packet_t                packet;         // данные пакета
-    ac_command_t            cmd;            // новое состояние сплита, нужно для передачи кондиционеру команд
 };
 /*****************************************************************************************************************************************************/
 
@@ -470,7 +474,21 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         // флаг подключения к UART
         bool _hw_initialized = false;
         // указатель на UART, по которому общаемся с кондиционером
-        esphome::uart::UARTDevice *_ac_serial;
+        esphome::uart::UARTComponent *_ac_serial;
+
+        // UART wrappers: peek
+        int peek() {
+            uint8_t data;
+            if (!_ac_serial->peek_byte(&data)) return -1;
+            return data;
+        }
+
+        // UART wrappers: read
+        int read() {
+            uint8_t data;
+            if (!_ac_serial->read_byte(&data)) return -1;
+            return data;
+        }
 
         // флаг обмена пакетами с кондиционером (если проходят пинги, значит есть коннект)
         bool _has_connection = false;
@@ -508,7 +526,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         // возвращает индекс первого пустого шага последовательности команд
         uint8_t _getNextFreeSequenceStep(){
             for (size_t i = 0; i < AC_SEQUENCE_MAX_LEN; i++) {
-                if (_sequence[i].item_type != AC_SIT_NONE){
+                if (_sequence[i].item_type == AC_SIT_NONE){
                     return i;
                 }
             }
@@ -519,6 +537,42 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         // возвращает количество свободных шагов в последовательности
         uint8_t _getFreeSequenceSpace() {
             return (AC_SEQUENCE_MAX_LEN - _getNextFreeSequenceStep());
+        }
+
+        // добавляет шаг в последовательность команд
+        // возвращает false, если не нашлось места для шага
+        bool _addSequenceStep(const sequence_item_type_t item_type, bool (AirCon::*func)() = nullptr, ac_command_t *cmd = nullptr, uint16_t timeout = AC_SEQUENCE_DEFAULT_TIMEOUT){
+            if (!_hasFreeSequenceStep()) return false;  // если места нет, то уходим
+            if (item_type == AC_SIT_NONE) return false; // глупость какая-то, уходим
+            if ((item_type == AC_SIT_FUNC) && (func == nullptr)) return false; // должна быть передана функция для такого типа шага
+            if ((item_type != AC_SIT_DELAY) && (item_type != AC_SIT_FUNC)){
+                // какой-то неизвестный тип
+                _debugMsg(F("_addSequenceStep: unknown sequence item type = %u"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__, item_type);
+                return false;
+            } 
+
+            uint8_t step = _getNextFreeSequenceStep();
+
+            _sequence[step].item_type = item_type;
+
+            // если задержка нулевая, то присваиваем дефолтную задержку
+            if (timeout == 0) timeout = AC_SEQUENCE_DEFAULT_TIMEOUT;
+            _sequence[step].timeout = timeout;
+
+            _sequence[step].func = func;
+            if (cmd != nullptr) _sequence[step].cmd = *cmd;     // так как в структуре команды только простые типы, то можно вот так присваивать
+
+            return true;
+        }
+        
+        // додбавляет в последовательность шаг с задержкой
+        bool _addSequenceDelayStep(uint16_t timeout){
+            return this->_addSequenceStep(AC_SIT_DELAY, nullptr, nullptr, timeout);
+        }
+
+        // добавляет в последовательность функциональный шаг
+        bool _addSequenceFuncStep(bool (AirCon::*func)(), ac_command_t *cmd = nullptr, uint16_t timeout = AC_SEQUENCE_DEFAULT_TIMEOUT){
+            return this->_addSequenceStep(AC_SIT_FUNC, func, cmd, timeout);
         }
 
         // выполняет всю логику очередного шага последовательности команд
@@ -555,7 +609,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
                     // если время вышло, то отчитываемся в лог и очищаем последовательность
                     if (millis() - _sequence[_sequence_current_step].msec >= _sequence[_sequence_current_step].timeout) {
-                        _debugMsg(F("Sequence  [step %u]: step timed out (%u ms)"), ESPHOME_LOG_LEVEL_WARN, __LINE__, _sequence_current_step, millis() - _sequence[_sequence_current_step].msec);
+                        _debugMsg(F("Sequence  [step %u]: step timed out (it took %u ms instead of %u ms)"), ESPHOME_LOG_LEVEL_WARN, __LINE__, _sequence_current_step, millis() - _sequence[_sequence_current_step].msec, _sequence[_sequence_current_step].timeout);
                         _clearSequence();
                         return;
                     }
@@ -713,10 +767,11 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             };
 
 
-            if (_ac_serial->peek() == AC_PACKET_START_BYTE) {
+            if (this->peek() == AC_PACKET_START_BYTE) {
                 // если во входящий пакет что-то уже загружено, значит это какие-то ошибочные данные или неизвестные пакеты
                 // надо эту инфу вывалить в лог
                 if (_inPacket.bytesLoaded > 0){
+                    _debugMsg(F("Start byte received but there are some unparsed bytes in the buffer:"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__);
                     _debugPrintPacket(&_inPacket, ESPHOME_LOG_LEVEL_DEBUG, __LINE__);
                 }
                 _clearInPacket();
@@ -739,10 +794,11 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 while (_ac_serial->available() > 0)
                 {
                     // если наткнулись на старт пакета, то выходим из while
-                    if (_ac_serial->peek() == AC_PACKET_START_BYTE) break;
+                    // если какие-то данные были загружены в буфер, то они будут выгружены в лог при загрузке нового пакета
+                    if (this->peek() == AC_PACKET_START_BYTE) break;
 
                     // читаем байт в буфер входящего пакета
-                    _inPacket.data[_inPacket.bytesLoaded] = _ac_serial->read();
+                    _inPacket.data[_inPacket.bytesLoaded] = this->read();
                     _inPacket.bytesLoaded++;
 
                     // если буфер уже полон, надо его вывалить в лог и очистить
@@ -767,7 +823,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                     return;
                 }
 
-                _inPacket.data[_inPacket.bytesLoaded] = _ac_serial->read();
+                _inPacket.data[_inPacket.bytesLoaded] = this->read();
                 _inPacket.bytesLoaded++;
 
                 // данных достаточно для заголовка
@@ -870,7 +926,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 
                 case AC_PTYPE_CMD:  { // команда сплиту; модуль отправляет такие команды, когда что-то хочет от сплита
                     //  сплит такие команды отправлять не должен, поэтому жалуемся в лог
-                    _debugMsg(F("Parser: packet type=0x06 received. This isn't expected."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                    _debugMsg(F("Parser: packet type=0x06 received from HVAC. This isn't expected."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                     // очищаем пакет
                     _clearInPacket();
                     _setStateMachineState(ACSM_IDLE);
@@ -1501,10 +1557,10 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
         AirCon(){ initAC(); };
 
-        AirCon(esphome::uart::UARTDevice *parent) { initAC(parent); };
+        AirCon(esphome::uart::UARTComponent *parent) { initAC(parent); };
 
         // инициализация объекта
-        void initAC(esphome::uart::UARTDevice *parent = nullptr){
+        void initAC(esphome::uart::UARTComponent *parent = nullptr){
             _dataMillis = millis();
             _clearInPacket();
             _clearOutPacket();
@@ -2099,23 +2155,19 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 return false;
             }
 
-            uint8_t step = _getNextFreeSequenceStep();
-
-            /**************************************************************************************/
-            //step++;   // - getSmallInfo
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_requestSmallStatus;
-            //_sequence[step].timeout = 0;  // пусть будет таймаут по-умолчанию
-            /**************************************************************************************/
-
-            /**************************************************************************************/
-            step++;   // - control getSmallInfo
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_controlSmallStatus;
-            //_sequence[step].timeout = 1000;
+            /*************************************** getSmallInfo request ***********************************************/
+            if (!_addSequenceFuncStep(&AirCon::sq_requestSmallStatus)) {
+                _debugMsg(F("getStatusSmall: getSmallInfo request sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
+            /*************************************** getSmallInfo control ***********************************************/
+            if (!_addSequenceFuncStep(&AirCon::sq_controlSmallStatus)) {
+                _debugMsg(F("getStatusSmall: getSmallInfo control sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
             /**************************************************************************************/
 
-            _debugMsg(F("getStatusSmall: loaded to sequence"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__);
+            _debugMsg(F("getStatusSmall: loaded to sequence"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
             return true;
         }
 
@@ -2132,23 +2184,19 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 return false;
             }
 
-            uint8_t step = _getNextFreeSequenceStep();
-
-            /**************************************************************************************/
-            //step++;   // - getBigInfo
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_requestBigStatus;
-            //_sequence[step].timeout = 0;  // пусть будет таймаут по-умолчанию
-            /**************************************************************************************/
-
-            /**************************************************************************************/
-            step++;   // - control getSmallInfo
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_controlBigStatus;
-            //_sequence[step].timeout = 0;  // пусть будет таймаут по-умолчанию
+            /*************************************** getBigInfo request ***********************************************/
+            if (!_addSequenceFuncStep(&AirCon::sq_requestBigStatus)) {
+                _debugMsg(F("getStatusSmall: getBigInfo request sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
+            /*************************************** getBigInfo control ***********************************************/
+            if (!_addSequenceFuncStep(&AirCon::sq_controlBigStatus)) {
+                _debugMsg(F("getStatusSmall: getBigInfo control sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
             /**************************************************************************************/
 
-            _debugMsg(F("getStatusBig: loaded to sequence"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__);
+            _debugMsg(F("getStatusBig: loaded to sequence"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
             return true;
         }
 
@@ -2170,7 +2218,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 return false;
             }
 
-            _debugMsg(F("getStatusBigAndSmall: loaded to sequence"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__);
+            _debugMsg(F("getStatusBigAndSmall: loaded to sequence"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
             return true;            
         }
         
@@ -2194,7 +2242,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 return false;
             };
 
-            _debugMsg(F("startupSequence: loaded to sequence"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__);
+            _debugMsg(F("startupSequence: loaded to sequence"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
             return true;
         }
 
@@ -2222,22 +2270,16 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 return false;
             }
 
-            uint8_t step = _getNextFreeSequenceStep();
-
-            /**************************************************************************************/
-            //step++;   // - set params
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_requestDoCommand;
-            // так как в структуре команды нет указателей, то простое присваивание возможно
-            _sequence[step].cmd = *cmd;
-            //_sequence[step].timeout = 0;  // пусть будет таймаут по-умолчанию
-            /**************************************************************************************/
-
-            /**************************************************************************************/
-            step++;   // - control of params setting
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_controlDoCommand;
-            //_sequence[step].timeout = 1000;
+            /*************************************** set params request ***********************************************/
+            if (!_addSequenceFuncStep(&AirCon::sq_requestDoCommand, cmd)) {
+                _debugMsg(F("getStatusSmall: getBigInfo request sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
+            /*************************************** set params control ***********************************************/
+            if (!_addSequenceFuncStep(&AirCon::sq_controlDoCommand)) {
+                _debugMsg(F("getStatusSmall: getBigInfo control sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
             /**************************************************************************************/
 
             // добавление финального запроса маленького статусного пакета в последовательность команд
@@ -2246,7 +2288,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 return false;
             }
 
-            _debugMsg(F("commandSequence: loaded to sequence"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__);
+            _debugMsg(F("commandSequence: loaded to sequence"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
             return true;
         }
 
@@ -2266,7 +2308,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             // добавляем команду в последовательность
             if (!commandSequence(&cmd)) return false;
 
-            _debugMsg(F("powerSequence: loaded (power = %02X)"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__, pwr);
+            _debugMsg(F("powerSequence: loaded (power = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, pwr);
             return true;
         }
 
@@ -2284,14 +2326,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         };
 
         void loop() override {
-            if ((millis()-_dataMillis) > 3000){
-                _dataMillis = millis();
-                _debugMsg(F("current status:"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__);
-                _debugMsg(F("   _hw_initialized = %02X"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__, this->_hw_initialized);
-                _debugMsg(F("   _has_connection = %02X"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__, this->_has_connection);
-                _debugMsg(F("   _ac_state = %02X"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__, this->_ac_state);
-            }
-
             if (!get_hw_initialized()) return;
 
             /// отрабатываем состояния конечного автомата
@@ -2321,14 +2355,22 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             if ((millis()-_dataMillis) > _update_period){
                 _dataMillis = millis();
 
-                _debugMsg(F("update period:"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__);
-                _debugMsg(F("   _hw_initialized = %02X)"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__, this->_hw_initialized);
-                _debugMsg(F("   _has_connection = %02X)"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__, this->_has_connection);
                 // обычный wifi-модуль запрашивает маленький пакет статуса
                 // но нам никто не мешает запрашивать и большой и маленький, чтобы чаще обновлять комнатную температуру
                 // делаем этот запросом только в случае, если есть коннект с кондиционером
                 if (get_has_connection()) getStatusBigAndSmall();
             }
+
+            /*
+            // это экспериментальная секция для отладки функционала
+            static uint32_t debug_millis = millis();
+            if (millis()-debug_millis > 10000){
+                debug_millis = millis();
+                //_debugMsg(F("Test!"), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                //if (_current_ac_state.power == AC_POWER_OFF) powerSequence(AC_POWER_ON);
+                //else powerSequence(AC_POWER_OFF);
+            }
+            */
         };
 };
 
