@@ -4,6 +4,7 @@
 /// немного переработанная версия старого компонента
 #pragma once
 
+#include <Arduino.h>
 #include "esphome.h"
 #include <stdarg.h>
 #include "esphome/core/component.h"
