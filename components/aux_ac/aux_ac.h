@@ -1601,7 +1601,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             if (_current_ac_state.power == AC_POWER_ON){
                 switch (_current_ac_state.mode) {
                     case AC_MODE_AUTO:
-                        this->mode = climate::CLIMATE_MODE_AUTO;
+                        this->mode = climate::CLIMATE_MODE_HEAT_COOL;   // по факту режим, названный в AUX как AUTO, является режимом HEAT_COOL
                         // TODO: надо реализовать отображение action
                         this->action = climate::CLIMATE_ACTION_IDLE;
                         break;
@@ -1609,7 +1609,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                     case AC_MODE_COOL:
                         this->mode = climate::CLIMATE_MODE_COOL;
                         // TODO: надо реализовать отображение action
-                        this->action = climate::CLIMATE_ACTION_IDLE;
+                        this->action = climate::CLIMATE_ACTION_COOLING;
                         break;
                     
                     case AC_MODE_DRY:
@@ -1621,7 +1621,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                     case AC_MODE_HEAT:
                         this->mode = climate::CLIMATE_MODE_HEAT;
                         // TODO: надо реализовать отображение action
-                        this->action = climate::CLIMATE_ACTION_IDLE;
+                        this->action = climate::CLIMATE_ACTION_HEATING;
                         break;
                     
                     case AC_MODE_FAN:
@@ -1891,7 +1891,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         this->mode = mode;
                         break;
                     
-                    case climate::CLIMATE_MODE_AUTO:
+                    case climate::CLIMATE_MODE_AUTO:        // этот режим в будущем можно будет использовать для автоматического пресета (ПИД-регулятора, например)
                     default:
                         break;
                 }
