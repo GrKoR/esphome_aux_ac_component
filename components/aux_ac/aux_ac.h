@@ -1838,6 +1838,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         // вывод в дебаг текущей конфигурации компонента
         void dump_config() {
             ESP_LOGCONFIG(Constants::TAG, "AUX HVAC:");
+            ESP_LOGCONFIG(Constants::TAG, "  [x] Firmware version: %s", &Constants::AC_ROVEX_FIRMWARE_VERSION);
             ESP_LOGCONFIG(Constants::TAG, "  [x] Period: %dms", this->get_period());
             ESP_LOGCONFIG(Constants::TAG, "  [x] Show action: %s", this->get_show_action() ? "true" : "false");
             if ((this->sensor_indoor_temperature_) != nullptr) {

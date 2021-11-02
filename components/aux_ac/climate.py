@@ -10,6 +10,7 @@ from esphome.const import (
     CONF_CUSTOM_PRESETS,
     CONF_INTERNAL,
     UNIT_CELSIUS,
+    ICON_THERMOMETER,
     DEVICE_CLASS_TEMPERATURE,
     STATE_CLASS_MEASUREMENT,
 )
@@ -21,7 +22,7 @@ from esphome.components.climate import (
 _LOGGER = logging.getLogger(__name__)
 
 CODEOWNERS = ["@GrKoR"]
-DEPENDENCIES = ["climate", "uart"]
+DEPENDENCIES = ["climate", "uart", "sensor"]
 
 CONF_SUPPORTED_MODES = 'supported_modes'
 CONF_SUPPORTED_SWING_MODES = 'supported_swing_modes'
@@ -80,6 +81,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_SHOW_ACTION, default="true"): cv.boolean,
             cv.Optional(CONF_INDOOR_TEMPERATURE): sensor.sensor_schema(
                 unit_of_measurement=UNIT_CELSIUS,
+                icon=ICON_THERMOMETER,
                 accuracy_decimals=1,
                 device_class=DEVICE_CLASS_TEMPERATURE,
                 state_class=STATE_CLASS_MEASUREMENT,

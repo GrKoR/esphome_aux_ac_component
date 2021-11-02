@@ -34,6 +34,7 @@ Readme in english [is here](README-EN.md#esphome-aux-air-conditioner-custom-comp
 + Roda (models: RS-AL09F)
 + Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)
 + Samurai (models: SMA-07HRN1 ION, SMA-09HRN1 ION)
++ Subtropic (models: SUB-07HN1_18Y)
 
  
 ### Список потенциально совместимых кондиционеров ###
