@@ -56,6 +56,10 @@ climate:
     uart_id: ac_uart_bus
     period: 7s            # период опроса состояния сплита, по дефолту 7 сек
     show_action: true     # надо ли показывать текущий режим работы: при HEAT_COOL mode сплит может греть (HEAT), охлаждать (COOL) или бездействовать (IDLE)
+    indoor_temperature:   # сенсор, показывающий температуру воздуха на внутреннем блоке кондиционера; имеет все те же параметры, как и любой сенсор ESPHome
+      name: AC Indoor Temperature
+      id: ac_indoor_temp
+      internal: true    # сенсор установлен как внутренний по дефолту (не попадёт в Home Assistant)
     visual:
       min_temperature: 16
       max_temperature: 32

@@ -1550,12 +1550,13 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             return relevant;
         }
 
-    public:
         // сенсоры, отображающие параметры сплита
-        esphome::sensor::Sensor *sensor_ambient_temperature = new esphome::sensor::Sensor();
+        //esphome::sensor::Sensor *sensor_indoor_temperature = new esphome::sensor::Sensor();
+        esphome::sensor::Sensor *sensor_indoor_temperature_ = nullptr;
         // TODO: если расшифруем формулу для уличной температуры, то можно будет вернуть
         //esphome::sensor::Sensor *sensor_outdoor_temperature = new esphome::sensor::Sensor();
 
+    public:
         AirCon(){ initAC(); };
 
         AirCon(esphome::uart::UARTComponent *parent) { initAC(parent); };
@@ -1582,6 +1583,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         };
 
         float get_setup_priority() const override { return esphome::setup_priority::DATA; }
+
+        void set_indoor_temperature_sensor(sensor::Sensor *temperature_sensor) { sensor_indoor_temperature_ = temperature_sensor; }
 
         bool get_hw_initialized(){ return _hw_initialized; };
         bool get_has_connection(){ return _has_connection; };
@@ -1825,7 +1828,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             /*********************************************************************/
             this->publish_state();
             // температура в комнате
-            sensor_ambient_temperature->publish_state(_current_ac_state.temp_ambient);
+            if (sensor_indoor_temperature_ != nullptr)
+                sensor_indoor_temperature_->publish_state(_current_ac_state.temp_ambient);
             // температура уличного блока
             // TODO: если расшифруем формулу для уличной температуры, то можно будет вернуть
             //sensor_outdoor_temperature->publish_state(_current_ac_state.temp_outdoor);
@@ -1836,7 +1840,26 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             ESP_LOGCONFIG(Constants::TAG, "AUX HVAC:");
             ESP_LOGCONFIG(Constants::TAG, "  [x] Period: %dms", this->get_period());
             ESP_LOGCONFIG(Constants::TAG, "  [x] Show action: %s", this->get_show_action() ? "true" : "false");
+            if ((this->sensor_indoor_temperature_) != nullptr) {
+                ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Indoor Temperature"), (this->sensor_indoor_temperature_)->get_name().c_str());
+                if (!(this->sensor_indoor_temperature_)->get_device_class().empty()) {
+                    ESP_LOGCONFIG(Constants::TAG, "%s  Device Class: '%s'", "  ", (this->sensor_indoor_temperature_)->get_device_class().c_str());
+                }
+                ESP_LOGCONFIG(Constants::TAG, "%s  State Class: '%s'", "  ", state_class_to_string((this->sensor_indoor_temperature_)->get_state_class()).c_str());
+                ESP_LOGCONFIG(Constants::TAG, "%s  Unit of Measurement: '%s'", "  ", (this->sensor_indoor_temperature_)->get_unit_of_measurement().c_str());
+                ESP_LOGCONFIG(Constants::TAG, "%s  Accuracy Decimals: %d", "  ", (this->sensor_indoor_temperature_)->get_accuracy_decimals());
+                if (!(this->sensor_indoor_temperature_)->get_icon().empty()) {
+                    ESP_LOGCONFIG(Constants::TAG, "%s  Icon: '%s'", "  ", (this->sensor_indoor_temperature_)->get_icon().c_str());
+                }
+                if (!(this->sensor_indoor_temperature_)->unique_id().empty()) {
+                    ESP_LOGV(Constants::TAG, "%s  Unique ID: '%s'", "  ", (this->sensor_indoor_temperature_)->unique_id().c_str());
+                }
+                if ((this->sensor_indoor_temperature_)->get_force_update()) {
+                    ESP_LOGV(Constants::TAG, "%s  Force Update: YES", "  ");
+                }
+            }
             this->dump_traits_(Constants::TAG);
+
         }
 
         // вызывается пользователем из интерфейса ESPHome или Home Assistant

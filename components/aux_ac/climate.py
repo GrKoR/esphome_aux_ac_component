@@ -1,14 +1,17 @@
 import logging
 import esphome.config_validation as cv
 import esphome.codegen as cg
-from esphome.components import climate, uart
+from esphome.components import climate, uart, sensor
 from esphome.const import (
     CONF_ID,
-    CONF_NAME,
     CONF_UART_ID,
     CONF_PERIOD,
     CONF_CUSTOM_FAN_MODES,
-    CONF_CUSTOM_PRESETS
+    CONF_CUSTOM_PRESETS,
+    CONF_INTERNAL,
+    UNIT_CELSIUS,
+    DEVICE_CLASS_TEMPERATURE,
+    STATE_CLASS_MEASUREMENT,
 )
 from esphome.components.climate import (
     ClimateMode,
@@ -24,6 +27,7 @@ CONF_SUPPORTED_MODES = 'supported_modes'
 CONF_SUPPORTED_SWING_MODES = 'supported_swing_modes'
 CONF_SUPPORTED_PRESETS = 'supported_presets'
 CONF_SHOW_ACTION = 'show_action'
+CONF_INDOOR_TEMPERATURE = 'indoor_temperature'
 
 aux_ac_ns = cg.esphome_ns.namespace("aux_ac")
 AirCon = aux_ac_ns.class_("AirCon", climate.Climate, cg.Component)
@@ -74,6 +78,16 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(): cv.declare_id(AirCon),
             cv.Optional(CONF_PERIOD, default="7s"): cv.time_period,
             cv.Optional(CONF_SHOW_ACTION, default="true"): cv.boolean,
+            cv.Optional(CONF_INDOOR_TEMPERATURE): sensor.sensor_schema(
+                unit_of_measurement=UNIT_CELSIUS,
+                accuracy_decimals=1,
+                device_class=DEVICE_CLASS_TEMPERATURE,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                }
+            ),
             cv.Optional(CONF_SUPPORTED_MODES): cv.ensure_list(validate_modes),
             cv.Optional(CONF_SUPPORTED_SWING_MODES): cv.ensure_list(validate_swing_modes),
             cv.Optional(CONF_SUPPORTED_PRESETS): cv.ensure_list(validate_presets),
@@ -93,6 +107,11 @@ async def to_code(config):
     
     parent = await cg.get_variable(config[CONF_UART_ID])
     cg.add(var.initAC(parent))
+
+    if CONF_INDOOR_TEMPERATURE in config:
+        conf = config[CONF_INDOOR_TEMPERATURE]
+        sens = await sensor.new_sensor(conf)
+        cg.add(var.set_indoor_temperature_sensor(sens))
 
     cg.add(var.set_period(config[CONF_PERIOD].total_milliseconds))
     cg.add(var.set_show_action(config[CONF_SHOW_ACTION]))
