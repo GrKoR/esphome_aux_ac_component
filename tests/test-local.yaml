@@ -33,6 +33,9 @@ api:
 ota: 
   password: !secret ota_pass
 
+web_server:
+  port: 80
+
 uart:
   id: ac_uart_bus
   tx_pin: GPIO1
