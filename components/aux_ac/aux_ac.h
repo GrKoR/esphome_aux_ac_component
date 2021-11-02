@@ -1557,10 +1557,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         //esphome::sensor::Sensor *sensor_outdoor_temperature = new esphome::sensor::Sensor();
 
     public:
-        AirCon(){ initAC(); };
-
-        AirCon(esphome::uart::UARTComponent *parent) { initAC(parent); };
-
         // инициализация объекта
         void initAC(esphome::uart::UARTComponent *parent = nullptr){
             _dataMillis = millis();
