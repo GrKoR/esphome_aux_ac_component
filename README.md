@@ -31,6 +31,7 @@ Readme in english [is here](README-EN.md#esphome-aux-air-conditioner-custom-comp
 + Centek (models: CT-65Q09, CT-65Z10)
 + Hyundai (models: H-AR21-09H)
 + IGC (models: RAK-07NH multysplit)
++ Neoclima (models: NS-09AHEIw [нужно согласование уровней для Wemos D1], NS-09EHXIw1)
 + NEOLINE (models: NAC-07HN1)
 + Roda (models: RS-AL09F)
 + Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)
@@ -59,7 +60,6 @@ AUX - это один из нескольких OEM-производителей
 + LEBERG
 + LGen
 + Monroe
-+ Neoclima
 + One Air
 + Pioneer (до 2016 года)
 + Royal Clima
