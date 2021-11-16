@@ -17,7 +17,7 @@ Component tested with ESPHome 1.15.3 and Rovex ALS1 air conditioner. It looks li
 ## Supported air conditioners ##
 ### List of compatible ACs (tested) ###
 These ACs were tested by the author or by users.
-+ AUX (models: ASW-H09A4/LK-700R1, ASW-H09B4/LK-700R1, AMWM-xxx multysplit)
++ AUX (models: ASW-H09A4/LK-700R1, ASW-H09B4/LK-700R1, AMWM-xxx multisplit)
 + Centek (models: CT-65Q09, CT-65Z10)
 + Hyundai (models: H-AR21-09H)
 + IGC (models: RAK-07NH multysplit)
