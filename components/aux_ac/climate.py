@@ -22,7 +22,8 @@ from esphome.components.climate import (
 _LOGGER = logging.getLogger(__name__)
 
 CODEOWNERS = ["@GrKoR"]
-DEPENDENCIES = ["climate", "uart", "sensor"]
+DEPENDENCIES = ["climate", "uart"]
+AUTO_LOAD = ["sensor"]
 
 CONF_SUPPORTED_MODES = 'supported_modes'
 CONF_SUPPORTED_SWING_MODES = 'supported_swing_modes'
