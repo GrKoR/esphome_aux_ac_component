@@ -16,7 +16,6 @@ Component tested with ESPHome 1.15.3 and Rovex ALS1 air conditioner. It looks li
  
 ## Supported air conditioners ##
 AUX is one of the OEM air conditioner manufacturers. AUX produce ACs for many brands.
-
 There is following list of AUX-based air conditioner in the internet: AUX, Abion, AC ELECTRIC, Almacom, Ballu , Centek, Climer, DAX, Energolux, ERISSON, Green Energy, Hyundai, IGC, Kentatsu (некоторые серии), Klimaire, KOMANCHI, LANZKRAFT, LEBERG, LGen, Monroe, Neoclima, NEOLINE, One Air, Pioneer (до 2016 года), Roda, Rovex, Royal Clima, SAKATA, Samurai, SATURN, Scarlett, SmartWay, Soling, Subtropic, SUBTROPIC, Supra, Timberk, Vertex, Zanussi. There are doubts about its completeness and reliability, but nothing better could be found.
 
 ### List of compatible ACs (tested) ###

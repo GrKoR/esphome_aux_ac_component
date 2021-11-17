@@ -17,7 +17,6 @@ English readme [is here](README-EN.md#esphome-aux-air-conditioner-custom-compone
 
 ## Поддерживаемые кондиционеры ## 
 AUX - это один из нескольких OEM-производителей кондиционеров. AUX производят кондиционеры как под собственным брендом, так и для внешних заказчиков. Поэтому есть шанс, что произведенный на их фабрике кондиционер неизвестного бренда с `aux_ac` так же заработает.
-
 В интернете есть такой перечень производившихся на фабриках AUX брендов: AUX, Abion, AC ELECTRIC, Almacom, Ballu , Centek, Climer, DAX, Energolux, ERISSON, Green Energy, Hyundai, IGC, Kentatsu (некоторые серии), Klimaire, KOMANCHI, LANZKRAFT, LEBERG, LGen, Monroe, Neoclima, NEOLINE, One Air, Pioneer (до 2016 года), Roda, Rovex, Royal Clima, SAKATA, Samurai, SATURN, Scarlett, SmartWay, Soling, Subtropic, SUBTROPIC, Supra, Timberk, Vertex, Zanussi. В его полноте и достоверности есть сомнения, но ничего лучше найти не удалось.
 
 
