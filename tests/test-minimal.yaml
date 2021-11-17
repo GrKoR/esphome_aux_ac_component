@@ -1,0 +1,44 @@
+external_components:
+  - source:
+      type: local
+      path: ..\components
+  #- source: github://GrKoR/esphome_aux_ac_component@dev
+    #components: [ aux_ac ]
+    #refresh: 0s
+
+esphome:
+  name: test_aux_ac_minimal
+  platform: ESP8266
+  board: esp12e
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pass
+  reboot_timeout: 0s
+  ap:
+    ssid: Test AUX Fallback Hotspot
+    password: !secret wifi_ap_pass
+
+logger:
+  level: DEBUG
+  baud_rate: 0
+
+api:
+  password: !secret api_pass
+  reboot_timeout: 0s
+
+ota: 
+  password: !secret ota_pass
+
+uart:
+  id: ac_uart_bus
+  tx_pin: GPIO1
+  rx_pin: GPIO3
+  baud_rate: 4800
+  data_bits: 8
+  parity: EVEN
+  stop_bits: 1
+
+climate:
+  - platform: aux_ac
+    name: "AC Name"

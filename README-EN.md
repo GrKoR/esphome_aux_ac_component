@@ -15,122 +15,37 @@ Component tested with ESPHome 1.15.3 and Rovex ALS1 air conditioner. It looks li
  
  
 ## Supported air conditioners ##
-### List of compatible ACs (tested) ###
-These ACs were tested by the author or by users.
-+ AUX (models: ASW-H09A4/LK-700R1, ASW-H09B4/LK-700R1, AMWM-xxx multysplit)
-+ Centek (models: CT-65Q09, CT-65Z10)
-+ Hyundai (models: H-AR21-09H)
-+ IGC (models: RAK-07NH multysplit)
-+ Neoclima (models: NS-09AHEIw [Wemos D1 needs level shifter], NS-09EHXIw1)
-+ NEOLINE (models: NAC-07HN1)
-+ Roda (models: RS-AL09F)
-+ Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)
-+ Samurai (models: SMA-07HRN1 ION, SMA-09HRN1 ION)
-+ Subtropic (models: SUB-07HN1_18Y)
-
-
-### List of potential compatible ACs ###
-**NOT TESTED! TRY AT YOUR OWN RISK!**<br />
 AUX is one of the OEM air conditioner manufacturers. AUX produce ACs for many brands.
+There is following list of AUX-based air conditioner in the internet: AUX, Abion, AC ELECTRIC, Almacom, Ballu , Centek, Climer, DAX, Energolux, ERISSON, Green Energy, Hyundai, IGC, Kentatsu (некоторые серии), Klimaire, KOMANCHI, LANZKRAFT, LEBERG, LGen, Monroe, Neoclima, NEOLINE, One Air, Pioneer (до 2016 года), Roda, Rovex, Royal Clima, SAKATA, Samurai, SATURN, Scarlett, SmartWay, Soling, Subtropic, SUBTROPIC, Supra, Timberk, Vertex, Zanussi. There are doubts about its completeness and reliability, but nothing better could be found.
 
-Internet says that following air conditioners may work with `aux_ac` component:
-+ Abion
-+ AC ELECTRIC
-+ Almacom
-+ Ballu
-+ Climer
-+ DAX
-+ Energolux
-+ ERISSON
-+ Green Energy
-+ Kentatsu (some series; Kentatsu KSGMA26HFAN1 was tested and **isn't supported**)
-+ Klimaire
-+ KOMANCHI
-+ LANZKRAFT
-+ LEBERG
-+ LGen
-+ Monroe
-+ One Air
-+ Pioneer (до 2016 года)
-+ Royal Clima
-+ SAKATA
-+ SATURN
-+ Scarlett
-+ SmartWay
-+ Soling
-+ SUBTROPIC
-+ Supra
-+ Timberk
-+ Vertex
-+ Zanussi
+### List of compatible ACs (tested) ###
+[The list of tested ACs](docs/AC_TESTED.md) is placed in a separate file and includes tested by the author or by users ACs. This list is permanently updated mainly based on feedback from users in [Telegram chat](https://t.me/aux_ac).<br />
 
+
+### If your AC is not in the list ###
 If your AC is listed above you should take a closer look at `aux_ac`.<br />
 If the User Manual of your HVAC describes connection to wifi with mobile app ACFreedom it seems you may go deeper with `aux_ac`. But try all soft and hardware for your own risk. You must clearly understand what you are doing.<br />
 If you are unsure it is better to wait while other users will test your model of AC (but it may never). Or please [go to telegram-chat](https://t.me/aux_ac) with your questions. Maybe you will get help there.
 
 If you have tested your air conditioner and `aux_ac` works with it please let me know about it. I'll add this info to the list of tested ACs above.
-The best way to report about your test results is write a message [in the issue section](https://github.com/GrKoR/esphome_aux_ac_component/issues). Direct message in the [telegram](https://t.me/aux_ac) is possible too but probably I can miss your message among many others.
+The best way to report about your test results is write a message in the [telegram](https://t.me/aux_ac) or [in the issue section](https://github.com/GrKoR/esphome_aux_ac_component/issues).
 
 
 ## How to use it ##
-### Hardware ###
-I tested it with an esp8266 chip (esp-12e). Minimal scheme:<br />
-![scheme](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/scheme.png?raw=true)
- 
-At the first time in addition to scheme above IO0 (GPIO0) must be pulled down to GND at the boot and ESPHome can be uploaded through UART0. If your ESPHome configuration contains OTA you can pull up IO0 or leave it floating. All further updates can be uploaded over-the-air.<br />
-I leave GPIO0 in air cause I don't see any reason to solder additional components for single use.
-
-ESP-12E before DC-DC and air conditioner connected:<br />
-![esp-12e minimal photo](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/esp-12e.jpg?raw=true)
- 
-Air conditioner internal block has a 5-wire connection to the wifi-module. Connector is [JST SM](https://www.jst-mfg.com/product/pdf/eng/eSM.pdf).
- 
-Wires:
-1. Yellow: +14V DC. Measured +14.70V max and +13.70V min. Service manual declares up to +16V.
-2. Black: ground.
-3. White: +5V DC (max: +5.63V; min: +4.43V) I have no idea what this is for. It goes directly to the air conditioner microcontroller through resistor 1kOhm and it does not affect the operation of the module.
-4. Blue: TX of air conditioner. High is +5V.
-5. Red: RX of air conditioner. High is +5V.
- 
-For power supply it is possible to use any kind of suitable modules. I use this:<br />
-![power module](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/DD4012SA.jpg?raw=true).
- 
-Black wire of AC's connector goes to the middle pin of the power module and to the GND pin of esp-12e.<br />
-Yellow wire is connected to the Vin pin of the power module.<br />
-Blue wire is connected to the RXD pin of esp-12e.<br />
-Red wire is connected to the TXD pin of esp-12e.<br />
-
-Here is it:<br />
-![connections](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/connections.png?raw=true)
- 
-All connections in custom 3d-printed case looks like this:<br />
-![module assembled](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/assembled.JPG?raw=true)
- 
-Cause I haven't JST SM connector I made own:<br />
-![JST SM connector replica](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/connector.JPG?raw=true).
- 
-It is made of standard 2.54mm pins and 3D-printed case.<br />
-All models for 3D-printing are available too: [STL-files for connector](https://github.com/GrKoR/esphome_aux_ac_component/tree/master/enclosure/JST%20SM%20connector), [models of case parts](https://github.com/GrKoR/esphome_aux_ac_component/tree/master/enclosure/case). 
- 
-Here is the result:<br />
-![photo 1](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/real-1.JPG?raw=true)<br />
-![photo 2](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/real-2.JPG?raw=true)<br />
-![photo 3](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/real-3.JPG?raw=true)
-
-
+For correct component operation you need hardware and firmware. The hardware description is located [in separate file](docs/HARDWARE-EN.md).
 
 ### Firmware: Integration aux_ac to your configuration ###
-1. Copy aux_ac_custom_component.h to folder with your ESPHome YAML file.
-2. At the header of your YAML add include instruction like this:
+You need [ESPHome](https://esphome.io) v.1.18.0 or above. `External_components` have appeared in this version. But it is better to use ESPHome v.1.20.4 or above cause there was alot of `external_components` errors corrected before this version.
+
+## Installing ##
+1. Declare external component. Read [the manual](https://esphome.io/components/external_components.html?highlight=external) for details.
 ```yaml
-esphome:
-  name: $devicename
-  platform: ESP8266
-  board: esp12e
-  includes:
-    - aux_ac_custom_component.h
+external_components:
+  - source:
+      type: git
+      url: https://github.com/GrKoR/esphome_aux_ac_component
 ```
-3. Configure UART to communicate with air conditioner:
+2. Configure UART to communicate with air conditioner:
 ```yaml
 uart:
   id: ac_uart_bus
@@ -141,27 +56,87 @@ uart:
   parity: EVEN
   stop_bits: 1
 ```
-4. ESP8266 has two hardware UARTs: UART0 and UART1. Only UART0 suits for `aux_ac` cause only it has both TX and RX. In **uart:** section above we configure UART0 for `aux_ac`. But it used by **logger:**. So it is necessary to redefine UART for logger or switch it off:
+3. **ATTENTION!** You need to disable the ESPHome logger so that it does not send its data to the air conditioner. Disabling the logger from the UART bus will not affect the logger output to the console or web server in any way.
+```yaml
+logger:
+    baud_rate: 0
+```
+If for some reason you need the logger output to the UART, you can switch it to another UART. ESP8266 has two hardware UARTs: UART0 and UART1. Only UART0 suits for `aux_ac` cause only it has both TX and RX. UART1 has TX only and it can be used by logger for output:
 ```yaml
 logger:
     level: DEBUG
-    baud_rate: 0
-    # set hardware_uart to UART1 and comment out baud_rate above in case of boot crashes
-    # it is suitable if you need hardware loggin
-    # hardware_uart: UART1
+    hardware_uart: UART1
 ```
-5. Finally define climate component:
+
+## AUX_AC Configuration ##
+Minimal configuration:
 ```yaml
 climate:
-- platform: custom
-  lambda: |-
-    extern AirCon acAirCon;
-    if (!acAirCon.get_initialized()) acAirCon.initAC(id(ac_uart_bus));
-    App.register_component(&acAirCon);
-    return {&acAirCon};
-  climates:
-    - name: "My awesome air conditioner"
+  - platform: aux_ac
+    name: "AC Name"
 ```
+
+Full configuration:
+```yaml
+climate:
+  - platform: aux_ac
+    name: "AC Name"
+    id: aux_id
+    uart_id: ac_uart_bus
+    period: 7s
+    show_action: true
+    indoor_temperature:
+      name: AC Indoor Temperature
+      id: ac_indoor_temp
+      internal: true
+    visual:
+      min_temperature: 16
+      max_temperature: 32
+      temperature_step: 0.5
+    supported_modes:
+      - HEAT_COOL
+      - COOL
+      - HEAT
+      - DRY
+      - FAN_ONLY
+    custom_fan_modes:
+      - MUTE
+      - TURBO
+    supported_presets:
+      - SLEEP
+    custom_presets:
+      - CLEAN
+      - FEEL
+      - HEALTH
+      - ANTIFUNGUS
+    supported_swing_modes:
+      - VERTICAL
+      - HORIZONTAL
+      - BOTH
+```
+
+## Configuration variables: ##
+- **name** (**Required**, string): The name of the climate device. At least one of `id` or `name` is required!
+- **id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Manually specify the ID used for code generation. At least one of `id` or `name` is required!
+- **uart_id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Manually specify the ID of the [UART Bus](https://esphome.io/components/uart.html) if you want to use multiple UART buses.
+- **period** (*Optional*, [time](https://esphome.io/guides/configuration-types.html#config-time)): Period between status requests to the AC. Defaults to ``7s``. `Aux_ac` will receive the new air conditioner status only after a regular request, even if you change the settings of AC using IR-remote.
+- **show_action** (*Optional*, boolean): Whether to show current action of the device (experimental). For example in the HEAT-COOL mode AC hardware may be in one of the following actions:
+  - HEATING: AC is heating the air in the room;
+  - IDLE: AC is working in the FAN mode cause the target temperature is reached;
+  - COOLING: AC is cooling the air.
+  The same thing will be in HEAT or COOL modes, with the only difference of the list of actions (IDLE + HEATING or IDLE + COOLING).
+- **indoor_temperature** (*Optional*): The information for the air temperature sensor
+  - **name** (**Required**, string): The name for the temperature sensor.
+  - **id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Set the ID of this sensor for use in lambdas.
+  - **internal** (*Optional*, boolean): Mark this component as internal. Internal components will not be exposed to the frontend (like Home Assistant). As opposed to default [Sensor](https://esphome.io/components/sensor/index.html#base-sensor-configuration) behaviour this variable is **always true** except in cases where the user has set it directly.
+  - All other options from [Sensor](https://esphome.io/components/sensor/index.html#base-sensor-configuration).
+- **supported_modes** (*Optional*, list): List of supported modes. Possible values are: ``HEAT_COOL``, ``COOL``, ``HEAT``, ``DRY``, ``FAN_ONLY``. Please note: some manufacturers call AUTO mode instead of HEAT_COOL. Defaults to ``FAN_ONLY``.
+- **custom_fan_modes** (*Optional*, list): List of supported custom fan modes. Possible values are: ``MUTE``, ``TURBO``. No custom fan modes by default.
+- **supported_presets** (*Optional*, list): List of supported presets. Possible values are: ``SLEEP``. No presets by default.
+- **custom_presets** (*Optional*, list): List of supported custom presets. Possible values are: ``CLEAN``, ``FEEL``, ``HEALTH``, ``ANTIFUNGUS``. Please note: presets ``FEEL``, ``HEALTH`` and ``ANTIFUNGUS`` have not been implemented yet. No custom presets by default.
+- **supported_swing_modes** (*Optional*, list): List of supported swing modes. Possible values are: ``VERTICAL``, ``HORIZONTAL``, ``BOTH``. No swing modes by default.
+- All other options from [Climate](https://esphome.io/components/climate/index.html#base-climate-configuration).
+
 
 ## Simple example ##
 The source code of this example is located in the [aux_ac_simple.yaml](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/examples/simple/aux_ac_simple.yaml) file.
@@ -179,72 +154,3 @@ All specific parts of configuration are located in the `ac_kitchen.yaml` and `ac
 **Don't forget** to specify `wifi_ip_kitchen`, `wifi_ota_ip_kitchen`, `wifi_ip_livingroom` and `wifi_ota_ip_livingroom` in the `secrets.yaml` along with the other sensitive information, such as passwords, tokens etc.
 
 If you try to compile `ac_common.yaml` it will raise errors. You need to compile `ac_kitchen.yaml` or `ac_livingroom.yaml` instead.
- 
-## Additional functionality ##
-`Aux_ac` component provides three additional sensors: two temperatures and firmware version.
- 
-### Ambient temperature ###
-This is the current room air temperature from AC's sensor. If you need it in your configuration place this code to YAML file:
-```yaml
-sensor:
-  - platform: custom
-    lambda: |-
-      extern AirCon acAirCon;
-      if (!acAirCon.get_initialized()) acAirCon.initAC(id(ac_uart_bus));
-      App.register_component(&acAirCon);
-      return {acAirCon.sensor_ambient_temperature};
-    sensors:
-    - name: AC ambient temperature
-      unit_of_measurement: "°C"
-      accuracy_decimals: 1
-```
- 
-### Outdoor temperature ###
-Currently it shows weather on Mars =) Maybe it will change if we get more statistics and some smart guys for decoding.<br />
-If in spite of everything, you still want it in your configuration, just use this code:
-```yaml
-sensor:
-  - platform: custom
-    lambda: |-
-      extern AirCon acAirCon;
-      if (!acAirCon.get_initialized()) acAirCon.initAC(id(ac_uart_bus));
-      App.register_component(&acAirCon);
-      return {acAirCon.sensor_outdoor_temperature};
-    sensors:
-    - name: AC outdoor temperature
-      unit_of_measurement: "°C"
-      accuracy_decimals: 1
-```
- 
-### Both temperatures in one declaration ###
-It is possible to add room and outdoor temperatures to your configuration with one yaml block:
-```yaml
-sensor:
-  - platform: custom
-    lambda: |-
-      extern AirCon acAirCon;
-      if (!acAirCon.get_initialized()) acAirCon.initAC(id(ac_uart_bus));
-      App.register_component(&acAirCon);
-      return {acAirCon.sensor_outdoor_temperature, acAirCon.sensor_ambient_temperature};
-    sensors:
-    - name: AC outdoor temperature
-      unit_of_measurement: "°C"
-      accuracy_decimals: 1
-    - name: AC ambient temperature
-      unit_of_measurement: "°C"
-      accuracy_decimals: 1
-```
- 
-### Firmware version ###
-`Aux_ac` component also gives information about source code version. You can add it to your config with this code:
-```yaml
-text_sensor:
-- platform: custom
-  lambda: |-
-    auto aircon_firmware_version = new AirConFirmwareVersion();
-    App.register_component(aircon_firmware_version);
-    return {aircon_firmware_version};
-  text_sensors:
-    name: AC firmware version
-    icon: "mdi:chip"
-```

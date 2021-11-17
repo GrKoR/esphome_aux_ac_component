@@ -1,35 +1,75 @@
 // Custom ESPHome component for AUX-based air conditioners
 // Need some soldering skills
 // Source code and detailed instructions are available on github: https://github.com/GrKoR/esphome_aux_ac_component
+/// немного переработанная версия старого компонента
+#pragma once
 
+#include <Arduino.h>
 #include "esphome.h"
 #include <stdarg.h>
+#include "esphome/core/component.h"
+#include "esphome/components/climate/climate.h"
+#include "esphome/components/uart/uart.h"
+#include "esphome/components/sensor/sensor.h"
+#include "esphome/core/helpers.h"
 
-static const char *TAG = "AirCon";
+namespace esphome {
+namespace aux_ac {
+
+
+using climate::ClimatePreset;
+using climate::ClimateTraits;
+using climate::ClimateMode;
+using climate::ClimateSwingMode;
+using climate::ClimateFanMode;    
+
+
+class Constants {
+public:
+    static const std::string AC_ROVEX_FIRMWARE_VERSION;
+
+    static const char *const TAG;
+    static const std::string MUTE;
+    static const std::string TURBO;
+    static const std::string CLEAN;
+    static const std::string FEEL;
+    static const std::string HEALTH;
+    static const std::string ANTIFUNGUS;
+
+    /// минимальная и максимальная температура в градусах Цельсия, ограничения самого кондиционера
+    static const float AC_MIN_TEMPERATURE;
+    static const float AC_MAX_TEMPERATURE;
+    /// шаг изменения целевой температуры, градусы Цельсия
+    static const float AC_TEMPERATURE_STEP;
+
+    // периодичность опроса кондиционера на предмет изменения состояния
+    // изменение параметров с пульта не сообщается в UART, поэтому надо запрашивать состояние, чтобы быть в курсе
+    // значение в миллисекундах
+    static const uint32_t AC_STATES_REQUEST_INTERVAL;
+};
+
+const std::string Constants::AC_ROVEX_FIRMWARE_VERSION = "0.2.0";
+const char *const Constants::TAG = "AirCon";
+const std::string Constants::MUTE = "mute";
+const std::string Constants::TURBO = "turbo";
+const std::string Constants::CLEAN = "clean";
+const std::string Constants::FEEL = "feel";
+const std::string Constants::HEALTH = "health";
+const std::string Constants::ANTIFUNGUS = "antifugnus";
+const float Constants::AC_MIN_TEMPERATURE = 16.0;
+const float Constants::AC_MAX_TEMPERATURE = 32.0;
+const float Constants::AC_TEMPERATURE_STEP = 0.5;
+const uint32_t Constants::AC_STATES_REQUEST_INTERVAL = 7000;
+
+
 class AirCon;
-
-#define AC_ROVEX_FIRMWARE_VERSION   "0.1.0"
-
-// периодичность опроса кондиционера на предмет изменения состояния
-// изменение параметров с пульта не сообщается в UART, поэтому надо запрашивать состояние, чтобы быть в курсе
-// значение в миллисекундах
-#define AC_STATES_REQUEST_INTERVAL   7000   // 7 sec default interval
-
-// минимальная и максимальная температура в градусах Цельсия, ограничения самого кондиционера
-#define AC_MIN_TEMPERATURE 16
-#define AC_MAX_TEMPERATURE 32
-
-// шаг изменения целевой температуры, градусы Цельсия
-#define AC_TEMPERATURE_STEP 0.1
 
 // состояния конечного автомата компонента
 enum acsm_state : uint8_t {
     ACSM_IDLE = 0,              // ничего не делаем, ждем, на что бы среагировать
     ACSM_RECEIVING_PACKET,      // находимся в процессе получения пакета, никакие отправки в этом состоянии невозможны
     ACSM_PARSING_PACKET,        // разбираем полученный пакет
-    //ACSM_SENDING_ANSWER,        // отправляем ответ на команду сплита
     ACSM_SENDING_PACKET,        // отправляем пакет сплиту
-    //ACSM_WAITING_FOR_PACKET     // ждем ответ на нашу команду (получаем пакет или вываливаемся по таймауту, расчитываемому по длине ожидаемого пакета)
 };
 
 /**
@@ -58,13 +98,11 @@ enum acsm_state : uint8_t {
  *        То есть примерно по 16,6 мсек на байт. Примем 17 мсек.
  *        Значит на максимальный пакет потребуется 17*34 = 578 мсек. Примем 600 мсек.
  *      - если отрабатывать пакет целиком или хотя бы имеющимися в буфере UART кусками, то на 10 байт пинг-пакета требуется 27 мсек.
- *        То есть примерно по 2,7 мсек. на байт. Что близко к расчетным идеальным значениям. Примем 3 мсек.
+ *        То есть примерно по 2,7 мсек. на байт. Что близко к расчетным значениям. Примем 3 мсек.
  *        Значит на максимальный пакет потребуется 3*34 = 102 мсек. Примем 150 мсек.
- *
- * Опыт показал, что 150 мсек вполне хватает на большие пакеты
+ *        Опыт показал, что 150 мсек вполне хватает на большие пакеты
  **/
 #define AC_PACKET_TIMEOUT   150     // 150 мсек - отработка буфера UART за раз, 600 мсек - отработка буфера UART по 1 байту за вызов loop
-#define AC_BYTE_TIME        3       // 3 или 17 мсек на байт в зависимости от принципов обработки буфера UART; возможно буду использовать для расчета таймаутов
 
 // типы пакетов
 #define AC_PTYPE_PING   0x01    // ping-пакет, рассылается кондиционером каждые 3 сек.; модуль на него отвечает 
@@ -110,8 +148,8 @@ union packet_crc_t {
 
 struct packet_t {
     uint32_t msec;  // значение millis в момент определения корректности пакета
-    packet_header_t * header;   // указатель на заголовок пакета
-    packet_crc_t * crc;     // указатель на контрольную сумму пакета
+    packet_header_t * header;
+    packet_crc_t * crc;
     uint8_t * body;         // указатель на первый байт тела; можно приведением типов указателей обращаться к отдельным битам как к полям соответсвующей структуры
     uint8_t bytesLoaded;    //количество загруженных в пакет байт, включая CRC
     uint8_t data[AC_BUFFER_SIZE];
@@ -277,12 +315,14 @@ enum ac_sleep : uint8_t { AC_SLEEP_OFF = 0x00, AC_SLEEP_ON = 0x04, AC_SLEEP_UNTO
 enum ac_ifeel : uint8_t { AC_IFEEL_OFF = 0x00, AC_IFEEL_ON = 0x08, AC_IFEEL_UNTOUCHED = 0xFF };
 
 // Вертикальные жалюзи. В протоколе зашита возможность двигать ими по всякому, но додлжна быть такая возможность на уровне железа.
+// ToDo: надо протестировать значения 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 для ac_louver_V
 #define AC_LOUVERV_MASK    0b00000111
-enum ac_louver_V : uint8_t { AC_LOUVERV_SWING_UPDOWN = 0x00,  AC_LOUVERV_OFF = 0x07, AC_LOUVERV_UNTOUCHED = 0xFF }; // ToDo: надо протестировать значения 0x01, 0x02, 0x03, 0x04, 0x05, 0x06
+enum ac_louver_V : uint8_t { AC_LOUVERV_SWING_UPDOWN = 0x00,  AC_LOUVERV_OFF = 0x07, AC_LOUVERV_UNTOUCHED = 0xFF };
 
 // Горизонтальные жалюзи. В протоколе зашита возможность двигать ими по всякому, но додлжна быть такая возможность на уровне железа.
+// ToDo: надо протестировать значения 0x20, 0x40, 0x60, 0x80, 0xA0, 0xC0 для ac_louver_H
 #define AC_LOUVERH_MASK    0b11100000
-enum ac_louver_H : uint8_t { AC_LOUVERH_SWING_LEFTRIGHT = 0x00,  AC_LOUVERH_OFF = 0xE0, AC_LOUVERH_UNTOUCHED = 0xFF }; // ToDo: надо протестировать значения 0x20, 0x40, 0x60, 0x80, 0xA0, 0xC0
+enum ac_louver_H : uint8_t { AC_LOUVERH_SWING_LEFTRIGHT = 0x00,  AC_LOUVERH_OFF = 0xE0, AC_LOUVERH_UNTOUCHED = 0xFF };
 
 struct ac_louver {
     ac_louver_H louver_h;
@@ -306,6 +346,8 @@ enum ac_fanmute : uint8_t { AC_FANMUTE_OFF = 0x00, AC_FANMUTE_ON = 0x80, AC_FANM
 enum ac_display : uint8_t { AC_DISPLAY_ON = 0x00, AC_DISPLAY_OFF = 0x10, AC_DISPLAY_UNTOUCHED = 0xFF };
 
 // включение-выключение функции "Антиплесень". 
+// По факту: после выключения сплита он оставляет минут на 5 открытые жалюзи и глушит вентилятор. Уличный блок при этом гудит и тарахтит.
+// Возможно, прогревается теплообменник для высыхания. Через некоторое время внешний блок замолкает и сплит закрывает жалюзи.
 #define AC_MILDEW_MASK    0b00001000
 enum ac_mildew : uint8_t { AC_MILDEW_OFF = 0x00, AC_MILDEW_ON = 0x08, AC_MILDEW_UNTOUCHED = 0xFF };
 
@@ -348,7 +390,7 @@ typedef ac_command_t ac_state_t;  // текущее состояние пара�
  *****************************************************************************************************************************************************
  * 
  * Последовательность команд позволяет выполнить несколько последовательных команд с контролем получаемых в ответ пакетов.
- * Если требуется, в получаемых в ответ пакетах пожно контролировать значение любых байт.
+ * Если требуется, в получаемых в ответ пакетах можно контролировать значение любых байт.
  * Для входящего пакета байт, значение которого не проверяется, должен быть установлен в AC_SEQUENCE_ANY_BYTE.
  * Контроль возможен только для входящих пакетов, исходящие отправляются "как есть".
  * 
@@ -388,26 +430,41 @@ enum sequence_packet_type_t : uint8_t {
     AC_SPT_SENT_PACKET      = 0x02      // отправленный пакет
 };
 
-// элемент последовательности
+/** элемент последовательности
+ *  Поля item_type, func, timeout и cmd устанавливаются ручками и задают параметры выполнения шага последовательности.
+ *  Поля msec, packet_type и packet заполняются движком при обработке последовательности.
+ **/
 struct sequence_item_t {
     sequence_item_type_t    item_type;      // тип элемента последовательности
     bool                    (AirCon::*func)();      // указатель на функцию, отрабатывающую шаг последовательности
     uint16_t                timeout;        // допустимый таймаут в ожидании пакета (применим только для входящих пакетов)
+    ac_command_t            cmd;            // новое состояние сплита, нужно для передачи кондиционеру команд
+    //******* поля ниже заполняются функциями обработки последовательности ***********
     uint32_t                msec;           // время старта текущего шага последовательности (для входящего пакета и паузы)
     sequence_packet_type_t  packet_type;    // тип пакета (входящий, исходящий или вовсе не пакет)
     packet_t                packet;         // данные пакета
-    ac_command_t            cmd;            // новое состояние сплита, нужно для передачи кондиционеру команд
 };
 /*****************************************************************************************************************************************************/
 
 
-class AirCon : public Component, public Climate {
+class AirCon : public esphome::Component, public esphome::climate::Climate {
     private:
         // время последнего запроса статуса у кондея
         uint32_t _dataMillis;
+        // периодичность обновления статуса кондея, по дефолту AC_STATES_REQUEST_INTERVAL
+        uint32_t _update_period = Constants::AC_STATES_REQUEST_INTERVAL;
 
-        // использую в дебажных задачах, чтобы разово выполнять какие-то запросы
-        uint8_t _cnt;
+        // надо ли отображать текущий режим работы внешнего блока
+        // в режиме нагрева, например, кондиционер может как греть воздух, так и работать в режиме вентилятора, если целевая темпреатура достигнута
+        // по дефолту показываем
+        bool _show_action = true;
+
+        // поддерживаемые кондиционером опции
+        std::set<ClimateMode> _supported_modes{};
+        std::set<ClimateSwingMode> _supported_swing_modes{};
+        std::set<ClimatePreset> _supported_presets{};
+        std::set<std::string> _supported_custom_presets{};
+        std::set<std::string> _supported_custom_fan_modes{};
 
         // состояние конечного автомата
         acsm_state _ac_state = ACSM_IDLE;
@@ -418,7 +475,24 @@ class AirCon : public Component, public Climate {
         // флаг подключения к UART
         bool _hw_initialized = false;
         // указатель на UART, по которому общаемся с кондиционером
-        UARTComponent *_ac_serial;
+        esphome::uart::UARTComponent *_ac_serial;
+
+        // UART wrappers: peek
+        int peek() {
+            uint8_t data;
+            if (!_ac_serial->peek_byte(&data)) return -1;
+            return data;
+        }
+
+        // UART wrappers: read
+        int read() {
+            uint8_t data;
+            if (!_ac_serial->read_byte(&data)) return -1;
+            return data;
+        }
+
+        // флаг обмена пакетами с кондиционером (если проходят пинги, значит есть коннект)
+        bool _has_connection = false;
 
         // входящий и исходящий пакеты
         packet_t _inPacket;
@@ -443,6 +517,63 @@ class AirCon : public Component, public Climate {
                 _clearCommand(&_sequence[i].cmd);
             }
             _sequence_current_step = 0;
+        }
+
+        // проверяет, есть ли свободные шаги в последовательности команд
+        bool _hasFreeSequenceStep(){
+            return (_getNextFreeSequenceStep() < AC_SEQUENCE_MAX_LEN);
+        }
+
+        // возвращает индекс первого пустого шага последовательности команд
+        uint8_t _getNextFreeSequenceStep(){
+            for (size_t i = 0; i < AC_SEQUENCE_MAX_LEN; i++) {
+                if (_sequence[i].item_type == AC_SIT_NONE){
+                    return i;
+                }
+            }
+            // если свободных слотов нет, то возвращаем значение за пределом диапазона
+            return AC_SEQUENCE_MAX_LEN;
+        }
+
+        // возвращает количество свободных шагов в последовательности
+        uint8_t _getFreeSequenceSpace() {
+            return (AC_SEQUENCE_MAX_LEN - _getNextFreeSequenceStep());
+        }
+
+        // добавляет шаг в последовательность команд
+        // возвращает false, если не нашлось места для шага
+        bool _addSequenceStep(const sequence_item_type_t item_type, bool (AirCon::*func)() = nullptr, ac_command_t *cmd = nullptr, uint16_t timeout = AC_SEQUENCE_DEFAULT_TIMEOUT){
+            if (!_hasFreeSequenceStep()) return false;  // если места нет, то уходим
+            if (item_type == AC_SIT_NONE) return false; // глупость какая-то, уходим
+            if ((item_type == AC_SIT_FUNC) && (func == nullptr)) return false; // должна быть передана функция для такого типа шага
+            if ((item_type != AC_SIT_DELAY) && (item_type != AC_SIT_FUNC)){
+                // какой-то неизвестный тип
+                _debugMsg(F("_addSequenceStep: unknown sequence item type = %u"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__, item_type);
+                return false;
+            } 
+
+            uint8_t step = _getNextFreeSequenceStep();
+
+            _sequence[step].item_type = item_type;
+
+            // если задержка нулевая, то присваиваем дефолтную задержку
+            if (timeout == 0) timeout = AC_SEQUENCE_DEFAULT_TIMEOUT;
+            _sequence[step].timeout = timeout;
+
+            _sequence[step].func = func;
+            if (cmd != nullptr) _sequence[step].cmd = *cmd;     // так как в структуре команды только простые типы, то можно вот так присваивать
+
+            return true;
+        }
+        
+        // додбавляет в последовательность шаг с задержкой
+        bool _addSequenceDelayStep(uint16_t timeout){
+            return this->_addSequenceStep(AC_SIT_DELAY, nullptr, nullptr, timeout);
+        }
+
+        // добавляет в последовательность функциональный шаг
+        bool _addSequenceFuncStep(bool (AirCon::*func)(), ac_command_t *cmd = nullptr, uint16_t timeout = AC_SEQUENCE_DEFAULT_TIMEOUT){
+            return this->_addSequenceStep(AC_SIT_FUNC, func, cmd, timeout);
         }
 
         // выполняет всю логику очередного шага последовательности команд
@@ -479,7 +610,7 @@ class AirCon : public Component, public Climate {
 
                     // если время вышло, то отчитываемся в лог и очищаем последовательность
                     if (millis() - _sequence[_sequence_current_step].msec >= _sequence[_sequence_current_step].timeout) {
-                        _debugMsg(F("Sequence  [step %u]: step timed out (%u ms)"), ESPHOME_LOG_LEVEL_WARN, __LINE__, _sequence_current_step, millis() - _sequence[_sequence_current_step].msec);
+                        _debugMsg(F("Sequence  [step %u]: step timed out (it took %u ms instead of %u ms)"), ESPHOME_LOG_LEVEL_WARN, __LINE__, _sequence_current_step, millis() - _sequence[_sequence_current_step].msec, _sequence[_sequence_current_step].timeout);
                         _clearSequence();
                         return;
                     }
@@ -637,10 +768,11 @@ class AirCon : public Component, public Climate {
             };
 
 
-            if (_ac_serial->peek() == AC_PACKET_START_BYTE) {
+            if (this->peek() == AC_PACKET_START_BYTE) {
                 // если во входящий пакет что-то уже загружено, значит это какие-то ошибочные данные или неизвестные пакеты
                 // надо эту инфу вывалить в лог
                 if (_inPacket.bytesLoaded > 0){
+                    _debugMsg(F("Start byte received but there are some unparsed bytes in the buffer:"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__);
                     _debugPrintPacket(&_inPacket, ESPHOME_LOG_LEVEL_DEBUG, __LINE__);
                 }
                 _clearInPacket();
@@ -663,10 +795,11 @@ class AirCon : public Component, public Climate {
                 while (_ac_serial->available() > 0)
                 {
                     // если наткнулись на старт пакета, то выходим из while
-                    if (_ac_serial->peek() == AC_PACKET_START_BYTE) break;
+                    // если какие-то данные были загружены в буфер, то они будут выгружены в лог при загрузке нового пакета
+                    if (this->peek() == AC_PACKET_START_BYTE) break;
 
                     // читаем байт в буфер входящего пакета
-                    _inPacket.data[_inPacket.bytesLoaded] = _ac_serial->read();
+                    _inPacket.data[_inPacket.bytesLoaded] = this->read();
                     _inPacket.bytesLoaded++;
 
                     // если буфер уже полон, надо его вывалить в лог и очистить
@@ -691,7 +824,7 @@ class AirCon : public Component, public Climate {
                     return;
                 }
 
-                _inPacket.data[_inPacket.bytesLoaded] = _ac_serial->read();
+                _inPacket.data[_inPacket.bytesLoaded] = this->read();
                 _inPacket.bytesLoaded++;
 
                 // данных достаточно для заголовка
@@ -714,11 +847,6 @@ class AirCon : public Component, public Climate {
                     _debugMsg(F("Loaded %02u bytes for a %u ms."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _inPacket.bytesLoaded, (millis() - _inPacket.msec));
                     _debugPrintPacket(&_inPacket, ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
                     _setStateMachineState(ACSM_PARSING_PACKET);
-                    //******************************************** экспериментальная секция ********************************************************
-                    // стараемся сократить лаг между запросом и ответом
-                    //_doParsingPacket();
-                    // если так (проходить без захода в состояние IDLE), то время сокращается до 123 мсек.
-                    //******************************************************************************************************************************
                     return;
                 }
             }
@@ -754,13 +882,13 @@ class AirCon : public Component, public Climate {
             switch (_inPacket.header->packet_type) {
                 case AC_PTYPE_PING: { // ping-пакет, рассылается кондиционером каждые 3 сек.; модуль на него отвечает
                     _debugMsg(F("Parser: ping packet received"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
+                    // поднимаем флаг, что есть коннект с кондиционером
+                    _has_connection = true;
+
                     // надо отправлять ответ на пинг
                     _clearOutPacket();
                     _outPacket.msec = millis();
-                    //_outPacket.msec = _inPacket.msec;   // делал так, чтобы посмотреть задуржку между запросом и ответом; получилось от начала запроса до отправки ответа порядка 165 мсек., если отправка идет не сразу, а через состояние IDLE
-                    //_outPacket.header->start_byte = AC_PACKET_START_BYTE; // не нужно, уже при обнудении исходящего пакета поставили
                     _outPacket.header->packet_type = AC_PTYPE_PING;
-                    //_outPacket.header->wifi = AC_PACKET_ANSWER;   // не нужно, уже при обнудении исходящего пакета поставили
                     _outPacket.header->ping_answer_01 = 0x01;       // только в ответе на пинг этот байт равен 0x01; что означает не ясно
                     _outPacket.header->body_length = 8;             // в ответе на пинг у нас тело 8 байт
                     _outPacket.body = &(_outPacket.data[AC_HEADER_SIZE]);
@@ -787,25 +915,19 @@ class AirCon : public Component, public Climate {
                     
                     // изначально предполагал, что передачу пакета на отправку выполнит обработчик IDLE, но показалось, что слишком долго
                     // логика отправки через IDLE в том, что получение запросов может быть важнее отправки ответов и IDLE позволяет реализовать такой приоритет
-                    //_setStateMachineState(ACSM_IDLE);
                     // но потом решил всё же напрямую отправлять в отправку
                     // в этом случае пинг-ответ заканчивает отправку спустя 144 мсек после стартового байта пинг-запроса
+                    //_setStateMachineState(ACSM_IDLE);
                     _setStateMachineState(ACSM_SENDING_PACKET);
                     // решил провести эксперимент
-                    //******************************************** экспериментальная секция ***************************************************************
                     // получилось от начала запроса до отправки ответа порядка 165 мсек., если отправка идет не сразу, а через состояние IDLE
                     // Если сразу отсюда отправляться в обработчик отправки, то время сокращается до 131 мсек. Основные потери идут до входа в парсер пакетов
-                    //_setStateMachineState(ACSM_SENDING_PACKET);
-                    //_doSendingPacketState();
-                    //_clearInPacket();
-                    //return;
-                    //*************************************************************************************************************************************
                     break;
                 }
                 
                 case AC_PTYPE_CMD:  { // команда сплиту; модуль отправляет такие команды, когда что-то хочет от сплита
                     //  сплит такие команды отправлять не должен, поэтому жалуемся в лог
-                    _debugMsg(F("Parser: packet type=0x06 received. This isn't expected."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                    _debugMsg(F("Parser: packet type=0x06 received from HVAC. This isn't expected."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                     // очищаем пакет
                     _clearInPacket();
                     _setStateMachineState(ACSM_IDLE);
@@ -833,72 +955,58 @@ class AirCon : public Component, public Climate {
                             stateByte = small_info_body->target_temp_int_and_v_louver & AC_LOUVERV_MASK;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.louver.louver_v != (ac_louver_V)stateByte);
                             _current_ac_state.louver.louver_v = (ac_louver_V)stateByte;
-                            //_current_ac_state.louver.louver_v = (ac_louver_V)(small_info_body->target_temp_int_and_v_louver & AC_LOUVERV_MASK);
 
                             stateByte = small_info_body->h_louver & AC_LOUVERH_MASK;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.louver.louver_h != (ac_louver_H)stateByte);
                             _current_ac_state.louver.louver_h = (ac_louver_H)stateByte;
-                            //_current_ac_state.louver.louver_h = (ac_louver_H)(small_info_body->h_louver & AC_LOUVERH_MASK);
 
                             stateByte = small_info_body->fan_speed & AC_FANSPEED_MASK;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.fanSpeed != (ac_fanspeed)stateByte);
                             _current_ac_state.fanSpeed = (ac_fanspeed)stateByte;
-                            //_current_ac_state.fanSpeed = (ac_fanspeed)(small_info_body->fan_speed & AC_FANSPEED_MASK);
 
                             stateByte = small_info_body->fan_turbo_and_mute & AC_FANTURBO_MASK;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.fanTurbo != (ac_fanturbo)stateByte);
                             _current_ac_state.fanTurbo = (ac_fanturbo)stateByte;
-                            //_current_ac_state.fanTurbo = (ac_fanturbo)(small_info_body->fan_turbo_and_mute & AC_FANTURBO_MASK);
 
                             stateByte = small_info_body->fan_turbo_and_mute & AC_FANMUTE_MASK;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.fanMute != (ac_fanmute)stateByte);
                             _current_ac_state.fanMute = (ac_fanmute)stateByte;
-                            //_current_ac_state.fanMute = (ac_fanmute)(small_info_body->fan_turbo_and_mute & AC_FANMUTE_MASK);
                             
                             stateByte = small_info_body->mode & AC_MODE_MASK;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.mode != (ac_mode)stateByte);
                             _current_ac_state.mode = (ac_mode)stateByte;
-                            //_current_ac_state.mode = (ac_mode)(small_info_body->mode & AC_MODE_MASK);
                             
                             stateByte = small_info_body->mode & AC_SLEEP_MASK;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.sleep != (ac_sleep)stateByte);
                             _current_ac_state.sleep = (ac_sleep)stateByte;
-                            //_current_ac_state.sleep = (ac_sleep)(small_info_body->mode & AC_SLEEP_MASK);
                             
                             stateByte = small_info_body->mode & AC_IFEEL_MASK;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.iFeel != (ac_ifeel)stateByte);
                             _current_ac_state.iFeel = (ac_ifeel)stateByte;
-                            //_current_ac_state.iFeel = (ac_ifeel)(small_info_body->mode & AC_IFEEL_MASK);
                             
                             stateByte = small_info_body->status & AC_POWER_MASK;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.power != (ac_power)stateByte);
                             _current_ac_state.power = (ac_power)stateByte;
-                            //_current_ac_state.power = (ac_power)(small_info_body->status & AC_POWER_MASK);
                             
                             stateByte = small_info_body->status & AC_HEALTH_MASK;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.health != (ac_health)stateByte);
                             _current_ac_state.health = (ac_health)stateByte;
-                            //_current_ac_state.health = (ac_health)(small_info_body->status & AC_HEALTH_MASK);
                             
                             stateByte = small_info_body->status & AC_HEALTH_STATUS_MASK;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.health_status != (ac_health_status)stateByte);
                             _current_ac_state.health_status = (ac_health_status)stateByte;
-                            //_current_ac_state.health_status = (ac_health_status)(small_info_body->status & AC_HEALTH_STATUS_MASK);
                             
                             stateByte = small_info_body->status & AC_CLEAN_MASK;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.clean != (ac_clean)stateByte);
                             _current_ac_state.clean = (ac_clean)stateByte;
-                            //_current_ac_state.clean = (ac_clean)(small_info_body->status & AC_CLEAN_MASK);
                             
                             stateByte = small_info_body->display_and_mildew & AC_DISPLAY_MASK;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.display != (ac_display)stateByte);
                             _current_ac_state.display = (ac_display)stateByte;
-                            //_current_ac_state.display = (ac_display)(small_info_body->display_and_mildew & AC_DISPLAY_MASK);
                             
                             stateByte = small_info_body->display_and_mildew & AC_MILDEW_MASK;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.mildew != (ac_mildew)stateByte);
                             _current_ac_state.mildew = (ac_mildew)stateByte;
-                            //_current_ac_state.mildew = (ac_mildew)(small_info_body->display_and_mildew & AC_MILDEW_MASK);
 
                             // уведомляем об изменении статуса сплита
                             if (stateChangedFlag) stateChanged();
@@ -907,7 +1015,7 @@ class AirCon : public Component, public Climate {
                         
                         case AC_CMD_STATUS_BIG:         // большой пакет статуса кондиционера
                         case AC_CMD_STATUS_PERIODIC:  { // раз в 10 минут разсылается сплитом, структура аналогична большому пакету статуса
-                            // вроде как AC_CMD_STATUS_PERIODIC могут быть и с другими кодами, но пока забъю на это
+                            // TODO: вроде как AC_CMD_STATUS_PERIODIC могут быть и с другими кодами; пока что другие будут игнорироваться; если это будет критично, надо будет поправить
                             _debugMsg(F("Parser: status packet type = big or periodic"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
                             stateChangedFlag = false;
 
@@ -922,7 +1030,8 @@ class AirCon : public Component, public Climate {
                             
                             // некая температура из наружного блока, скорее всего температура испарителя
                             // TODO: формула расчета неправильная! Нужно исследовать на опыте, какая температура при каких условиях
-                            stateFloat = big_info_body->outdoor_temperature - 0x20;
+                            //stateFloat = big_info_body->outdoor_temperature - 0x20;
+                            stateFloat = big_info_body->outdoor_temperature;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.temp_outdoor != stateFloat);
                             _current_ac_state.temp_outdoor = stateFloat;
 
@@ -934,8 +1043,10 @@ class AirCon : public Component, public Climate {
                         case AC_CMD_SET_PARAMS: {   // такой статусный пакет присылается кондиционером в ответ на команду установки параметров
                             // в теле пакета нет ничего примечательного
                             // в байтах 2 и 3 тела похоже передается CRC пакета поступившей команды, на которую сплит отвечает
-                            // но я решил этот момент не проверять и не контролировать
+                            // но я решил этот момент тут не проверять и не контролировать.
                             // корректную установку параметров можно определить, запросив статус кондиционера сразу после получения этой команды кондея
+                            // в настоящий момент проверка сделана в механизме sequences
+                            // TODO: если доводить до идеала, то проверку байтов 2 и 3 можно сделать и тут
                             break;
                         }
 
@@ -967,7 +1078,6 @@ class AirCon : public Component, public Climate {
             // если нет исходящего пакета, то выходим
             if ((_outPacket.msec == 0) || (_outPacket.crc == nullptr) || (_outPacket.bytesLoaded == 0)) {
                 _debugMsg(F("Sender: no packet to send."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
-                //_clearOutPacket();    // смысла нет обнулять, пакет же пустой
                 _setStateMachineState(ACSM_IDLE);
                 return;
             }
@@ -984,8 +1094,7 @@ class AirCon : public Component, public Climate {
             _setStateMachineState(ACSM_IDLE);
         };
 
-        /**
-         * вывод отладочной информации в лог
+        /** вывод отладочной информации в лог
          * 
          * dbgLevel - уровень сообщения, определен в ESPHome. За счет его использования можно из ESPHome управлять полнотой сведений в логе.
          * msg - сообщение, выводимое в лог
@@ -995,7 +1104,7 @@ class AirCon : public Component, public Climate {
             if (dbgLevel < ESPHOME_LOG_LEVEL_NONE) dbgLevel = ESPHOME_LOG_LEVEL_NONE;
             if (dbgLevel > ESPHOME_LOG_LEVEL_VERY_VERBOSE) dbgLevel = ESPHOME_LOG_LEVEL_VERY_VERBOSE;
 
-            // ***TODO*** Пока сделано через Ж: сообщение копируется в массив и потом выводится....
+            // TODO: Пока сделано через Ж* - сообщение копируется в массив и потом выводится....
             // это костыль, чтобы передать неизвестное количество аргументов
             char _msg[128];
             msg.toCharArray(_msg, 128);
@@ -1004,12 +1113,11 @@ class AirCon : public Component, public Climate {
 
             va_list vl;
             va_start(vl, line);
-            esp_log_vprintf_(dbgLevel, TAG, line, _msg, vl);
+            esp_log_vprintf_(dbgLevel, Constants::TAG, line, _msg, vl);
             va_end(vl);
         }
 
-        /**
-         * выводим данные пакета в лог для отладки
+        /** выводим данные пакета в лог для отладки
          * 
          * dbgLevel - уровень сообщения, определен в ESPHome. За счет его использования можно из ESPHome управлять полнотой сведений в логе.
          * packet - указатель на пакет для вывода;
@@ -1022,7 +1130,6 @@ class AirCon : public Component, public Climate {
             // определяем, полноценный ли пакет нам передан
             bool notAPacket = false;
             // указатель заголовка всегда установден на начало буфера
-            //notAPacket = notAPacket || (packet->header == nullptr);
             notAPacket = notAPacket || (packet->crc == nullptr);
             notAPacket = notAPacket || (packet->data[0] != AC_PACKET_START_BYTE);
 
@@ -1066,8 +1173,7 @@ class AirCon : public Component, public Climate {
             _debugMsg(st, dbgLevel, line);
         }
 
-        /**
-         * расчет CRC16 для блока данных data длиной len
+        /** расчет CRC16 для блока данных data длиной len
          *      data    - данные для расчета CRC16, указатель на массив байт
          *      len     - длина блока данных для расчета, в байтах
          * 
@@ -1174,8 +1280,8 @@ class AirCon : public Component, public Climate {
             _setCRC16(pack);
         }
 
-        /**
-         * заполняет пакет по ссылке командой установки параметров
+        /** заполняет пакет по ссылке командой установки параметров
+         * 
          * указатель на пакет может отсутствовать, тогда заполняется _outPacket
          * указатель на команду также может отсутствовать, тогда используется текущее состояние из _current_ac_state
          * все *__UNTOUCHED параметры заполняются из _current_ac_state
@@ -1184,24 +1290,11 @@ class AirCon : public Component, public Climate {
             // по умолчанию заполняем исходящий пакет
             if (pack == nullptr) pack = &_outPacket;
 
-            /*
-            _debugMsg(F("_fillSetCommand: packet on start"), ESPHOME_LOG_LEVEL_INFO, __LINE__);
-            _debugPrintPacket(pack, ESPHOME_LOG_LEVEL_INFO, __LINE__);
-            */
-
             // очищаем пакет, если это указано
             if (clrPacket) _clearPacket(pack);
-            /*
-            _debugMsg(F("_fillSetCommand: packet after clear"), ESPHOME_LOG_LEVEL_INFO, __LINE__);
-            _debugPrintPacket(pack, ESPHOME_LOG_LEVEL_INFO, __LINE__);
-            */
 
             // заполняем его параметрами из _current_ac_state
             if (cmd != &_current_ac_state) _fillSetCommand(false, pack, &_current_ac_state);
-            /*
-            _debugMsg(F("_fillSetCommand: packet after _fillSetCommand(pack, &_current_ac_state)"), ESPHOME_LOG_LEVEL_INFO, __LINE__);
-            _debugPrintPacket(pack, ESPHOME_LOG_LEVEL_INFO, __LINE__);
-            */
 
             // если команда не указана, значит выходим
             if (cmd == nullptr) return;
@@ -1219,15 +1312,11 @@ class AirCon : public Component, public Climate {
             pack->body[1] = 0x01;   // он всегда 0x01
             pack->bytesLoaded = AC_HEADER_SIZE + pack->header->body_length + 2;
 
-            /*
-            _debugMsg(F("_fillSetCommand: packet header set"), ESPHOME_LOG_LEVEL_INFO, __LINE__);
-            */
-
             // целевая температура кондиционера
             if (cmd->temp_target_matter){
                 // устраняем выход за границы диапазона (это ограничение самого кондиционера)
-                if (cmd->temp_target < AC_MIN_TEMPERATURE) cmd->temp_target = AC_MIN_TEMPERATURE;
-                if (cmd->temp_target > AC_MAX_TEMPERATURE) cmd->temp_target = AC_MAX_TEMPERATURE;
+                if (cmd->temp_target < Constants::AC_MIN_TEMPERATURE) cmd->temp_target = Constants::AC_MIN_TEMPERATURE;
+                if (cmd->temp_target > Constants::AC_MAX_TEMPERATURE) cmd->temp_target = Constants::AC_MAX_TEMPERATURE;
 
                 // целая часть температуры
                 pack->body[2] = (pack->body[2] & ~AC_TEMP_TARGET_INT_PART_MASK) | (((uint8_t)(cmd->temp_target) - 8) << 3);
@@ -1300,429 +1389,6 @@ class AirCon : public Component, public Climate {
             // рассчитываем и записываем в пакет CRC
             pack->crc = (packet_crc_t *) &(pack->data[AC_HEADER_SIZE + pack->header->body_length]);
             _setCRC16(pack);
-
-            /*
-            _debugMsg(F("_fillSetCommand: packet at the finish"), ESPHOME_LOG_LEVEL_INFO, __LINE__);
-            _debugPrintPacket(pack, ESPHOME_LOG_LEVEL_INFO, __LINE__);
-            */
-        }
-
-    public:
-        // сенсоры, отображающие параметры сплита
-        Sensor *sensor_ambient_temperature = new Sensor();
-        Sensor *sensor_outdoor_temperature = new Sensor();
-
-        AirCon(){ initAC(); };
-
-        AirCon(UARTComponent *parent) { initAC(parent); };
-
-        // инициализация объекта
-        void initAC(UARTComponent *parent = nullptr){
-            _dataMillis = millis();
-            _cnt = 0;
-            _clearInPacket();
-            _clearOutPacket();
-
-            _setStateMachineState(ACSM_IDLE);
-            _ac_serial = parent;
-            _hw_initialized = (_ac_serial != nullptr);
-
-            // заполняем структуру состояния начальными значениями
-            _clearCommand((ac_command_t *)&_current_ac_state);
-
-            // очищаем последовательность пакетов
-            _clearSequence();
-
-            // выполнена ли уже стартовая последовательность команд (сбор информации о статусе кондея)
-            _startupSequenceComlete = false;
-        };
-
-        float get_setup_priority() const override { return esphome::setup_priority::DATA; }
-
-        bool get_initialized(){ return _hw_initialized; };
-
-        // возвращает, есть ли елементы в последовательности команд
-        bool hasSequence(){
-            return (_sequence[0].item_type != AC_SIT_NONE);
-        }
-
-        // вызывается, если параметры кондиционера изменились
-        void stateChanged(){
-            _debugMsg(F("State changed, let's publish it."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
-
-            /*************************** POWER & MODE ***************************/
-            this->mode = climate::CLIMATE_MODE_OFF;
-            this->action = climate::CLIMATE_ACTION_OFF;
-            if (_current_ac_state.power == AC_POWER_ON){
-                switch (_current_ac_state.mode) {
-                    case AC_MODE_AUTO:
-                        this->mode = climate::CLIMATE_MODE_AUTO;
-                        this->action = climate::CLIMATE_ACTION_IDLE;
-                        break;
-                    
-                    case AC_MODE_COOL:
-                        this->mode = climate::CLIMATE_MODE_COOL;
-                        this->action = climate::CLIMATE_ACTION_IDLE;
-                        break;
-                    
-                    case AC_MODE_DRY:
-                        this->mode = climate::CLIMATE_MODE_DRY;
-                        this->action = climate::CLIMATE_ACTION_DRYING;
-                        break;
-                    
-                    case AC_MODE_HEAT:
-                        this->mode = climate::CLIMATE_MODE_HEAT;
-                        this->action = climate::CLIMATE_ACTION_IDLE;
-                        break;
-                    
-                    case AC_MODE_FAN:
-                        this->mode = climate::CLIMATE_MODE_FAN_ONLY;
-                        this->action = climate::CLIMATE_ACTION_FAN;
-                        break;
-                    
-                    default:
-                        _debugMsg(F("Warning: unknown air conditioner mode."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
-                        break;
-                }
-            } else {
-                this->mode = climate::CLIMATE_MODE_OFF;
-                this->action = climate::CLIMATE_ACTION_OFF;
-            }
-
-            _debugMsg(F("Climate mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->mode);
-
-            /*************************** FAN SPEED ***************************/
-            this->fan_mode = climate::CLIMATE_FAN_OFF;
-            switch (_current_ac_state.fanSpeed) {
-                case AC_FANSPEED_HIGH:
-                    this->fan_mode = climate::CLIMATE_FAN_HIGH;
-                    break;
-                
-                case AC_FANSPEED_MEDIUM:
-                    this->fan_mode = climate::CLIMATE_FAN_MEDIUM;
-                    break;
-                
-                case AC_FANSPEED_LOW:
-                    this->fan_mode = climate::CLIMATE_FAN_LOW;
-                    break;
-                
-                case AC_FANSPEED_AUTO:
-                    this->fan_mode = climate::CLIMATE_FAN_AUTO;
-                    break;
-                
-                default:
-                    _debugMsg(F("Warning: unknown fan speed."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
-                    break;
-            }
-
-            /*************************** FAN TURBO MODE ***************************/
-            // TURBO работает только в режимах COOL и HEAT
-            switch (_current_ac_state.fanTurbo) {
-                case AC_FANTURBO_ON:
-                    if ((_current_ac_state.mode == AC_MODE_HEAT) || (_current_ac_state.mode == AC_MODE_COOL)) {
-                        // используем режим CLIMATE_FAN_FOCUS как TURBO
-                        this->fan_mode = climate::CLIMATE_FAN_FOCUS;
-                    }
-                    break;
-                
-                case AC_FANTURBO_OFF:
-                default:
-                    // ничего не меняем
-                    break;
-            }
-
-            /*************************** FAN MUTE MODE ***************************/
-            // MUTE работает только в режиме FAN. В режиме COOL кондей команду принимает, но MUTE не устанавливается
-            switch (_current_ac_state.fanMute) {
-                case AC_FANMUTE_ON:
-                    if (_current_ac_state.mode == AC_MODE_FAN) {
-                        // используем режим CLIMATE_FAN_DIFFUSE как MUTE
-                        this->fan_mode = climate::CLIMATE_FAN_DIFFUSE;
-                    }
-                    break;
-                
-                case AC_FANMUTE_OFF:
-                default:
-                    // ничего не меняем
-                    break;
-            }
-
-            _debugMsg(F("Climate fan mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->fan_mode);
-
-            /*************************** LOUVERs ***************************/
-            this->swing_mode = climate::CLIMATE_SWING_OFF;
-            if (_current_ac_state.louver.louver_h == AC_LOUVERH_SWING_LEFTRIGHT){
-                this->swing_mode = climate::CLIMATE_SWING_HORIZONTAL;
-            }
-            if (_current_ac_state.louver.louver_v == AC_LOUVERV_SWING_UPDOWN){
-                if (_current_ac_state.louver.louver_h == AC_LOUVERH_SWING_LEFTRIGHT){
-                    this->swing_mode = climate::CLIMATE_SWING_BOTH;
-                } else {
-                    this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
-                }
-            }
-
-            _debugMsg(F("Climate swing mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->swing_mode);
-
-            /*************************** TEMPERATURE ***************************/
-            this->target_temperature = _current_ac_state.temp_target;
-            _debugMsg(F("Target temperature: %f"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->target_temperature);
-
-            this->current_temperature = _current_ac_state.temp_ambient;
-            _debugMsg(F("Room temperature: %f"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->current_temperature);
-            
-
-            /*********************************************************************/
-            /*************************** PUBLISH STATE ***************************/
-            /*********************************************************************/
-            this->publish_state();
-            // температура в комнате
-            sensor_ambient_temperature->publish_state(_current_ac_state.temp_ambient);
-            // температура уличного блока
-            sensor_outdoor_temperature->publish_state(_current_ac_state.temp_outdoor);
-        }
-
-        // вызывается пользователем из интерфейса ESPHome или Home Assistant
-        void control(const ClimateCall &call) override {
-            bool hasCommand = false;
-            ac_command_t    cmd;
-            _clearCommand(&cmd);    // не забываем очищать, а то будет мусор
-
-            // User requested mode change
-            if (call.get_mode().has_value()) {
-                hasCommand = true;
-                ClimateMode mode = *call.get_mode();
-                // Send mode to hardware
-                switch (mode) {
-                    case climate::CLIMATE_MODE_OFF:
-                        cmd.power = AC_POWER_OFF;
-                        break;
-                    
-                    case climate::CLIMATE_MODE_COOL:
-                        cmd.power = AC_POWER_ON;
-                        cmd.mode = AC_MODE_COOL;
-                        break;
-                    
-                    case climate::CLIMATE_MODE_HEAT:
-                        cmd.power = AC_POWER_ON;
-                        cmd.mode = AC_MODE_HEAT;
-                        break;
-                    
-                    case climate::CLIMATE_MODE_AUTO:
-                        cmd.power = AC_POWER_ON;
-                        cmd.mode = AC_MODE_AUTO;
-                        break;
-                    
-                    case climate::CLIMATE_MODE_FAN_ONLY:
-                        cmd.power = AC_POWER_ON;
-                        cmd.mode = AC_MODE_FAN;
-                        break;
-                    
-                    case climate::CLIMATE_MODE_DRY:
-                        cmd.power = AC_POWER_ON;
-                        cmd.mode = AC_MODE_DRY;
-                        break;
-                }
-
-                this->mode = mode;
-            }
-
-            // User requested fan_mode change
-            if (call.get_fan_mode().has_value()) {
-                hasCommand = true;
-                ClimateFanMode fanmode = *call.get_fan_mode();
-                // Send fan mode to hardware
-                switch (fanmode) {
-                    case climate::CLIMATE_FAN_OFF:
-                    case climate::CLIMATE_FAN_ON:
-                        // don't know what to do here =)
-                        break;
-                    
-                    case climate::CLIMATE_FAN_MIDDLE:
-                        // ROVEX ALS1: unused
-                        break;
-                    
-                    case climate::CLIMATE_FAN_AUTO:
-                        cmd.fanSpeed = AC_FANSPEED_AUTO;
-                        cmd.fanTurbo = AC_FANTURBO_OFF;   // changing fan speed cancels fan TURBO mode for ROVEX air conditioner 
-                        cmd.fanMute = AC_FANMUTE_OFF;
-                        break;
-                    
-                    case climate::CLIMATE_FAN_LOW:
-                        cmd.fanSpeed = AC_FANSPEED_LOW;
-                        cmd.fanTurbo = AC_FANTURBO_OFF;   // changing fan speed cancels fan TURBO mode for ROVEX air conditioner 
-                        cmd.fanMute = AC_FANMUTE_OFF;
-                        break;
-                    
-                    case climate::CLIMATE_FAN_MEDIUM:
-                        cmd.fanSpeed = AC_FANSPEED_MEDIUM;
-                        cmd.fanTurbo = AC_FANTURBO_OFF;   // changing fan speed cancels fan TURBO mode for ROVEX air conditioner 
-                        cmd.fanMute = AC_FANMUTE_OFF;
-                        break;
-                    
-                    case climate::CLIMATE_FAN_HIGH:
-                        cmd.fanSpeed = AC_FANSPEED_HIGH;
-                        cmd.fanTurbo = AC_FANTURBO_OFF;   // changing fan speed cancels fan TURBO mode for ROVEX air conditioner
-                        cmd.fanMute = AC_FANMUTE_OFF;
-                        break;
-                    
-                    case climate::CLIMATE_FAN_FOCUS:
-                        // TURBO fan mode
-                        // TURBO fan mode is suitable in COOL and HEAT modes for Rovex air conditioner.
-                        // Other modes don't accept TURBO fan mode.
-                        // May be other AUX-based air conditioners do the same.
-                        if (       cmd.mode == AC_MODE_COOL
-                                or cmd.mode == AC_MODE_HEAT
-                                or _current_ac_state.mode == AC_MODE_COOL
-                                or _current_ac_state.mode == AC_MODE_HEAT) {
-                            cmd.fanTurbo = AC_FANTURBO_ON;
-                            }
-                        else {
-                            // need this for return correct fan_mode to the UI
-                            switch (_current_ac_state.fanSpeed) {
-                                case AC_FANSPEED_AUTO:
-                                    fanmode = climate::CLIMATE_FAN_AUTO;
-                                    break;
-
-                                case AC_FANSPEED_LOW:
-                                    fanmode = climate::CLIMATE_FAN_LOW;
-                                    break;
-
-                                case AC_FANSPEED_MEDIUM:
-                                    fanmode = climate::CLIMATE_FAN_MEDIUM;
-                                    break;
-
-                                case AC_FANSPEED_HIGH:
-                                    fanmode = climate::CLIMATE_FAN_HIGH;
-                                    break;
-                            }
-                        }
-                        break;
-                    
-                    case climate::CLIMATE_FAN_DIFFUSE:
-                        // MUTE fan mode
-                        // MUTE fan mode is suitable in FAN mode only for Rovex air conditioner.
-                        // In COOL mode AC receives command without any changes.
-                        // May be other AUX-based air conditioners do the same.
-                        if (                     cmd.mode == AC_MODE_FAN
-                                or _current_ac_state.mode == AC_MODE_FAN) {
-                            cmd.fanMute = AC_FANMUTE_ON;
-                            }
-                        else {
-                            // need this for return correct fan_mode to the UI
-                            switch (_current_ac_state.fanSpeed) {
-                                case AC_FANSPEED_AUTO:
-                                    fanmode = climate::CLIMATE_FAN_AUTO;
-                                    break;
-
-                                case AC_FANSPEED_LOW:
-                                    fanmode = climate::CLIMATE_FAN_LOW;
-                                    break;
-
-                                case AC_FANSPEED_MEDIUM:
-                                    fanmode = climate::CLIMATE_FAN_MEDIUM;
-                                    break;
-                                    
-                                case AC_FANSPEED_HIGH:
-                                    fanmode = climate::CLIMATE_FAN_HIGH;
-                                    break;
-                            }
-                        }
-                        break;
-                }
-
-                this->fan_mode = fanmode;
-            }
-
-            // User requested swing_mode change
-            if (call.get_swing_mode().has_value()) {
-                hasCommand = true;
-                ClimateSwingMode swingmode = *call.get_swing_mode();
-                // Send fan mode to hardware
-                switch (swingmode) {
-                    // The protocol allows other combinations for SWING.
-                    // For example "turn the louvers to the desired position or "spread to the sides" / "concentrate in the center".
-                    // But the ROVEX IR-remote does not provide this features. Therefore this features haven't been tested.
-                    // May be suitable for other models of AUX-based ACs.
-                    case climate::CLIMATE_SWING_OFF:
-                        cmd.louver.louver_h = AC_LOUVERH_OFF;
-                        cmd.louver.louver_v = AC_LOUVERV_OFF;
-                        break;
-
-                    case climate::CLIMATE_SWING_BOTH:
-                        cmd.louver.louver_h = AC_LOUVERH_SWING_LEFTRIGHT;
-                        cmd.louver.louver_v = AC_LOUVERV_SWING_UPDOWN;
-                        break;
-
-                    case climate::CLIMATE_SWING_VERTICAL:
-                        cmd.louver.louver_h = AC_LOUVERH_OFF;
-                        cmd.louver.louver_v = AC_LOUVERV_SWING_UPDOWN;
-                        break;
-
-                    case climate::CLIMATE_SWING_HORIZONTAL:
-                        cmd.louver.louver_h = AC_LOUVERH_SWING_LEFTRIGHT;
-                        cmd.louver.louver_v = AC_LOUVERV_OFF;
-                        break;
-                }
-
-                this->swing_mode = swingmode;
-            }
-
-            if (call.get_target_temperature().has_value()) {
-                hasCommand = true;
-                // User requested target temperature change
-                float temp = *call.get_target_temperature();
-                // Send target temp to climate
-                if (temp > AC_MAX_TEMPERATURE) temp = AC_MAX_TEMPERATURE;
-                if (temp < AC_MIN_TEMPERATURE) temp = AC_MIN_TEMPERATURE;
-                cmd.temp_target = temp;
-                cmd.temp_target_matter = true;
-            }
-            if (hasCommand) {
-                commandSequence(&cmd);
-                this->publish_state(); // Publish updated state
-            }
-        }
-
-        ClimateTraits traits() override {
-            // The capabilities of the climate device
-            auto traits = climate::ClimateTraits();
-            traits.set_supports_current_temperature(true);              // if the climate device supports reporting a current temperature
-            traits.set_supports_two_point_target_temperature(false);    // if the climate device's target temperature should be split in target_temperature_low and target_temperature_high instead of just the single target_temperature
-            traits.set_supports_auto_mode(true);                        // automatic control
-            traits.set_supports_cool_mode(true);                        // lowers current temperature
-            traits.set_supports_heat_mode(true);                        // increases current temperature
-            traits.set_supports_fan_only_mode(true);                    // only turns on fan
-            traits.set_supports_dry_mode(true);                         // removes humidity from air
-            traits.set_supports_away(false);                            // away mode means that the climate device supports two different target temperature settings: one target temp setting for "away" mode and one for non-away mode.
-
-            /* *************** TODO: надо сделать информирование о текущем режиме, сплит поддерживает *************** */
-            traits.set_supports_action(true);                          // if the climate device supports reporting the active current action of the device with the action property.
-
-            // optionally, if it has a fan which can be configured in different ways: on, off, auto, high, medium, low, middle, focus, diffuse
-            traits.set_supports_fan_mode_on(false);
-            traits.set_supports_fan_mode_off(false);
-            traits.set_supports_fan_mode_auto(true);
-            traits.set_supports_fan_mode_low(true);
-            traits.set_supports_fan_mode_medium(true);
-            traits.set_supports_fan_mode_high(true);
-            traits.set_supports_fan_mode_middle(false);
-            traits.set_supports_fan_mode_focus(true);       // использую для режима TURBO
-            traits.set_supports_fan_mode_diffuse(true);     // использую для режима MUTE
-
-            // optionally, if it has a swing which can be configured in different ways: off, both, vertical, horizontal
-            traits.set_supports_swing_mode_off(true);
-            traits.set_supports_swing_mode_both(true);
-            traits.set_supports_swing_mode_vertical(true);
-            traits.set_supports_swing_mode_horizontal(true);
-
-            // tells the frontend what range of temperatures the climate device should display (gauge min/max values)
-            traits.set_visual_min_temperature(AC_MIN_TEMPERATURE);
-            traits.set_visual_max_temperature(AC_MAX_TEMPERATURE);
-            // the step with which to increase/decrease target temperature. This also affects with how many decimal places the temperature is shown.
-            traits.set_visual_temperature_step(AC_TEMPERATURE_STEP);
-
-            return traits;
         }
 
         // отправка запроса на маленький статусный пакет
@@ -1884,58 +1550,697 @@ class AirCon : public Component, public Climate {
             return relevant;
         }
 
-        // запрос маленького пакета статуса кондиционера
-        void getStatusSmall(){
-            // если какая-то последовательность загружена и выполняется, то мы не можем сформировать новую последовательность команд
-            if (hasSequence()) {
-                _debugMsg(F("getStatusSmall: there is another sequence loaded. Can't create new sequence."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
-                return;
+        // сенсоры, отображающие параметры сплита
+        //esphome::sensor::Sensor *sensor_indoor_temperature = new esphome::sensor::Sensor();
+        esphome::sensor::Sensor *sensor_indoor_temperature_ = nullptr;
+        // TODO: если расшифруем формулу для уличной температуры, то можно будет вернуть
+        //esphome::sensor::Sensor *sensor_outdoor_temperature = new esphome::sensor::Sensor();
+
+    public:
+        // инициализация объекта
+        void initAC(esphome::uart::UARTComponent *parent = nullptr){
+            _dataMillis = millis();
+            _clearInPacket();
+            _clearOutPacket();
+
+            _setStateMachineState(ACSM_IDLE);
+            _ac_serial = parent;
+            _hw_initialized = (_ac_serial != nullptr);
+            _has_connection = false;
+
+            // заполняем структуру состояния начальными значениями
+            _clearCommand((ac_command_t *)&_current_ac_state);
+
+            // очищаем последовательность пакетов
+            _clearSequence();
+
+            // выполнена ли уже стартовая последовательность команд (сбор информации о статусе кондея)
+            _startupSequenceComlete = false;
+        };
+
+        float get_setup_priority() const override { return esphome::setup_priority::DATA; }
+
+        void set_indoor_temperature_sensor(sensor::Sensor *temperature_sensor) { sensor_indoor_temperature_ = temperature_sensor; }
+
+        bool get_hw_initialized(){ return _hw_initialized; };
+        bool get_has_connection(){ return _has_connection; };
+
+        // возвращает, есть ли елементы в последовательности команд
+        bool hasSequence(){
+            return (_sequence[0].item_type != AC_SIT_NONE);
+        }
+
+        // вызывается, если параметры кондиционера изменились
+        void stateChanged(){
+            _debugMsg(F("State changed, let's publish it."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
+
+            /*************************** POWER & MODE ***************************/
+            this->mode = climate::CLIMATE_MODE_OFF;
+            this->action = climate::CLIMATE_ACTION_OFF;
+            if (_current_ac_state.power == AC_POWER_ON){
+                switch (_current_ac_state.mode) {
+                    case AC_MODE_AUTO:
+                        this->mode = climate::CLIMATE_MODE_HEAT_COOL;   // по факту режим, названный в AUX как AUTO, является режимом HEAT_COOL
+                        // TODO: надо реализовать отображение action
+                        this->action = climate::CLIMATE_ACTION_IDLE;
+                        break;
+                    
+                    case AC_MODE_COOL:
+                        this->mode = climate::CLIMATE_MODE_COOL;
+                        // TODO: надо реализовать отображение action
+                        this->action = climate::CLIMATE_ACTION_COOLING;
+                        break;
+                    
+                    case AC_MODE_DRY:
+                        this->mode = climate::CLIMATE_MODE_DRY;
+                        // TODO: надо реализовать отображение action
+                        this->action = climate::CLIMATE_ACTION_DRYING;
+                        break;
+                    
+                    case AC_MODE_HEAT:
+                        this->mode = climate::CLIMATE_MODE_HEAT;
+                        // TODO: надо реализовать отображение action
+                        this->action = climate::CLIMATE_ACTION_HEATING;
+                        break;
+                    
+                    case AC_MODE_FAN:
+                        this->mode = climate::CLIMATE_MODE_FAN_ONLY;
+                        // TODO: надо реализовать отображение action
+                        this->action = climate::CLIMATE_ACTION_FAN;
+                        break;
+                    
+                    default:
+                        _debugMsg(F("Warning: unknown air conditioner mode."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                        break;
+                }
+            } else {
+                this->mode = climate::CLIMATE_MODE_OFF;
+                // TODO: надо реализовать отображение action
+                // TODO: возможно, тут некорректно. Сплит может быть выключен, но продолжать крутить вентилятор для просушки (MILDEW preset) или очистки (CLEAN preset)
+                this->action = climate::CLIMATE_ACTION_OFF;
             }
 
-            uint8_t step = 0;
+            _debugMsg(F("Climate mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->mode);
 
-            /**************************************************************************************/
-            //step++;   // - getSmallInfo
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_requestSmallStatus;
-            //_sequence[step].timeout = 0;  // пусть будет таймаут по-умолчанию
+            /*************************** FAN SPEED ***************************/
+            this->fan_mode = climate::CLIMATE_FAN_OFF;
+            switch (_current_ac_state.fanSpeed) {
+                case AC_FANSPEED_HIGH:
+                    this->fan_mode = climate::CLIMATE_FAN_HIGH;
+                    break;
+                
+                case AC_FANSPEED_MEDIUM:
+                    this->fan_mode = climate::CLIMATE_FAN_MEDIUM;
+                    break;
+                
+                case AC_FANSPEED_LOW:
+                    this->fan_mode = climate::CLIMATE_FAN_LOW;
+                    break;
+                
+                case AC_FANSPEED_AUTO:
+                    this->fan_mode = climate::CLIMATE_FAN_AUTO;
+                    break;
+                
+                default:
+                    _debugMsg(F("Warning: unknown fan speed."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                    break;
+            }
+
+            _debugMsg(F("Climate fan mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->fan_mode);
+
+            /*************************** TURBO FAN MODE ***************************/
+            // TURBO работает только в режимах COOL и HEAT
+            switch (_current_ac_state.fanTurbo) {
+                case AC_FANTURBO_ON:
+                    if ((_current_ac_state.mode == AC_MODE_HEAT) || (_current_ac_state.mode == AC_MODE_COOL)) {
+                        this->custom_fan_mode = Constants::TURBO;
+                    }
+                    break;
+                
+                case AC_FANTURBO_OFF:
+                default:
+                    if (this->custom_fan_mode == Constants::TURBO) this->custom_fan_mode = (std::string)"";
+                    break;
+            }
+
+            _debugMsg(F("Climate fan TURBO mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.fanTurbo);
+
+            /*************************** MUTE FAN MODE ***************************/
+            // MUTE работает только в режиме FAN. В режиме COOL кондей команду принимает, но MUTE не устанавливается
+            switch (_current_ac_state.fanMute) {
+                case AC_FANMUTE_ON:
+                    if (_current_ac_state.mode == AC_MODE_FAN) {
+                        this->custom_fan_mode = Constants::MUTE;
+                    }
+                    break;
+                
+                case AC_FANMUTE_OFF:
+                default:
+                    if (this->custom_fan_mode == Constants::MUTE) this->custom_fan_mode = (std::string)"";
+                    break;
+            }
+
+            _debugMsg(F("Climate fan MUTE mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.fanMute);
+
+            /*************************** SLEEP PRESET ***************************/
+            // Комбинируется только с режимами COOL и HEAT. Автоматически выключается через 7 часов.
+            // COOL: температура +1 градус через час, еще через час дополнительные +1 градус, дальше не меняется.
+            // HEAT: температура -2 градуса через час, еще через час дополнительные -2 градуса, дальше не меняется.
+            // Восстанавливается ли температура через 7 часов при отключении режима - не понятно.
+            switch (_current_ac_state.sleep) {
+                case AC_SLEEP_ON:
+                    if (   _current_ac_state.mode == AC_MODE_COOL
+                        or _current_ac_state.mode == AC_MODE_HEAT) {
+
+                        this->preset = climate::CLIMATE_PRESET_SLEEP;
+
+                    }
+                    break;
+                
+                case AC_SLEEP_OFF:
+                default:
+                    if (this->preset == climate::CLIMATE_PRESET_SLEEP) this->preset = climate::CLIMATE_PRESET_NONE;
+                    break;
+            }
+
+            _debugMsg(F("Climate preset: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->preset);
+
+            /*************************** CLEAN CUSTOM PRESET ***************************/
+            // режим очистки кондиционера, включается (или должен включаться) при AC_POWER_OFF
+            switch (_current_ac_state.clean) {
+                case AC_CLEAN_ON:
+                    if (_current_ac_state.power == AC_POWER_OFF) {
+
+                        this->custom_preset = Constants::CLEAN;
+
+                    }
+                    break;
+                
+                case AC_CLEAN_OFF:
+                default:
+                    if (this->custom_preset == Constants::CLEAN) this->custom_preset = (std::string)"";
+                    break;
+            }
+
+            _debugMsg(F("Climate CLEAN preset: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.clean);
+
+            /*************************** iFEEL CUSTOM PRESET ***************************/
+            // режим поддержки температуры в районе пульта
+            // TODO: пока не реализован
+            switch (_current_ac_state.iFeel) {
+                case AC_IFEEL_ON:
+                    this->custom_preset = Constants::FEEL;
+                    break;
+                
+                case AC_IFEEL_OFF:
+                default:
+                    if (this->custom_preset == Constants::FEEL) this->custom_preset = (std::string)"";
+                    break;
+            }
+
+            _debugMsg(F("Climate iFEEL preset: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.iFeel);
+
+            /*************************** HEALTH CUSTOM PRESET ***************************/
+            // режим работы ионизатора
+            // TODO: не реализован, у меня отсутствует. Смотри комменты в секции define
+            switch (_current_ac_state.health) {
+                case AC_HEALTH_ON:
+                    this->custom_preset = Constants::HEALTH;
+                    break;
+                
+                case AC_HEALTH_OFF:
+                default:
+                    if (this->custom_preset == Constants::HEALTH) this->custom_preset = (std::string)"";
+                    break;
+            }
+
+            _debugMsg(F("Climate HEALTH preset: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.health);
+
+            /*************************** ANTIFUNGUS CUSTOM PRESET ***************************/
+            // пресет просушки кондиционера после выключения
+            // По факту: после выключения сплита он оставляет минут на 5 открытые жалюзи и глушит вентилятор.
+            // Уличный блок при этом гудит и тарахтит. Возможно, прогревается теплообменник для высыхания.
+            // Через некоторое время внешний блок замолкает и сплит закрывает жалюзи.
+            // TODO: не реализован, у меня отсутствует
+            switch (_current_ac_state.mildew) {
+                case AC_MILDEW_ON:
+                    this->custom_preset = Constants::ANTIFUNGUS;
+                    break;
+                
+                case AC_MILDEW_OFF:
+                default:
+                    if (this->custom_preset == Constants::ANTIFUNGUS) this->custom_preset = (std::string)"";
+                    break;
+            }
+
+            _debugMsg(F("Climate ANTIFUNGUS preset: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.mildew);
+
+
+            /*************************** LOUVERs ***************************/
+            this->swing_mode = climate::CLIMATE_SWING_OFF;
+            if (_current_ac_state.louver.louver_h == AC_LOUVERH_SWING_LEFTRIGHT){
+                this->swing_mode = climate::CLIMATE_SWING_HORIZONTAL;
+            }
+            if (_current_ac_state.louver.louver_v == AC_LOUVERV_SWING_UPDOWN){
+                if (_current_ac_state.louver.louver_h == AC_LOUVERH_SWING_LEFTRIGHT){
+                    this->swing_mode = climate::CLIMATE_SWING_BOTH;
+                } else {
+                    this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
+                }
+            }
+
+            _debugMsg(F("Climate swing mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->swing_mode);
+
+            /*************************** TEMPERATURE ***************************/
+            this->target_temperature = _current_ac_state.temp_target;
+            _debugMsg(F("Target temperature: %f"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->target_temperature);
+
+            this->current_temperature = _current_ac_state.temp_ambient;
+            _debugMsg(F("Room temperature: %f"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->current_temperature);
+            
+
+            /*********************************************************************/
+            /*************************** PUBLISH STATE ***************************/
+            /*********************************************************************/
+            this->publish_state();
+            // температура в комнате
+            if (sensor_indoor_temperature_ != nullptr)
+                sensor_indoor_temperature_->publish_state(_current_ac_state.temp_ambient);
+            // температура уличного блока
+            // TODO: если расшифруем формулу для уличной температуры, то можно будет вернуть
+            //sensor_outdoor_temperature->publish_state(_current_ac_state.temp_outdoor);
+        }
+
+        // вывод в дебаг текущей конфигурации компонента
+        void dump_config() {
+            ESP_LOGCONFIG(Constants::TAG, "AUX HVAC:");
+            ESP_LOGCONFIG(Constants::TAG, "  [x] Firmware version: %s", Constants::AC_ROVEX_FIRMWARE_VERSION.c_str());
+            ESP_LOGCONFIG(Constants::TAG, "  [x] Period: %dms", this->get_period());
+            ESP_LOGCONFIG(Constants::TAG, "  [x] Show action: %s", this->get_show_action() ? "true" : "false");
+            if ((this->sensor_indoor_temperature_) != nullptr) {
+                ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Indoor Temperature"), (this->sensor_indoor_temperature_)->get_name().c_str());
+                if (!(this->sensor_indoor_temperature_)->get_device_class().empty()) {
+                    ESP_LOGCONFIG(Constants::TAG, "%s  Device Class: '%s'", "  ", (this->sensor_indoor_temperature_)->get_device_class().c_str());
+                }
+                ESP_LOGCONFIG(Constants::TAG, "%s  State Class: '%s'", "  ", state_class_to_string((this->sensor_indoor_temperature_)->get_state_class()).c_str());
+                ESP_LOGCONFIG(Constants::TAG, "%s  Unit of Measurement: '%s'", "  ", (this->sensor_indoor_temperature_)->get_unit_of_measurement().c_str());
+                ESP_LOGCONFIG(Constants::TAG, "%s  Accuracy Decimals: %d", "  ", (this->sensor_indoor_temperature_)->get_accuracy_decimals());
+                if (!(this->sensor_indoor_temperature_)->get_icon().empty()) {
+                    ESP_LOGCONFIG(Constants::TAG, "%s  Icon: '%s'", "  ", (this->sensor_indoor_temperature_)->get_icon().c_str());
+                }
+                if (!(this->sensor_indoor_temperature_)->unique_id().empty()) {
+                    ESP_LOGV(Constants::TAG, "%s  Unique ID: '%s'", "  ", (this->sensor_indoor_temperature_)->unique_id().c_str());
+                }
+                if ((this->sensor_indoor_temperature_)->get_force_update()) {
+                    ESP_LOGV(Constants::TAG, "%s  Force Update: YES", "  ");
+                }
+            }
+            this->dump_traits_(Constants::TAG);
+
+        }
+
+        // вызывается пользователем из интерфейса ESPHome или Home Assistant
+        void control(const esphome::climate::ClimateCall &call) override {
+            bool hasCommand = false;
+            ac_command_t    cmd;
+            _clearCommand(&cmd);    // не забываем очищать, а то будет мусор
+
+            // User requested mode change
+            if (call.get_mode().has_value()) {
+                ClimateMode mode = *call.get_mode();
+                // Send mode to hardware
+                switch (mode) {
+                    case climate::CLIMATE_MODE_OFF:
+                        hasCommand = true;
+                        cmd.power = AC_POWER_OFF;
+                        this->mode = mode;
+                        break;
+                    
+                    case climate::CLIMATE_MODE_COOL:
+                        hasCommand = true;
+                        cmd.power = AC_POWER_ON;
+                        cmd.mode = AC_MODE_COOL;
+                        this->mode = mode;
+                        break;
+                    
+                    case climate::CLIMATE_MODE_HEAT:
+                        hasCommand = true;
+                        cmd.power = AC_POWER_ON;
+                        cmd.mode = AC_MODE_HEAT;
+                        this->mode = mode;
+                        break;
+                    
+                    case climate::CLIMATE_MODE_HEAT_COOL:
+                        hasCommand = true;
+                        cmd.power = AC_POWER_ON;
+                        cmd.mode = AC_MODE_AUTO;
+                        this->mode = mode;
+                        break;
+                    
+                    case climate::CLIMATE_MODE_FAN_ONLY:
+                        hasCommand = true;
+                        cmd.power = AC_POWER_ON;
+                        cmd.mode = AC_MODE_FAN;
+                        this->mode = mode;
+                        break;
+                    
+                    case climate::CLIMATE_MODE_DRY:
+                        hasCommand = true;
+                        cmd.power = AC_POWER_ON;
+                        cmd.mode = AC_MODE_DRY;
+                        this->mode = mode;
+                        break;
+                    
+                    case climate::CLIMATE_MODE_AUTO:        // этот режим в будущем можно будет использовать для автоматического пресета (ПИД-регулятора, например)
+                    default:
+                        break;
+                }
+
+            }
+
+            // User requested fan_mode change
+            if (call.get_fan_mode().has_value()) {
+                ClimateFanMode fanmode = *call.get_fan_mode();
+                // Send fan mode to hardware
+                switch (fanmode) {
+                    case climate::CLIMATE_FAN_AUTO:
+                        hasCommand = true;
+                        cmd.fanSpeed = AC_FANSPEED_AUTO;
+                        // changing fan speed cancels fan TURBO and MUTE modes for ROVEX air conditioners
+                        cmd.fanTurbo = AC_FANTURBO_OFF;
+                        cmd.fanMute = AC_FANMUTE_OFF;
+                        this->fan_mode = fanmode;
+                        break;
+                    
+                    case climate::CLIMATE_FAN_LOW:
+                        hasCommand = true;
+                        cmd.fanSpeed = AC_FANSPEED_LOW;
+                        // changing fan speed cancels fan TURBO and MUTE modes for ROVEX air conditioners
+                        cmd.fanTurbo = AC_FANTURBO_OFF;
+                        cmd.fanMute = AC_FANMUTE_OFF;
+                        this->fan_mode = fanmode;
+                        break;
+                    
+                    case climate::CLIMATE_FAN_MEDIUM:
+                        hasCommand = true;
+                        cmd.fanSpeed = AC_FANSPEED_MEDIUM;
+                        // changing fan speed cancels fan TURBO and MUTE modes for ROVEX air conditioners
+                        cmd.fanTurbo = AC_FANTURBO_OFF;
+                        cmd.fanMute = AC_FANMUTE_OFF;
+                        this->fan_mode = fanmode;
+                        break;
+                    
+                    case climate::CLIMATE_FAN_HIGH:
+                        hasCommand = true;
+                        cmd.fanSpeed = AC_FANSPEED_HIGH;
+                        // changing fan speed cancels fan TURBO and MUTE modes for ROVEX air conditioners
+                        cmd.fanTurbo = AC_FANTURBO_OFF;
+                        cmd.fanMute = AC_FANMUTE_OFF;
+                        this->fan_mode = fanmode;
+                        break;
+                    
+                    case climate::CLIMATE_FAN_ON:
+                    case climate::CLIMATE_FAN_OFF:
+                    case climate::CLIMATE_FAN_MIDDLE:
+                    case climate::CLIMATE_FAN_FOCUS:
+                    case climate::CLIMATE_FAN_DIFFUSE:
+                    default:
+                        break;
+                }
+
+            } else if (call.get_custom_fan_mode().has_value()) {
+                std::string customfanmode = *call.get_custom_fan_mode();
+                // Send fan mode to hardware
+                if (customfanmode == Constants::TURBO) {
+                        // TURBO fan mode is suitable in COOL and HEAT modes for Rovex air conditioners.
+                        // Other modes don't accept TURBO fan mode.
+                        // May be other AUX-based air conditioners do the same.
+                        if (       cmd.mode == AC_MODE_COOL
+                                or cmd.mode == AC_MODE_HEAT
+                                or _current_ac_state.mode == AC_MODE_COOL
+                                or _current_ac_state.mode == AC_MODE_HEAT) {
+
+                            hasCommand = true;
+                            cmd.fanTurbo = AC_FANTURBO_ON;
+                            this->custom_fan_mode = customfanmode;
+                        } else {
+                            _debugMsg(F("TURBO fan mode is suitable in COOL and HEAT modes only."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                        }
+
+                } else if (customfanmode == Constants::MUTE) {
+                        // MUTE fan mode is suitable in FAN mode only for Rovex air conditioner.
+                        // In COOL mode AC receives command without any changes.
+                        // May be other AUX-based air conditioners do the same.
+                        if (                     cmd.mode == AC_MODE_FAN
+                                or _current_ac_state.mode == AC_MODE_FAN) {
+                            
+                            hasCommand = true;
+                            cmd.fanMute = AC_FANMUTE_ON;
+                            this->custom_fan_mode = customfanmode;
+                        } else {
+                            _debugMsg(F("MUTE fan mode is suitable in FAN mode only."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                        }
+                }
+            }
+
+            if (call.get_preset().has_value()) {
+                ClimatePreset preset = *call.get_preset();
+                switch (preset) {
+                    case climate::CLIMATE_PRESET_SLEEP:
+                        // Ночной режим (SLEEP). Комбинируется только с режимами COOL и HEAT. Автоматически выключается через 7 часов.
+                        // COOL: температура +1 градус через час, еще через час дополнительные +1 градус, дальше не меняется.
+                        // HEAT: температура -2 градуса через час, еще через час дополнительные -2 градуса, дальше не меняется.
+                        // Восстанавливается ли температура через 7 часов при отключении режима - не понятно.
+                        if (                 cmd.mode == AC_MODE_COOL
+                                          or cmd.mode == AC_MODE_HEAT
+                            or _current_ac_state.mode == AC_MODE_COOL
+                            or _current_ac_state.mode == AC_MODE_HEAT) {
+
+                            hasCommand = true;
+                            cmd.sleep = AC_SLEEP_ON;
+                            this->preset = preset;
+                        } else {
+                            _debugMsg(F("SLEEP preset is suitable in COOL and HEAT modes only."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                        }
+                        break;
+                    
+                    default:
+                        // никакие другие встроенные пресеты не поддерживаются
+                        break;
+                }
+            } else if (call.get_custom_preset().has_value()) {
+                std::string custompreset = *call.get_custom_preset();
+                if (custompreset == Constants::CLEAN) {
+                    // режим очистки кондиционера, включается (или должен включаться) при AC_POWER_OFF
+                    // TODO: надо отдебажить выключение этого режима
+                    if (                 cmd.power == AC_POWER_OFF
+                        or _current_ac_state.power == AC_POWER_OFF) {
+
+                        hasCommand = true;
+                        cmd.clean = AC_CLEAN_ON;
+                        this->custom_preset = custompreset;
+
+                    } else {
+                        _debugMsg(F("CLEAN preset is suitable in POWER_OFF mode only."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                    }
+                } else if (custompreset == Constants::FEEL) {
+                    _debugMsg(F("iFEEL preset has not been implemented yet."), ESPHOME_LOG_LEVEL_INFO, __LINE__);
+                    // TODO: надо подумать, как заставить этот режим работать без пульта
+                    //hasCommand = true;
+                    //this->custom_preset = custompreset;
+                } else if (custompreset == Constants::HEALTH) {
+                    _debugMsg(F("HEALTH preset has not been implemented yet."), ESPHOME_LOG_LEVEL_INFO, __LINE__);
+                    // TODO: в моём кондиционере этот режим отсутствует, не понятно, как отлаживать
+                    //hasCommand = true;
+                    //this->custom_preset = custompreset;
+                } else if (custompreset == Constants::ANTIFUNGUS) {
+                    // включение-выключение функции "Антиплесень". 
+                    // По факту: после выключения сплита он оставляет минут на 5 открытые жалюзи и глушит вентилятор.
+                    // Уличный блок при этом гудит и тарахтит. Возможно, прогревается теплообменник для высыхания.
+                    // Через некоторое время внешний блок замолкает и сплит закрывает жалюзи.
+                    _debugMsg(F("ANTIFUNGUS preset has not been implemented yet."), ESPHOME_LOG_LEVEL_INFO, __LINE__);
+                    // TODO: надо уточнить, в каких режимах штатно включается этот режим у кондиционера
+                    //cmd.mildew = AC_MILDEW_ON;
+                    //hasCommand = true;
+                    //this->custom_preset = custompreset;
+                }
+            }
+
+            // User requested swing_mode change
+            if (call.get_swing_mode().has_value()) {
+                ClimateSwingMode swingmode = *call.get_swing_mode();
+                // Send fan mode to hardware
+                switch (swingmode) {
+                    // The protocol allows other combinations for SWING.
+                    // For example "turn the louvers to the desired position or "spread to the sides" / "concentrate in the center".
+                    // But the ROVEX IR-remote does not provide this features. Therefore this features haven't been tested.
+                    // May be suitable for other models of AUX-based ACs.
+                    case climate::CLIMATE_SWING_OFF:
+                        cmd.louver.louver_h = AC_LOUVERH_OFF;
+                        cmd.louver.louver_v = AC_LOUVERV_OFF;
+                        hasCommand = true;
+                        this->swing_mode = swingmode;
+                        break;
+
+                    case climate::CLIMATE_SWING_BOTH:
+                        cmd.louver.louver_h = AC_LOUVERH_SWING_LEFTRIGHT;
+                        cmd.louver.louver_v = AC_LOUVERV_SWING_UPDOWN;
+                        hasCommand = true;
+                        this->swing_mode = swingmode;
+                        break;
+
+                    case climate::CLIMATE_SWING_VERTICAL:
+                        cmd.louver.louver_h = AC_LOUVERH_OFF;
+                        cmd.louver.louver_v = AC_LOUVERV_SWING_UPDOWN;
+                        hasCommand = true;
+                        this->swing_mode = swingmode;
+                        break;
+
+                    case climate::CLIMATE_SWING_HORIZONTAL:
+                        cmd.louver.louver_h = AC_LOUVERH_SWING_LEFTRIGHT;
+                        cmd.louver.louver_v = AC_LOUVERV_OFF;
+                        hasCommand = true;
+                        this->swing_mode = swingmode;
+                        break;
+                }
+
+            }
+
+            if (call.get_target_temperature().has_value()) {
+                hasCommand = true;
+                // User requested target temperature change
+                float temp = *call.get_target_temperature();
+                // Send target temp to climate
+                if (temp > Constants::AC_MAX_TEMPERATURE) temp = Constants::AC_MAX_TEMPERATURE;
+                if (temp < Constants::AC_MIN_TEMPERATURE) temp = Constants::AC_MIN_TEMPERATURE;
+                cmd.temp_target = temp;
+                cmd.temp_target_matter = true;
+            }
+            if (hasCommand) {
+                commandSequence(&cmd);
+                this->publish_state(); // Publish updated state
+            }
+        }
+
+        esphome::climate::ClimateTraits traits() override {
+            // The capabilities of the climate device
+            auto traits = climate::ClimateTraits();
+
+            traits.set_supports_current_temperature(true);
+            traits.set_supports_two_point_target_temperature(false);    // if the climate device's target temperature should be split in target_temperature_low and target_temperature_high instead of just the single target_temperature
+
+            // tells the frontend what range of temperatures the climate device should display (gauge min/max values)
+            traits.set_visual_min_temperature(Constants::AC_MIN_TEMPERATURE);
+            traits.set_visual_max_temperature(Constants::AC_MAX_TEMPERATURE);
+            // the step with which to increase/decrease target temperature. This also affects with how many decimal places the temperature is shown.
+            traits.set_visual_temperature_step(Constants::AC_TEMPERATURE_STEP);
+
+            traits.set_supported_modes(this->_supported_modes);
+            traits.set_supported_swing_modes(this->_supported_swing_modes);
+            traits.set_supported_presets(this->_supported_presets);
+            traits.set_supported_custom_presets(this->_supported_custom_presets);
+            traits.set_supported_custom_fan_modes(this->_supported_custom_fan_modes);
+
+            /* + MINIMAL SET */
+            traits.add_supported_mode(ClimateMode::CLIMATE_MODE_OFF);
+            traits.add_supported_mode(ClimateMode::CLIMATE_MODE_FAN_ONLY);
+            traits.add_supported_fan_mode(ClimateFanMode::CLIMATE_FAN_AUTO);
+            traits.add_supported_fan_mode(ClimateFanMode::CLIMATE_FAN_LOW);
+            traits.add_supported_fan_mode(ClimateFanMode::CLIMATE_FAN_MEDIUM);
+            traits.add_supported_fan_mode(ClimateFanMode::CLIMATE_FAN_HIGH);
+            traits.add_supported_swing_mode(ClimateSwingMode::CLIMATE_SWING_OFF);
+            //traits.add_supported_swing_mode(ClimateSwingMode::CLIMATE_SWING_VERTICAL);
+            //traits.add_supported_swing_mode(ClimateSwingMode::CLIMATE_SWING_BOTH);
+            traits.add_supported_preset(ClimatePreset::CLIMATE_PRESET_NONE);
+            //traits.add_supported_preset(ClimatePreset::CLIMATE_PRESET_SLEEP);
+
+            /* *************** TODO: надо сделать информирование о текущем режиме, сплит поддерживает ***************
+            *  смотри climate::ClimateAction
+            */
+            // if the climate device supports reporting the active current action of the device with the action property.
+            traits.set_supports_action(this->_show_action);
+
+            return traits;
+        }
+
+        // запрос маленького пакета статуса кондиционера
+        bool getStatusSmall(){
+            // нет смысла в последовательности, если нет коннекта с кондиционером
+            if (!get_has_connection()) {
+                _debugMsg(F("getStatusSmall: no pings from HVAC. It seems like no AC connected."), ESPHOME_LOG_LEVEL_ERROR, __LINE__);
+                return false;
+            }
+            // есть ли место на запрос в последовательности команд?
+            if (_getFreeSequenceSpace() < 2) {
+                _debugMsg(F("getStatusSmall: not enough space in command sequence. Sequence steps doesn't loaded."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
+
+            /*************************************** getSmallInfo request ***********************************************/
+            if (!_addSequenceFuncStep(&AirCon::sq_requestSmallStatus)) {
+                _debugMsg(F("getStatusSmall: getSmallInfo request sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
+            /*************************************** getSmallInfo control ***********************************************/
+            if (!_addSequenceFuncStep(&AirCon::sq_controlSmallStatus)) {
+                _debugMsg(F("getStatusSmall: getSmallInfo control sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
             /**************************************************************************************/
 
-            /**************************************************************************************/
-            step++;   // - control getSmallInfo
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_controlSmallStatus;
-            //_sequence[step].timeout = 1000;
-            /**************************************************************************************/
-
-            _debugMsg(F("getStatusSmall: loaded"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__);
+            _debugMsg(F("getStatusSmall: loaded to sequence"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
+            return true;
         }
 
         // запрос большого пакета статуса кондиционера
-        void getStatusBig(){
-            // если какая-то последовательность загружена и выполняется, то мы не можем сформировать новую последовательность команд
-            if (hasSequence()) {
-                _debugMsg(F("getStatusBig: there is another sequence loaded. Can't create new sequence."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
-                return;
+        bool getStatusBig(){
+            // нет смысла в последовательности, если нет коннекта с кондиционером
+            if (!get_has_connection()) {
+                _debugMsg(F("getStatusBig: no pings from HVAC. It seems like no AC connected."), ESPHOME_LOG_LEVEL_ERROR, __LINE__);
+                return false;
+            }
+            // есть ли место на запрос в последовательности команд?
+            if (_getFreeSequenceSpace() < 2) {
+                _debugMsg(F("getStatusBig: not enough space in command sequence. Sequence steps doesn't loaded."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
             }
 
-            uint8_t step = 0;
-
-            /**************************************************************************************/
-            //step++;   // - getBigInfo
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_requestBigStatus;
-            //_sequence[step].timeout = 0;  // пусть будет таймаут по-умолчанию
-            /**************************************************************************************/
-
-            /**************************************************************************************/
-            step++;   // - control getSmallInfo
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_controlBigStatus;
-            //_sequence[step].timeout = 0;  // пусть будет таймаут по-умолчанию
+            /*************************************** getBigInfo request ***********************************************/
+            if (!_addSequenceFuncStep(&AirCon::sq_requestBigStatus)) {
+                _debugMsg(F("getStatusSmall: getBigInfo request sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
+            /*************************************** getBigInfo control ***********************************************/
+            if (!_addSequenceFuncStep(&AirCon::sq_controlBigStatus)) {
+                _debugMsg(F("getStatusSmall: getBigInfo control sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
             /**************************************************************************************/
 
-            _debugMsg(F("getStatusBig: loaded"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__);
+            _debugMsg(F("getStatusBig: loaded to sequence"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
+            return true;
+        }
+
+        // запрос большого и малого пакетов статуса последовательно
+        bool getStatusBigAndSmall(){
+            // нет смысла в последовательности, если нет коннекта с кондиционером
+            if (!get_has_connection()) {
+                _debugMsg(F("getStatusBigAndSmall: no pings from HVAC. It seems like no AC connected."), ESPHOME_LOG_LEVEL_ERROR, __LINE__);
+                return false;
+            }
+
+            if (!getStatusSmall()) {
+                _debugMsg(F("getStatusBigAndSmall: error with small status sequence."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
+
+            if (!getStatusBig()) {
+                _debugMsg(F("getStatusBigAndSmall: error with big status sequence."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
+
+            _debugMsg(F("getStatusBigAndSmall: loaded to sequence"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
+            return true;            
         }
         
         /** стартовая последовательность пакетов
@@ -1946,54 +2251,19 @@ class AirCon : public Component, public Climate {
          * то есть при возврате false последовательность считается не запущенной и будет вызоваться до тех пор, пока не вернет true 
         **/
         bool startupSequence(){
-            // если какая-то последовательность загружена и выполняется, то мы не можем сформировать новую последовательность команд
-            if (hasSequence()) {
-                _debugMsg(F("startupSequence: there is another sequence loaded. Can't create new sequence."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+            // нет смысла в последовательности, если нет коннекта с кондиционером
+            if (!get_has_connection()) {
+                _debugMsg(F("startupSequence: no pings from HVAC. It seems like no AC connected."), ESPHOME_LOG_LEVEL_ERROR, __LINE__);
                 return false;
             }
-
-            // очищаем последовательность на всякий случай
-            _clearSequence();
-
-            uint8_t step = 0;
-
-            /**************************************************************************************/
-            //step++;   // - getSmallInfo
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_requestSmallStatus;
-            //_sequence[step].timeout = 0;  // пусть будет таймаут по-умолчанию
-            /**************************************************************************************/
-
-            /**************************************************************************************/
-            step++;   // - control getSmallInfo
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_controlSmallStatus;
-            //_sequence[step].timeout = 0;  // пусть будет таймаут по-умолчанию
-            /**************************************************************************************/
             
-            /**************************************************************************************/
-            /* Пауза тут была только для теста
-            step++;   // - delay
-            _sequence[step].item_type = AC_SIT_DELAY;
-            _sequence[step].timeout = 5000;
-            */
-            /**************************************************************************************/
+            // по сути на старте надо получить от кондиционера два статуса
+            if (!getStatusBigAndSmall()){
+                _debugMsg(F("startupSequence: error with big&small status sequence."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            };
 
-            /**************************************************************************************/
-            step++;   // - getBigInfo
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_requestBigStatus;
-            //_sequence[step].timeout = 0;  // пусть будет таймаут по-умолчанию
-            /**************************************************************************************/
-
-            /**************************************************************************************/
-            step++;   // - control getSmallInfo
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_controlBigStatus;
-            //_sequence[step].timeout = 0;  // пусть будет таймаут по-умолчанию
-            /**************************************************************************************/
-
-            _debugMsg(F("startupSequence: loaded"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__);
+            _debugMsg(F("startupSequence: loaded to sequence"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
             return true;
         }
 
@@ -2002,96 +2272,84 @@ class AirCon : public Component, public Climate {
          * стандартная последовательность - это запрос маленького статусного пакета, выполнение команды и повторный запрос
          * такого же статуса для проверки, что всё включилось, ну и для обновления интерфейсов всяких связанных компонентов
         **/
-        void commandSequence(ac_command_t * cmd){
-            uint8_t step = 0;
-
-            // если какая-то последовательность загружена и выполняется, то мы не можем сформировать новую последовательность команд
-            // вместо этого дополняем существующую
-            if (hasSequence()) {
-                for (size_t i = 0; i < AC_SEQUENCE_MAX_LEN; i++) {
-                    if (_sequence[i].item_type != AC_SIT_NONE){
-                        step = i;
-                        break;
-                    }
-                }
-                // если дополнить не можем, то тогда ругаемся и выходим
-                if (step >= AC_SEQUENCE_MAX_LEN-1){
-                    _debugMsg(F("commandSequence: there is another sequence loaded. Can't create new sequence."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
-                    return;
-                }
+        bool commandSequence(ac_command_t * cmd){
+            // нет смысла в последовательности, если нет коннекта с кондиционером
+            if (!get_has_connection()) {
+                _debugMsg(F("commandSequence: no pings from HVAC. It seems like no AC connected."), ESPHOME_LOG_LEVEL_ERROR, __LINE__);
+                return false;
             }
 
-            /**************************************************************************************/
-            //step++;   // - getSmallInfo
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_requestSmallStatus;
-            //_sequence[step].timeout = 0;  // пусть будет таймаут по-умолчанию
+            // добавление начального запроса маленького статусного пакета в последовательность команд
+            if (!getStatusSmall()) {
+                _debugMsg(F("commandSequence: error with first small status sequence."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
+
+            // есть ли место на запрос в последовательности команд?
+            if (_getFreeSequenceSpace() < 2) {
+                _debugMsg(F("commandSequence: not enough space in command sequence. Sequence steps doesn't loaded."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
+
+            /*************************************** set params request ***********************************************/
+            if (!_addSequenceFuncStep(&AirCon::sq_requestDoCommand, cmd)) {
+                _debugMsg(F("getStatusSmall: getBigInfo request sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
+            /*************************************** set params control ***********************************************/
+            if (!_addSequenceFuncStep(&AirCon::sq_controlDoCommand)) {
+                _debugMsg(F("getStatusSmall: getBigInfo control sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
             /**************************************************************************************/
 
-            /**************************************************************************************/
-            step++;   // - control getSmallInfo
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_controlSmallStatus;
-            //_sequence[step].timeout = 1000;
-            /**************************************************************************************/
+            // добавление финального запроса маленького статусного пакета в последовательность команд
+            if (!getStatusSmall()) {
+                _debugMsg(F("commandSequence: error with last small status sequence."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
 
-            /**************************************************************************************/
-            step++;   // - set params
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_requestDoCommand;
-            // так как в структуре команды нет указателей, то простое присваивание возможно
-            _sequence[step].cmd = *cmd;
-            //_sequence[step].timeout = 0;  // пусть будет таймаут по-умолчанию
-            /**************************************************************************************/
-
-            /**************************************************************************************/
-            step++;   // - control of params setting
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_controlDoCommand;
-            //_sequence[step].timeout = 1000;
-            /**************************************************************************************/
-
-            /**************************************************************************************/
-            step++;   // - getSmallInfo
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_requestSmallStatus;
-            //_sequence[step].timeout = 0;  // пусть будет таймаут по-умолчанию
-            /**************************************************************************************/
-
-            /**************************************************************************************/
-            step++;   // - control getSmallInfo
-            _sequence[step].item_type = AC_SIT_FUNC;
-            _sequence[step].func = &AirCon::sq_controlSmallStatus;
-            //_sequence[step].timeout = 1000;
-            /**************************************************************************************/
-
-            _debugMsg(F("commandSequence: loaded"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__);
+            _debugMsg(F("commandSequence: loaded to sequence"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
+            return true;
         }
 
         // загружает на выполнение последовательность команд на включение/выключение
-        void powerSequence(ac_power pwr = AC_POWER_ON){
-            if (pwr == AC_POWER_UNTOUCHED) return;  // выходим, чтобы не тратить время
-
-            // если какая-то последовательность загружена и выполняется, то мы не можем сформировать новую последовательность команд
-            if (hasSequence()) {
-                _debugMsg(F("powerSequence: there is another sequence loaded. Can't create new sequence."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
-                return;
+        bool powerSequence(ac_power pwr = AC_POWER_ON){
+            // нет смысла в последовательности, если нет коннекта с кондиционером
+            if (!get_has_connection()) {
+                _debugMsg(F("powerSequence: no pings from HVAC. It seems like no AC connected."), ESPHOME_LOG_LEVEL_ERROR, __LINE__);
+                return false;
             }
+            if (pwr == AC_POWER_UNTOUCHED) return false;  // выходим, чтобы не тратить время
 
+            // формируем команду
             ac_command_t    cmd;
             _clearCommand(&cmd);    // не забываем очищать, а то будет мусор
             cmd.power = pwr;
-            commandSequence(&cmd);
+            // добавляем команду в последовательность
+            if (!commandSequence(&cmd)) return false;
 
-            _debugMsg(F("powerSequence: loaded (power = %02X)"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__, pwr);
+            _debugMsg(F("powerSequence: loaded (power = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, pwr);
+            return true;
         }
+
+        void set_period(uint32_t ms) { this->_update_period = ms; };
+        uint32_t get_period() { return this->_update_period; };
+        void set_show_action(bool show_action) { this->_show_action = show_action; };
+        bool get_show_action() {return this->_show_action; };
+        void set_supported_modes(const std::set<ClimateMode> &modes) { this->_supported_modes = modes; }
+        void set_supported_swing_modes(const std::set<ClimateSwingMode> &modes) { this->_supported_swing_modes = modes; }
+        void set_supported_presets(const std::set<ClimatePreset> &presets) { this->_supported_presets = presets; }
+        void set_custom_presets(const std::set<std::string> &presets) { this->_supported_custom_presets = presets; }
+        void set_custom_fan_modes(const std::set<std::string> &modes) { this->_supported_custom_fan_modes = modes; }
 
         void setup() override {
         };
 
         void loop() override {
-            if (!get_initialized()) return;
+            if (!get_hw_initialized()) return;
 
+            /// отрабатываем состояния конечного автомата
             switch (_ac_state) {
                 case ACSM_RECEIVING_PACKET:
                     // находимся в процессе получения пакета, никакие отправки в этом состоянии невозможны
@@ -2114,109 +2372,28 @@ class AirCon : public Component, public Climate {
                     break;
             }
 
-
-            packet_t    pack;
-            _clearPacket(&pack);
-            ac_command_t    cmd;
-            _clearCommand(&cmd);
-            
-            // раз в 8 сек что-то можем тестировать
-            if ((millis()-_dataMillis) > AC_STATES_REQUEST_INTERVAL){
+            // раз в заданное количество миллисекунд запрашиваем обновление статуса кондиционера
+            if ((millis()-_dataMillis) > _update_period){
                 _dataMillis = millis();
 
                 // обычный wifi-модуль запрашивает маленький пакет статуса
                 // но нам никто не мешает запрашивать и большой и маленький, чтобы чаще обновлять комнатную температуру
-                //getStatusSmall();
-                // запрос сразу двух пакетов статуса есть в стартовой последовательности команд
-                startupSequence();
-                
-                //*********************************************************************
-                // ниже всякое отладочное
-                //*********************************************************************
-                
-                _cnt++;
-
-                //if (_cnt == 2) getStatusSmall();
-                //if (_cnt == 4) getStatusBig();
-
-                /*
-                if (_cnt == 2) {
-                    _clearPacket(&pack);
-                    _clearCommand(&cmd);
-
-                    _debugMsg(F("Packet 0:"), ESPHOME_LOG_LEVEL_INFO, __LINE__);
-                    _debugPrintPacket(&pack, ESPHOME_LOG_LEVEL_INFO, __LINE__);
-
-                    _fillSetCommand(false, &pack);
-                    
-                    _debugMsg(F("Packet 1:"), ESPHOME_LOG_LEVEL_INFO, __LINE__);
-                    _debugPrintPacket(&pack, ESPHOME_LOG_LEVEL_INFO, __LINE__);
-
-                    _fillSetCommand(false, &pack, &cmd);
-
-                    _debugMsg(F("Packet 2:"), ESPHOME_LOG_LEVEL_INFO, __LINE__);
-                    _debugPrintPacket(&pack, ESPHOME_LOG_LEVEL_INFO, __LINE__);
-
-                    _clearCommand(&cmd);
-                    cmd.power = AC_POWER_ON;
-                    cmd.display = AC_DISPLAY_OFF;
-                    _fillSetCommand(false, &pack, &cmd);
-                    
-                    _debugMsg(F("Packet 3:"), ESPHOME_LOG_LEVEL_INFO, __LINE__);
-                    _debugPrintPacket(&pack, ESPHOME_LOG_LEVEL_INFO, __LINE__);
-
-                    _clearCommand(&cmd);
-                    cmd.power = AC_POWER_ON;
-                    cmd.display = AC_DISPLAY_ON;
-                    _fillSetCommand(false, &pack, &cmd);
-                    
-                    _debugMsg(F("Packet 4:"), ESPHOME_LOG_LEVEL_INFO, __LINE__);
-                    _debugPrintPacket(&pack, ESPHOME_LOG_LEVEL_INFO, __LINE__);
-
-                    _clearCommand(&cmd);
-                    cmd.power = AC_POWER_OFF;
-                    _fillSetCommand(false, &pack, &cmd);
-                    
-                    _debugMsg(F("Packet 5:"), ESPHOME_LOG_LEVEL_INFO, __LINE__);
-                    _debugPrintPacket(&pack, ESPHOME_LOG_LEVEL_INFO, __LINE__);
-                }
-                */
-
-                /*
-                if (_cnt == 2) {
-                    cmd.display = AC_DISPLAY_OFF;
-                    commandSequence(&cmd);
-                }
-                if (_cnt == 3) powerSequence(AC_POWER_ON);
-                if (_cnt == 4) {
-                    cmd.display = AC_DISPLAY_ON;
-                    commandSequence(&cmd);
-                }
-                if (_cnt == 5) powerSequence(AC_POWER_OFF);
-                */
-
-                if (_cnt > 7) _cnt = 0;
+                // делаем этот запросом только в случае, если есть коннект с кондиционером
+                if (get_has_connection()) getStatusBigAndSmall();
             }
+
+            /*
+            // это экспериментальная секция для отладки функционала
+            static uint32_t debug_millis = millis();
+            if (millis()-debug_millis > 10000){
+                debug_millis = millis();
+                //_debugMsg(F("Test!"), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                //if (_current_ac_state.power == AC_POWER_OFF) powerSequence(AC_POWER_ON);
+                //else powerSequence(AC_POWER_OFF);
+            }
+            */
         };
 };
 
-AirCon acAirCon;
-
-
-/************************************************************************************************************
- * 
- * 
- * 
- * 
- ************************************************************************************************************/
-class AirConFirmwareVersion: public PollingComponent, public TextSensor {
-    public:
-        AirConFirmwareVersion() :  PollingComponent(1*60*1000) {}   // 1 minute update interval
-
-        void setup() override {
-        }
-
-        void update() override {
-            publish_state(AC_ROVEX_FIRMWARE_VERSION);
-        }
-};
+} // namespace aux_ac
+} // namespace esphome
