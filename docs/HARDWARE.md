@@ -1,4 +1,4 @@
-## Электроника, необходимая ля управления кондиционером по wifi ##
+## Электроника, необходимая для управления кондиционером по wifi ##
 Я тестировал проект на esp8266 (esp-12e). Минимальная обвязка традиционная и выглядит так:<br /> 
 ![scheme](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/scheme.png?raw=true)
 
