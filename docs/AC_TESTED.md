@@ -2,12 +2,13 @@
 `Aux_ac` has been tested and works successfully with the air conditioners from the list below.<br/>
 Кондиционеры из списка ниже протестированы и точно совместимы с `aux_ac`.
 
-+ AUX (models: ASW-H09A4/LK-700R1, ASW-H09B4/LK-700R1, AMWM-xxx multisplit)
++ AUX (models: ASW-H09A4/LK-700R1, ASW-H09B4/LK-700R1, AMWM-xxx multisplit, AL-H48/5DR2(U)/ALMD-H48/5DR2)
 + Centek (models: CT-65Q09, CT-65Z10)
 + Hyundai (models: H-AR21-09H)
 + IGC (models: RAK-07NH multysplit)
 + Roda (models: RS-AL09F)
 + Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)
++ Royal Clima (models: CO-D 18HNI/CO-E 18HNI)
 + Samurai (models: SMA-07HRN1 ION, SMA-09HRN1 ION)
 + Subtropic (models: SUB-07HN1, SUB-12HN1)
 

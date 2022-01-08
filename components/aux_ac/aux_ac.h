@@ -82,7 +82,7 @@ enum acsm_state : uint8_t {
  **/
 #define AC_HEADER_SIZE 8
 #define AC_MAX_BODY_SIZE 24
-#define AC_BUFFER_SIZE 34
+#define AC_BUFFER_SIZE 35
 
 /**
  * таймаут загрузки пакета
@@ -174,6 +174,7 @@ struct packet_big_info_body_t {
                             //      пакет может рассылаться и в дежурном режиме (без запроса со стороны wifi-модуля)
                             //      в этом случае тут могут быть значения, отличные от 0x21
     uint8_t byte_C0;        // не расшифрован, всегда 0xC0 
+							// для RoyalClima18HNI: всегда 0xE0
     uint8_t unknown1;       // не расшифрован, как-то связан с режимом работы сплита; как вариант, отражает режим работы
                             //      компрессора во внешнем блоке или что-то такое, потому что иногда включение сплита не сразу приводит к изменениям в этом байте
                             //
@@ -188,6 +189,7 @@ struct packet_big_info_body_t {
                             //      0xC4 - режим OFF, выключен давно, зима
                             //      0xC5 - режим FAN
     uint8_t zero1;          // всегда 0x00 
+							// для RoyalClima18HNI: режим разморозки внешнего блока - 0x20, в других случаях 0x00
     uint8_t fanSpeed;       // в ответах на команды wifi-модуля в этом байте скорость работы вентилятора
                             //      fanSpeed: OFF=0x00, LOW=0x02, MID=0x04, HIGH=0x06, TURBO=0x07; режим CLEAN=0x01
                             //      в дежурных пакетах тут похоже что-то другое
@@ -209,18 +211,25 @@ struct packet_big_info_body_t {
     uint8_t zero4;          // всегда 0x00 
     uint8_t zero5;          // всегда 0x00 
     uint8_t zero6;          // всегда 0x00 
+							// для RoyalClima18HNI: похоже на какую-то температуру, точно неизвестно
+							// температура внешнего теплообменника влияет на это значение (при работе на обогрев - понижает, при охлаждении или при разморозке - повышает)
     uint8_t zero7;          // всегда 0x00 
+							// для RoyalClima18HNI: 0x20
     uint8_t zero8;          // всегда 0x00 
+							// для RoyalClima18HNI: 0x20
     uint8_t zero9;          // всегда 0x00 
     uint8_t zero10;         // всегда 0x00 
+							// для RoyalClima18HNI: мощность инвертора (от 0 до 100) в %
+							// например, разморозка внешнего блока происходит при 80%
     uint8_t zero11;         // всегда 0x00 
     uint8_t zero12;         // всегда 0x00 
     uint8_t zero13;         // всегда 0x00 
     uint8_t zero14;         // всегда 0x00 
     uint8_t zero15;         // всегда 0x00 
     uint8_t zero16;         // всегда 0x00 
-    uint8_t ambient_temperature_frac;   // дробная часть комнатной температуры воздуха с датчика на внутреннем блоке сплит-системы
+    uint8_t ambient_temperature_frac;   // младшие 4 бита - дробная часть комнатной температуры воздуха с датчика на внутреннем блоке сплит-системы
                                         //      подробнее смотреть ambient_temperature_int
+										// для RoyalClima18HNI: старшие 4 бита - 0x2 
 };
 
 // тело малого информационного пакета
@@ -1024,7 +1033,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             big_info_body = (packet_big_info_body_t *) (_inPacket.body);
                             
                             // температура воздуха в помещении по версии сплит-систему
-                            stateFloat = big_info_body->ambient_temperature_int - 0x20 + (float)big_info_body->ambient_temperature_frac/10.0;
+                            stateFloat = big_info_body->ambient_temperature_int - 0x20 + (float)(big_info_body->ambient_temperature_frac & 0x0f) / 10.0;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.temp_ambient != stateFloat);
                             _current_ac_state.temp_ambient = stateFloat;
                             
@@ -1476,7 +1485,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             // проверяем ответ
             bool relevant = true;
             relevant = (relevant && (_inPacket.header->packet_type == AC_PTYPE_INFO));
-            relevant = (relevant && (_inPacket.header->body_length == 0x18));
+            relevant = (relevant && (_inPacket.header->body_length == 0x18 || _inPacket.header->body_length == 0x19));	// канальник Royal Clima отвечает пакетом длиной 0x19
             relevant = (relevant && (_inPacket.body[0] == 0x01));
             relevant = (relevant && (_inPacket.body[1] == AC_CMD_STATUS_BIG));
 
