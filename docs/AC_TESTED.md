@@ -2,7 +2,7 @@
 `Aux_ac` has been tested and works successfully with the air conditioners from the list below.<br/>
 Кондиционеры из списка ниже протестированы и точно совместимы с `aux_ac`.
 
-+ AUX (models: ASW-H09A4/LK-700R1, ASW-H09B4/LK-700R1, AMWM-xxx multisplit)
++ AUX (models: ASW-H09A4/LK-700R1, ASW-H09B4/LK-700R1, AMWM-xxx multisplit, AL-H48/5DR2(U)/ALMD-H48/5DR2)
 + Centek (models: CT-65Q09, CT-65Z10)
 + Hyundai (models: H-AR21-09H)
 + IGC (models: RAK-07NH multysplit)
