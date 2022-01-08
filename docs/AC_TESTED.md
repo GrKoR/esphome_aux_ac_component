@@ -8,6 +8,7 @@
 + IGC (models: RAK-07NH multysplit)
 + Roda (models: RS-AL09F)
 + Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)
++ Royal Clima (models: CO-D 18HNI/CO-E 18HNI)
 + Samurai (models: SMA-07HRN1 ION, SMA-09HRN1 ION)
 + Subtropic (models: SUB-07HN1, SUB-12HN1)
 
