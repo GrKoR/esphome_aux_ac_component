@@ -22,7 +22,8 @@ from esphome.components.climate import (
 _LOGGER = logging.getLogger(__name__)
 
 CODEOWNERS = ["@GrKoR"]
-DEPENDENCIES = ["climate", "uart", "sensor"]
+DEPENDENCIES = ["climate", "uart"]
+AUTO_LOAD = ["sensor"]
 
 CONF_SUPPORTED_MODES = 'supported_modes'
 CONF_SUPPORTED_SWING_MODES = 'supported_swing_modes'
@@ -70,7 +71,7 @@ CUSTOM_PRESETS = {
 validate_custom_presets = cv.enum(CUSTOM_PRESETS, upper=True)
 
 def output_info(config):
-    _LOGGER.info(config)
+    """_LOGGER.info(config)"""
     return config
 
 CONFIG_SCHEMA = cv.All(
@@ -103,6 +104,8 @@ CONFIG_SCHEMA = cv.All(
 )
 
 async def to_code(config):
+    """_LOGGER.info("--------------")"""
+    """_LOGGER.info(config)"""
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await climate.register_climate(var, config)

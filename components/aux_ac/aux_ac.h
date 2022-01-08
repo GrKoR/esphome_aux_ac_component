@@ -2152,7 +2152,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             //traits.add_supported_swing_mode(ClimateSwingMode::CLIMATE_SWING_VERTICAL);
             //traits.add_supported_swing_mode(ClimateSwingMode::CLIMATE_SWING_BOTH);
             traits.add_supported_preset(ClimatePreset::CLIMATE_PRESET_NONE);
-            traits.add_supported_preset(ClimatePreset::CLIMATE_PRESET_SLEEP);
+            //traits.add_supported_preset(ClimatePreset::CLIMATE_PRESET_SLEEP);
 
             /* *************** TODO: надо сделать информирование о текущем режиме, сплит поддерживает ***************
             *  смотри climate::ClimateAction
