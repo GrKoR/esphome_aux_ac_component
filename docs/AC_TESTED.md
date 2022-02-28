@@ -4,7 +4,7 @@
 
 + AUX (models: ASW-H09A4/LK-700R1, ASW-H09B4/LK-700R1, AMWM-xxx multisplit, AL-H48/5DR2(U)/ALMD-H48/5DR2)
 + Centek (models: CT-65Q09, CT-65Z10)
-+ Hyundai (models: H-AR21-09H)
++ Hyundai (models: H-AR21-07H, H-AR21-09H)
 + IGC (models: RAK-07NH multysplit)
 + Roda (models: RS-AL09F)
 + Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)
