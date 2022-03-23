@@ -17,3 +17,28 @@ ACs from the list below are **INCOMPATIBLE** with `aux_ac`.<br/>
 Кондиционеры из списка ниже протестированы и оказались **НЕСОВМЕСТИМЫ** с компонентом `aux_ac`.
 
 + Kentatsu KSGMA26HFAN1 was tested and **isn't supported**
+
+
+
+## Tested and PARTIAL COMPATIBLE air conditioners ##
+ACs from the list below are **PARTIAL COMPATIBLE** with `aux_ac`. Details are located in the items notes.<br/>
+Кондиционеры из списка ниже были протестированы и оказались частично совместимы с компонентом `aux_ac`. В чём именно заключается частичная совместимость, указано в примечании к модели.
+
+### Energolux Bern (models: SASxxBN1-Al).###
+**Notes [EN]:** the `aux_ac` source code need some modifications otherwise it will not work correct. Since the difference between the protocols is significant, it was decided not to make edits to the `aux_ac` component. We will wait for the owners of Energolux Bern air conditioners to make a public fork of the `aux_ac` component with the necessary edits. As soon as this fork will be published, a link to it will be placed here.<br/>
+Here is the edits:
+1. Checksum for small data packet should be reduced by one (new_CRC16 = correct_CRC16-1 ).
+2. Checksum for command packet should be reduced by one too (new_CRC16 = correct_CRC16-1 ).
+3. Big data packet has a checksum of 3 sometimes 4 less than the correct one. Maybe you should ignore CRC for big data packet.
+4. Checksum for ping packet is the same than correct one (strange!).
+5. Display status is inverted (it works when status OFF and vice versa).
+6. There may be other incorrect functions, but they don't affect the main functionality.
+
+**[RU] Примечание:** для корректной работы этого кондиционера с компонентом `aux_ac` в исходники компонента необходимо внести некоторые правки. Поскольку отдичия протокола для Energolux Bern довольно значительны, решено было не вносить изменения в основную ветку компонента `aux_ac`. Поддержка таких изменений была бы сильно затруднена, поскольку у автора компонента `aux_ac` отсутствуют кондиционеры Energolux и тестировать изменения будет просто не на чем. Поэтому решено было ожидать от владельцев кондиционеров Energolux создания публичного форка компонента `aux_ac` с необходимыми изменениями. Как только такой форк появится, сюда будет размещена ссылка на этот форк.<br/>
+Пока же для работы компонента необходимо внести следующие правки:
+1. CRC16 для малого пакета данных должен быть уменьшен на 1 (new_CRC16 = correct_CRC16-1 ).
+2. CRC16 для командного пакета также должен быть уменьшен на 1 (new_CRC16 = correct_CRC16-1 ).
+3. Чексумма для большого информационного пакета может быть на 3 или на 4 меньше корректной. Возможно стоит просто игнорировать проверку CRC для этого типа пакетов.
+4. Чексумма для пинг-пакета на удивление соответствует правильной.
+5. Дисплей включен, когда его статус установлен в OFF. И наоборот. Это легко исправить.
+6. Могут быть и другие отличия в протоколе, но они не будут влиять на основную функциональность кондиционера.
