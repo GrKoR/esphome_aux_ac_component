@@ -1,0 +1,7 @@
+substitutions:
+  devicename: livingroom_ac
+  upper_devicename: Livingroom AC
+  wifi_ip: !secret wifi_ip_livingroom
+  wifi_ota_ip: !secret wifi_ota_ip_livingroom
+
+<<: !include ac_common.yaml

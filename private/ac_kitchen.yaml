@@ -1,0 +1,7 @@
+substitutions:
+  devicename: kitchen_ac
+  upper_devicename: Kitchen AC
+  wifi_ip: !secret wifi_ip_kitchen
+  wifi_ota_ip: !secret wifi_ota_ip_kitchen
+
+<<: !include ac_common.yaml
