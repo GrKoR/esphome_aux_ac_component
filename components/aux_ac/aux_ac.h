@@ -1023,7 +1023,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         }
                         
                         case AC_CMD_STATUS_BIG:         // большой пакет статуса кондиционера
-                        case AC_CMD_STATUS_PERIODIC:  { // раз в 10 минут разсылается сплитом, структура аналогична большому пакету статуса
+                        case AC_CMD_STATUS_PERIODIC:  { // раз в 10 минут рассылается сплитом, структура аналогична большому пакету статуса
                             // TODO: вроде как AC_CMD_STATUS_PERIODIC могут быть и с другими кодами; пока что другие будут игнорироваться; если это будет критично, надо будет поправить
                             _debugMsg(F("Parser: status packet type = big or periodic"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
                             stateChangedFlag = false;
