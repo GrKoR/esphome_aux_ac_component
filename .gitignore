@@ -14,3 +14,4 @@
 /examples/*/*.h
 **/tests/test_*
 **/__pycache__
+**/private/
