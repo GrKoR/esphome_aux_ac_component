@@ -1143,10 +1143,10 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             notAPacket = notAPacket || (packet->data[0] != AC_PACKET_START_BYTE);
 
             String st = "";
-            char textBuf[10];
+            char textBuf[11];
 
             // заполняем время получения пакета
-            memset(textBuf, 0, 10);
+            memset(textBuf, 0, 11);
             sprintf(textBuf, "%010u", packet->msec);
             st = st + textBuf + ": ";
 
@@ -1166,7 +1166,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 // для нормальных пакетов надо заключить CRC в []
                 if ((!notAPacket) && (i == packet->header->body_length+AC_HEADER_SIZE)) st += "[";
                 
-                memset(textBuf, 0, 10);
+                memset(textBuf, 0, 11);
                 sprintf(textBuf, "%02X", packet->data[i]);
                 st += textBuf;
 
