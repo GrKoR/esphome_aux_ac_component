@@ -1,7 +1,0 @@
-substitutions:
-  devicename: kidsroom_ac
-  upper_devicename: Kids room AC
-  wifi_ip: !secret wifi_ip_kidsroom
-  wifi_ota_ip: !secret wifi_ota_ip_kidsroom
-
-<<: !include ac_common.yaml

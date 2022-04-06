@@ -1,7 +1,0 @@
-substitutions:
-  devicename: masterbedroom_ac
-  upper_devicename: Master bedroom AC
-  wifi_ip: !secret wifi_ip_masterbedroom
-  wifi_ota_ip: !secret wifi_ota_ip_masterbedroom
-
-<<: !include ac_common.yaml
