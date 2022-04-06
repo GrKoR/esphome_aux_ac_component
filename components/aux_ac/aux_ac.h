@@ -890,6 +890,16 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             // разбираем тип пакета
             switch (_inPacket.header->packet_type) {
                 case AC_PTYPE_PING: { // ping-пакет, рассылается кондиционером каждые 3 сек.; модуль на него отвечает
+                    
+                    if (_inPacket.header->body_length != 0 ) { // у входящего ping-пакета тело должно отсутствовать
+                        // если тело есть, то жалуемся в лог
+                        _debugMsg(F("Parser: ping packet should not to have body. Received one has body length %02X."), ESPHOME_LOG_LEVEL_WARN, __LINE__, _inPacket.header->body_length);
+                        // очищаем пакет
+                        _clearInPacket();
+                        _setStateMachineState(ACSM_IDLE);
+                        break;
+                    }
+
                     _debugMsg(F("Parser: ping packet received"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
                     // поднимаем флаг, что есть коннект с кондиционером
                     _has_connection = true;
