@@ -2352,6 +2352,36 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             return true;
         }
 
+        // загружает на выполнение последовательность команд на включение/выключение табло с температурой
+        bool displaySequence(ac_display dsp = AC_DISPLAY_ON){
+            // нет смысла в последовательности, если нет коннекта с кондиционером
+            if (!get_has_connection()) {
+                _debugMsg(F("displaySequence: no pings from HVAC. It seems like no AC connected."), ESPHOME_LOG_LEVEL_ERROR, __LINE__);
+                return false;
+            }
+            if (dsp == AC_DISPLAY_UNTOUCHED) return false;  // выходим, чтобы не тратить время
+
+            // формируем команду
+            ac_command_t    cmd;
+            _clearCommand(&cmd);    // не забываем очищать, а то будет мусор
+            cmd.display = dsp;
+            // добавляем команду в последовательность
+            if (!commandSequence(&cmd)) return false;
+
+            _debugMsg(F("displaySequence: loaded (display = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, dsp);
+            return true;
+        }
+
+        // выключает экран
+        bool displayOffSequence(){
+            return displaySequence(AC_DISPLAY_OFF);
+        }
+
+        // включает экран
+        bool displayOnSequence(){
+            return displaySequence(AC_DISPLAY_ON);
+        }
+
         void set_period(uint32_t ms) { this->_update_period = ms; };
         uint32_t get_period() { return this->_update_period; };
         void set_show_action(bool show_action) { this->_show_action = show_action; };
@@ -2401,16 +2431,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 if (get_has_connection()) getStatusBigAndSmall();
             }
 
-            /*
-            // это экспериментальная секция для отладки функционала
-            static uint32_t debug_millis = millis();
-            if (millis()-debug_millis > 10000){
-                debug_millis = millis();
-                //_debugMsg(F("Test!"), ESPHOME_LOG_LEVEL_WARN, __LINE__);
-                //if (_current_ac_state.power == AC_POWER_OFF) powerSequence(AC_POWER_ON);
-                //else powerSequence(AC_POWER_OFF);
-            }
-            */
         };
 };
 

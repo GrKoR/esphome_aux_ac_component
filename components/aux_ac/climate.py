@@ -2,6 +2,8 @@ import logging
 import esphome.config_validation as cv
 import esphome.codegen as cg
 from esphome.components import climate, uart, sensor
+from esphome import automation
+from esphome.automation import maybe_simple_id
 from esphome.const import (
     CONF_ID,
     CONF_UART_ID,
@@ -19,6 +21,7 @@ from esphome.components.climate import (
     ClimatePreset,
     ClimateSwingMode,
 )
+
 _LOGGER = logging.getLogger(__name__)
 
 CODEOWNERS = ["@GrKoR"]
@@ -34,6 +37,9 @@ CONF_INDOOR_TEMPERATURE = 'indoor_temperature'
 aux_ac_ns = cg.esphome_ns.namespace("aux_ac")
 AirCon = aux_ac_ns.class_("AirCon", climate.Climate, cg.Component)
 Capabilities = aux_ac_ns.namespace("Constants")
+
+AirConDisplayOffAction = aux_ac_ns.class_("AirConDisplayOffAction", automation.Action)
+AirConDisplayOnAction = aux_ac_ns.class_("AirConDisplayOnAction", automation.Action)
 
 ALLOWED_CLIMATE_MODES = {
     "HEAT_COOL": ClimateMode.CLIMATE_MODE_HEAT_COOL,
@@ -130,4 +136,21 @@ async def to_code(config):
         cg.add(var.set_custom_presets(config[CONF_CUSTOM_PRESETS]))
     if CONF_CUSTOM_FAN_MODES in config:
         cg.add(var.set_custom_fan_modes(config[CONF_CUSTOM_FAN_MODES]))
-    
+
+
+
+DISPLAY_ACTION_SCHEMA = maybe_simple_id(
+    {
+        cv.Required(CONF_ID): cv.use_id(AirCon),
+    }
+)
+
+@automation.register_action("aux_ac.display_off", AirConDisplayOffAction, DISPLAY_ACTION_SCHEMA)
+async def switch_toggle_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
+
+@automation.register_action("aux_ac.display_on", AirConDisplayOnAction, DISPLAY_ACTION_SCHEMA)
+async def switch_toggle_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
