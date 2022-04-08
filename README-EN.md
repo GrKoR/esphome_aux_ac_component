@@ -137,6 +137,27 @@ climate:
 - **supported_swing_modes** (*Optional*, list): List of supported swing modes. Possible values are: ``VERTICAL``, ``HORIZONTAL``, ``BOTH``. No swing modes by default.
 - All other options from [Climate](https://esphome.io/components/climate/index.html#base-climate-configuration).
 
+## Actions: ##
+### ``aux_ac.display_on`` ###
+This action turns a HVAC temperature display on when executed.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.display_on: aux_ac_id
+```
+- **aux_ac_id** (**Requared**, string): ID of `aux_ac` component.
+
+### ``aux_ac.display_off`` ###
+This action turns a HVAC temperature display off when executed.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.display_off: aux_ac_id
+```
+- **aux_ac_id** (**Requared**, string): ID of `aux_ac` component.
+
 
 ## Simple example ##
 The source code of this example is located in the [aux_ac_simple.yaml](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/examples/simple/aux_ac_simple.yaml) file.
