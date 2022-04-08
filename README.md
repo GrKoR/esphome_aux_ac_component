@@ -139,6 +139,29 @@ climate:
 - **supported_swing_modes** (*Опциональный*, список): Список поддерживаемых режимов качания шторки. Возможные значения: ``VERTICAL``, ``HORIZONTAL``, ``BOTH``. По умолчанию устанавливается, что качание шторки кондиционером не поддерживается.
 - Все остальные параметры [климатического устройства](https://esphome.io/components/climate/index.html#base-climate-configuration) ESPHome.
 
+## Действия: ##
+### ``aux_ac.display_on`` ###
+Включение экрана температуры на лицевой панели кондиционера.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.display_on: aux_ac_id
+```
+- **aux_ac_id** (**Обязательный**, строка): ID компонента `aux_ac`.
+
+### ``aux_ac.display_off`` ###
+Выключение экрана температуры на лицевой панели кондиционера.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.display_off: aux_ac_id
+```
+- **aux_ac_id** (**Обязательный**, строка): ID компонента `aux_ac`.
+
+
+
 
 ## Простейший пример ##
 Исходный код простейшего примера можно найти в файле [aux_ac_simple.yaml](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/examples/simple/aux_ac_simple.yaml).
