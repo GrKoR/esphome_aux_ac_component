@@ -11,6 +11,7 @@
 #include "esphome/components/climate/climate.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/sensor/sensor.h"
+#include "esphome/components/binary_sensor/binary_sensor.h"
 #include "esphome/core/helpers.h"
 
 namespace esphome {
@@ -1575,6 +1576,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         // TODO: если расшифруем формулу для уличной температуры, то можно будет вернуть
         //esphome::sensor::Sensor *sensor_outdoor_temperature = new esphome::sensor::Sensor();
 
+        // бинарный сенсор, отображающий состояние дисплея
+        esphome::binary_sensor::BinarySensor *sensor_display_ = nullptr;
+
     public:
         // инициализация объекта
         void initAC(esphome::uart::UARTComponent *parent = nullptr){
@@ -1600,6 +1604,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         float get_setup_priority() const override { return esphome::setup_priority::DATA; }
 
         void set_indoor_temperature_sensor(sensor::Sensor *temperature_sensor) { sensor_indoor_temperature_ = temperature_sensor; }
+        void set_display_sensor(binary_sensor::BinarySensor *display_sensor) { sensor_display_ = display_sensor; }
 
         bool get_hw_initialized(){ return _hw_initialized; };
         bool get_has_connection(){ return _has_connection; };
@@ -1848,6 +1853,22 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             // температура уличного блока
             // TODO: если расшифруем формулу для уличной температуры, то можно будет вернуть
             //sensor_outdoor_temperature->publish_state(_current_ac_state.temp_outdoor);
+            
+            // состояние дисплея
+            if (sensor_display_ != nullptr)
+                switch (_current_ac_state.display) {
+                    case AC_DISPLAY_ON:
+                        sensor_display_->publish_state(true);
+                        break;
+                    
+                    case AC_DISPLAY_OFF:
+                        sensor_display_->publish_state(false);
+                        break;
+
+                    default:
+                        // могут быть и другие состояния, поэтому так
+                        break;
+                }
         }
 
         // вывод в дебаг текущей конфигурации компонента
@@ -1872,6 +1893,18 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 }
                 if ((this->sensor_indoor_temperature_)->get_force_update()) {
                     ESP_LOGV(Constants::TAG, "%s  Force Update: YES", "  ");
+                }
+            }
+            if ((this->sensor_display_) != nullptr) {
+                ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Display"), (this->sensor_display_)->get_name().c_str());
+                if (!(this->sensor_display_)->get_device_class().empty()) {
+                    ESP_LOGCONFIG(Constants::TAG, "%s  Device Class: '%s'", "  ", (this->sensor_display_)->get_device_class().c_str());
+                }
+                if (!(this->sensor_display_)->get_icon().empty()) {
+                    ESP_LOGCONFIG(Constants::TAG, "%s  Icon: '%s'", "  ", (this->sensor_display_)->get_icon().c_str());
+                }
+                if (!(this->sensor_display_)->get_object_id().empty()) {
+                    ESP_LOGV(Constants::TAG, "%s  Object ID: '%s'", "  ", (this->sensor_display_)->get_object_id().c_str());
                 }
             }
             this->dump_traits_(Constants::TAG);

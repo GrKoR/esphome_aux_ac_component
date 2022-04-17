@@ -1,7 +1,7 @@
 import logging
 import esphome.config_validation as cv
 import esphome.codegen as cg
-from esphome.components import climate, uart, sensor
+from esphome.components import climate, uart, sensor, binary_sensor
 from esphome import automation
 from esphome.automation import maybe_simple_id
 from esphome.const import (
@@ -15,6 +15,7 @@ from esphome.const import (
     ICON_THERMOMETER,
     DEVICE_CLASS_TEMPERATURE,
     STATE_CLASS_MEASUREMENT,
+    DEVICE_CLASS_EMPTY,
 )
 from esphome.components.climate import (
     ClimateMode,
@@ -26,13 +27,16 @@ _LOGGER = logging.getLogger(__name__)
 
 CODEOWNERS = ["@GrKoR"]
 DEPENDENCIES = ["climate", "uart"]
-AUTO_LOAD = ["sensor"]
+AUTO_LOAD = ["sensor", "binary_sensor"]
 
 CONF_SUPPORTED_MODES = 'supported_modes'
 CONF_SUPPORTED_SWING_MODES = 'supported_swing_modes'
 CONF_SUPPORTED_PRESETS = 'supported_presets'
 CONF_SHOW_ACTION = 'show_action'
 CONF_INDOOR_TEMPERATURE = 'indoor_temperature'
+CONF_DISPLAY_STATE = 'display_state'
+
+ICON_DISPLAY = "mdi:numeric"
 
 aux_ac_ns = cg.esphome_ns.namespace("aux_ac")
 AirCon = aux_ac_ns.class_("AirCon", climate.Climate, cg.Component)
@@ -97,6 +101,14 @@ CONFIG_SCHEMA = cv.All(
                     cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
                 }
             ),
+            cv.Optional(CONF_DISPLAY_STATE): binary_sensor.binary_sensor_schema(
+                icon=ICON_DISPLAY,
+                device_class=DEVICE_CLASS_EMPTY,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                }
+            ),
             cv.Optional(CONF_SUPPORTED_MODES): cv.ensure_list(validate_modes),
             cv.Optional(CONF_SUPPORTED_SWING_MODES): cv.ensure_list(validate_swing_modes),
             cv.Optional(CONF_SUPPORTED_PRESETS): cv.ensure_list(validate_presets),
@@ -123,6 +135,11 @@ async def to_code(config):
         conf = config[CONF_INDOOR_TEMPERATURE]
         sens = await sensor.new_sensor(conf)
         cg.add(var.set_indoor_temperature_sensor(sens))
+
+    if CONF_DISPLAY_STATE in config:
+        conf = config[CONF_DISPLAY_STATE]
+        sens = await binary_sensor.new_binary_sensor(conf)
+        cg.add(var.set_display_sensor(sens))
 
     cg.add(var.set_period(config[CONF_PERIOD].total_milliseconds))
     cg.add(var.set_show_action(config[CONF_SHOW_ACTION]))
