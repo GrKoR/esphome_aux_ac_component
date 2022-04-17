@@ -6,6 +6,7 @@
 + Centek (models: CT-65Q09, CT-65Z10)
 + Energolux (models: SASxxBN1-Al see Note below)
 + Hyundai (models: H-AR21-07H, H-AR21-09H)
++ Idea (models: ISR-12HR-SA7-DN1 ION)
 + IGC (models: RAK-07NH multysplit)
 + Roda (models: RS-AL09F)
 + Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)

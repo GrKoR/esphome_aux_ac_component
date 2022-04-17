@@ -89,6 +89,10 @@ climate:
       name: AC Indoor Temperature
       id: ac_indoor_temp
       internal: true
+    display_state:
+      name: AC Display
+      id: ac_display
+      internal: false
     visual:
       min_temperature: 16
       max_temperature: 32
@@ -130,6 +134,11 @@ climate:
   - **id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Set the ID of this sensor for use in lambdas.
   - **internal** (*Optional*, boolean): Mark this component as internal. Internal components will not be exposed to the frontend (like Home Assistant). As opposed to default [Sensor](https://esphome.io/components/sensor/index.html#base-sensor-configuration) behaviour this variable is **always true** except in cases where the user has set it directly.
   - All other options from [Sensor](https://esphome.io/components/sensor/index.html#base-sensor-configuration).
+- **display_state** (*Optional*): The information for the HVAC display state sensor (is display ON or OFF)
+  - **name** (**Required**, string): The name for the display state sensor.
+  - **id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Set the ID of this sensor for use in lambdas.
+  - **internal** (*Optional*, boolean): Mark this component as internal. Internal components will not be exposed to the frontend (like Home Assistant). As opposed to default [Binary Sensor](https://esphome.io/components/binary_sensor/index.html#base-binary-sensor-configuration) behaviour this variable is **always true** except in cases where the user has set it directly.
+  - All other options from [Binary Sensor](https://esphome.io/components/binary_sensor/index.html#base-binary-sensor-configuration).
 - **supported_modes** (*Optional*, list): List of supported modes. Possible values are: ``HEAT_COOL``, ``COOL``, ``HEAT``, ``DRY``, ``FAN_ONLY``. Please note: some manufacturers call AUTO mode instead of HEAT_COOL. Defaults to ``FAN_ONLY``.
 - **custom_fan_modes** (*Optional*, list): List of supported custom fan modes. Possible values are: ``MUTE``, ``TURBO``. No custom fan modes by default.
 - **supported_presets** (*Optional*, list): List of supported presets. Possible values are: ``SLEEP``. No presets by default.
@@ -144,9 +153,9 @@ This action turns a HVAC temperature display on when executed.
 ```yaml
 on_...:
   then:
-    - aux_ac.display_on: aux_ac_id
+    - aux_ac.display_on: aux_id
 ```
-- **aux_ac_id** (**Requared**, string): ID of `aux_ac` component.
+- **aux_id** (**Requared**, string): ID of `aux_ac` component.
 
 ### ``aux_ac.display_off`` ###
 This action turns a HVAC temperature display off when executed.
@@ -154,9 +163,9 @@ This action turns a HVAC temperature display off when executed.
 ```yaml
 on_...:
   then:
-    - aux_ac.display_off: aux_ac_id
+    - aux_ac.display_off: aux_id
 ```
-- **aux_ac_id** (**Requared**, string): ID of `aux_ac` component.
+- **aux_id** (**Requared**, string): ID of `aux_ac` component.
 
 
 ## Simple example ##
