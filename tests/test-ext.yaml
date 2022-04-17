@@ -60,6 +60,10 @@ climate:
       name: AC Indoor Temperature
       id: ac_indoor_temp
       internal: false    # сенсор установлен как внутренний по дефолту (не попадёт в Home Assistant)
+    display_state:
+      name: AC Display State
+      id: ac_display_state
+      internal: false    # сенсор установлен как внутренний по дефолту (не попадёт в Home Assistant)
     visual:
       min_temperature: 16
       max_temperature: 32
@@ -84,3 +88,18 @@ climate:
       - VERTICAL
       - HORIZONTAL
       - BOTH
+
+
+switch:
+  - platform: template
+    name: AC Display
+    lambda: |-
+      if (ac_display_state).state) {
+        return true;
+      } else {
+        return false;
+      }
+    turn_on_action:
+      - aux_ac.display_on: aux_id
+    turn_off_action:
+      - aux_ac.display_off: aux_id
