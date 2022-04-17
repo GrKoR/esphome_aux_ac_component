@@ -15,7 +15,6 @@ from esphome.const import (
     ICON_THERMOMETER,
     DEVICE_CLASS_TEMPERATURE,
     STATE_CLASS_MEASUREMENT,
-    DEVICE_CLASS_EMPTY,
 )
 from esphome.components.climate import (
     ClimateMode,
@@ -102,11 +101,10 @@ CONFIG_SCHEMA = cv.All(
                 }
             ),
             cv.Optional(CONF_DISPLAY_STATE): binary_sensor.binary_sensor_schema(
-                icon=ICON_DISPLAY,
-                device_class=DEVICE_CLASS_EMPTY,
+                icon=ICON_DISPLAY
             ).extend(
                 {
-                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean
                 }
             ),
             cv.Optional(CONF_SUPPORTED_MODES): cv.ensure_list(validate_modes),

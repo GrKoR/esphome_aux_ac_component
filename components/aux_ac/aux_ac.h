@@ -49,7 +49,7 @@ public:
     static const uint32_t AC_STATES_REQUEST_INTERVAL;
 };
 
-const std::string Constants::AC_ROVEX_FIRMWARE_VERSION = "0.2.0";
+const std::string Constants::AC_ROVEX_FIRMWARE_VERSION = "0.2.1";
 const char *const Constants::TAG = "AirCon";
 const std::string Constants::MUTE = "mute";
 const std::string Constants::TURBO = "turbo";
