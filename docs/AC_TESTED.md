@@ -4,7 +4,7 @@
 
 + AUX (models: ASW-H09A4/LK-700R1, ASW-H09B4/LK-700R1, AMWM-xxx multisplit, AL-H48/5DR2(U)/ALMD-H48/5DR2)
 + Centek (models: CT-65Q09, CT-65Z10)
-+ Energolux (models: SASxxBN1-Al see Note below)
++ Energolux (models: SAS09Z4-AI, SASxxBN1-AI see Note below)
 + Hyundai (models: H-AR21-07H, H-AR21-09H)
 + IGC (models: RAK-07NH multysplit)
 + Roda (models: RS-AL09F)
