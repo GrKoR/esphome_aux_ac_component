@@ -11,6 +11,7 @@
 #include "esphome/components/climate/climate.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/sensor/sensor.h"
+#include "esphome/components/binary_sensor/binary_sensor.h"
 #include "esphome/core/helpers.h"
 
 namespace esphome {
@@ -26,7 +27,7 @@ using climate::ClimateFanMode;
 
 class Constants {
 public:
-    static const std::string AC_ROVEX_FIRMWARE_VERSION;
+    static const std::string AC_FIRMWARE_VERSION;
 
     static const char *const TAG;
     static const std::string MUTE;
@@ -48,7 +49,7 @@ public:
     static const uint32_t AC_STATES_REQUEST_INTERVAL;
 };
 
-const std::string Constants::AC_ROVEX_FIRMWARE_VERSION = "0.2.0";
+const std::string Constants::AC_FIRMWARE_VERSION = "0.2.1";
 const char *const Constants::TAG = "AirCon";
 const std::string Constants::MUTE = "mute";
 const std::string Constants::TURBO = "turbo";
@@ -1575,6 +1576,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         // TODO: если расшифруем формулу для уличной температуры, то можно будет вернуть
         //esphome::sensor::Sensor *sensor_outdoor_temperature = new esphome::sensor::Sensor();
 
+        // бинарный сенсор, отображающий состояние дисплея
+        esphome::binary_sensor::BinarySensor *sensor_display_ = nullptr;
+
     public:
         // инициализация объекта
         void initAC(esphome::uart::UARTComponent *parent = nullptr){
@@ -1600,6 +1604,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         float get_setup_priority() const override { return esphome::setup_priority::DATA; }
 
         void set_indoor_temperature_sensor(sensor::Sensor *temperature_sensor) { sensor_indoor_temperature_ = temperature_sensor; }
+        void set_display_sensor(binary_sensor::BinarySensor *display_sensor) { sensor_display_ = display_sensor; }
 
         bool get_hw_initialized(){ return _hw_initialized; };
         bool get_has_connection(){ return _has_connection; };
@@ -1848,12 +1853,28 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             // температура уличного блока
             // TODO: если расшифруем формулу для уличной температуры, то можно будет вернуть
             //sensor_outdoor_temperature->publish_state(_current_ac_state.temp_outdoor);
+            
+            // состояние дисплея
+            if (sensor_display_ != nullptr)
+                switch (_current_ac_state.display) {
+                    case AC_DISPLAY_ON:
+                        sensor_display_->publish_state(true);
+                        break;
+                    
+                    case AC_DISPLAY_OFF:
+                        sensor_display_->publish_state(false);
+                        break;
+
+                    default:
+                        // могут быть и другие состояния, поэтому так
+                        break;
+                }
         }
 
         // вывод в дебаг текущей конфигурации компонента
         void dump_config() {
             ESP_LOGCONFIG(Constants::TAG, "AUX HVAC:");
-            ESP_LOGCONFIG(Constants::TAG, "  [x] Firmware version: %s", Constants::AC_ROVEX_FIRMWARE_VERSION.c_str());
+            ESP_LOGCONFIG(Constants::TAG, "  [x] Firmware version: %s", Constants::AC_FIRMWARE_VERSION.c_str());
             ESP_LOGCONFIG(Constants::TAG, "  [x] Period: %dms", this->get_period());
             ESP_LOGCONFIG(Constants::TAG, "  [x] Show action: %s", this->get_show_action() ? "true" : "false");
             if ((this->sensor_indoor_temperature_) != nullptr) {
@@ -1872,6 +1893,18 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 }
                 if ((this->sensor_indoor_temperature_)->get_force_update()) {
                     ESP_LOGV(Constants::TAG, "%s  Force Update: YES", "  ");
+                }
+            }
+            if ((this->sensor_display_) != nullptr) {
+                ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Display"), (this->sensor_display_)->get_name().c_str());
+                if (!(this->sensor_display_)->get_device_class().empty()) {
+                    ESP_LOGCONFIG(Constants::TAG, "%s  Device Class: '%s'", "  ", (this->sensor_display_)->get_device_class().c_str());
+                }
+                if (!(this->sensor_display_)->get_icon().empty()) {
+                    ESP_LOGCONFIG(Constants::TAG, "%s  Icon: '%s'", "  ", (this->sensor_display_)->get_icon().c_str());
+                }
+                if (!(this->sensor_display_)->get_object_id().empty()) {
+                    ESP_LOGV(Constants::TAG, "%s  Object ID: '%s'", "  ", (this->sensor_display_)->get_object_id().c_str());
                 }
             }
             this->dump_traits_(Constants::TAG);
@@ -2352,6 +2385,36 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             return true;
         }
 
+        // загружает на выполнение последовательность команд на включение/выключение табло с температурой
+        bool displaySequence(ac_display dsp = AC_DISPLAY_ON){
+            // нет смысла в последовательности, если нет коннекта с кондиционером
+            if (!get_has_connection()) {
+                _debugMsg(F("displaySequence: no pings from HVAC. It seems like no AC connected."), ESPHOME_LOG_LEVEL_ERROR, __LINE__);
+                return false;
+            }
+            if (dsp == AC_DISPLAY_UNTOUCHED) return false;  // выходим, чтобы не тратить время
+
+            // формируем команду
+            ac_command_t    cmd;
+            _clearCommand(&cmd);    // не забываем очищать, а то будет мусор
+            cmd.display = dsp;
+            // добавляем команду в последовательность
+            if (!commandSequence(&cmd)) return false;
+
+            _debugMsg(F("displaySequence: loaded (display = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, dsp);
+            return true;
+        }
+
+        // выключает экран
+        bool displayOffSequence(){
+            return displaySequence(AC_DISPLAY_OFF);
+        }
+
+        // включает экран
+        bool displayOnSequence(){
+            return displaySequence(AC_DISPLAY_ON);
+        }
+
         void set_period(uint32_t ms) { this->_update_period = ms; };
         uint32_t get_period() { return this->_update_period; };
         void set_show_action(bool show_action) { this->_show_action = show_action; };
@@ -2401,16 +2464,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 if (get_has_connection()) getStatusBigAndSmall();
             }
 
-            /*
-            // это экспериментальная секция для отладки функционала
-            static uint32_t debug_millis = millis();
-            if (millis()-debug_millis > 10000){
-                debug_millis = millis();
-                //_debugMsg(F("Test!"), ESPHOME_LOG_LEVEL_WARN, __LINE__);
-                //if (_current_ac_state.power == AC_POWER_OFF) powerSequence(AC_POWER_ON);
-                //else powerSequence(AC_POWER_OFF);
-            }
-            */
         };
 };
 

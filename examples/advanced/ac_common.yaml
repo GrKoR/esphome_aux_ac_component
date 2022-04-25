@@ -65,8 +65,12 @@ climate:
     show_action: true
     indoor_temperature:
       name: ${upper_devicename} AC Indoor Temperature
-      id: ac_indoor_temp
-      internal: true
+      id: ${devicename}_indoor_temp
+      internal: false
+    display_state:
+      name: $upper_devicename Display State
+      id: ${devicename}_display_state
+      internal: false
     visual:
       min_temperature: 16
       max_temperature: 32
@@ -100,3 +104,18 @@ sensor:
     update_interval: 30s
     unit_of_measurement: "dBa"
     accuracy_decimals: 0
+
+
+switch:
+  - platform: template
+    name: $upper_devicename Display
+    lambda: |-
+      if (id(${devicename}_display_state).state) {
+        return true;
+      } else {
+        return false;
+      }
+    turn_on_action:
+      - aux_ac.display_on: aux_id
+    turn_off_action:
+      - aux_ac.display_off: aux_id
