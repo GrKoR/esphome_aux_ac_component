@@ -94,7 +94,7 @@ switch:
   - platform: template
     name: AC Display
     lambda: |-
-      if (ac_display_state).state) {
+      if (id(ac_display_state).state) {
         return true;
       } else {
         return false;
