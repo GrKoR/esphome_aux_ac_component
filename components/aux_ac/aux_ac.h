@@ -469,6 +469,11 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         // по дефолту показываем
         bool _show_action = true;
 
+        // как отрабатывается включание-выключение дисплея.
+        // если тут false, то 1 в соответствующем бите включает дисплей, а 0 выключает.
+        // если тут true, то 1 потушит дисплей, а 0 включит.
+        bool _display_inverted = false;
+
         // поддерживаемые кондиционером опции
         std::set<ClimateMode> _supported_modes{};
         std::set<ClimateSwingMode> _supported_swing_modes{};
@@ -1858,11 +1863,19 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             if (sensor_display_ != nullptr)
                 switch (_current_ac_state.display) {
                     case AC_DISPLAY_ON:
-                        sensor_display_->publish_state(true);
+                        if (this->get_display_inverted()) {
+                            sensor_display_->publish_state(false);
+                        } else {
+                            sensor_display_->publish_state(true);
+                        }
                         break;
                     
                     case AC_DISPLAY_OFF:
-                        sensor_display_->publish_state(false);
+                        if (this->get_display_inverted()) {
+                            sensor_display_->publish_state(true);
+                        } else {
+                            sensor_display_->publish_state(false);
+                        }
                         break;
 
                     default:
@@ -1877,6 +1890,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             ESP_LOGCONFIG(Constants::TAG, "  [x] Firmware version: %s", Constants::AC_FIRMWARE_VERSION.c_str());
             ESP_LOGCONFIG(Constants::TAG, "  [x] Period: %dms", this->get_period());
             ESP_LOGCONFIG(Constants::TAG, "  [x] Show action: %s", this->get_show_action() ? "true" : "false");
+            ESP_LOGCONFIG(Constants::TAG, "  [x] Display inverted: %s", this->get_display_inverted() ? "true" : "false");
             if ((this->sensor_indoor_temperature_) != nullptr) {
                 ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Indoor Temperature"), (this->sensor_indoor_temperature_)->get_name().c_str());
                 if (!(this->sensor_indoor_temperature_)->get_device_class().empty()) {
@@ -2407,18 +2421,27 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
         // выключает экран
         bool displayOffSequence(){
-            return displaySequence(AC_DISPLAY_OFF);
+            ac_display dsp = AC_DISPLAY_OFF;
+            if (this->get_display_inverted()) dsp = AC_DISPLAY_ON;
+            return displaySequence(dsp);
         }
 
         // включает экран
         bool displayOnSequence(){
-            return displaySequence(AC_DISPLAY_ON);
+            ac_display dsp = AC_DISPLAY_ON;
+            if (this->get_display_inverted()) dsp = AC_DISPLAY_OFF;
+            return displaySequence(dsp);
         }
 
-        void set_period(uint32_t ms) { this->_update_period = ms; };
-        uint32_t get_period() { return this->_update_period; };
-        void set_show_action(bool show_action) { this->_show_action = show_action; };
-        bool get_show_action() {return this->_show_action; };
+        void set_period(uint32_t ms) { this->_update_period = ms; }
+        uint32_t get_period() { return this->_update_period; }
+
+        void set_show_action(bool show_action) { this->_show_action = show_action; }
+        bool get_show_action() { return this->_show_action; }
+
+        void set_display_inverted(bool display_inverted) { this->_display_inverted = display_inverted; }
+        bool get_display_inverted() { return this->_display_inverted; }
+
         void set_supported_modes(const std::set<ClimateMode> &modes) { this->_supported_modes = modes; }
         void set_supported_swing_modes(const std::set<ClimateSwingMode> &modes) { this->_supported_swing_modes = modes; }
         void set_supported_presets(const std::set<ClimatePreset> &presets) { this->_supported_presets = presets; }
