@@ -13,7 +13,7 @@ namespace aux_ac {
     public:
         explicit AirConDisplayOffAction(AirCon *ac) : ac_(ac) {}
 
-        void play(Ts... x) override { this->ac_->displaySequence(AC_DISPLAY_OFF); }
+        void play(Ts... x) override { this->ac_->displayOffSequence(); }
 
     protected:
         AirCon *ac_;
@@ -25,7 +25,7 @@ namespace aux_ac {
     public:
         explicit AirConDisplayOnAction(AirCon *ac) : ac_(ac) {}
 
-        void play(Ts... x) override { this->ac_->displaySequence(AC_DISPLAY_ON); }
+        void play(Ts... x) override { this->ac_->displayOnSequence(); }
 
     protected:
         AirCon *ac_;

@@ -581,7 +581,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             return true;
         }
         
-        // додбавляет в последовательность шаг с задержкой
+        // добавляет в последовательность шаг с задержкой
         bool _addSequenceDelayStep(uint16_t timeout){
             return this->_addSequenceStep(AC_SIT_DELAY, nullptr, nullptr, timeout);
         }
@@ -723,9 +723,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         }
 
         // копирует пакет из одной структуры в другую с корректным переносом указателей на заголовки и т.п.
-        void _copyPacket(packet_t *dest, packet_t *src){
-            if (dest == nullptr) return;
-            if (src == nullptr) return;
+        bool _copyPacket(packet_t *dest, packet_t *src){
+            if (dest == nullptr) return false;
+            if (src == nullptr) return false;
 
             dest->msec = src->msec;
             dest->bytesLoaded = src->bytesLoaded;
@@ -733,6 +733,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             dest->header = (packet_header_t *)&dest->data;
             if (dest->header->body_length > 0) dest->body = &dest->data[AC_HEADER_SIZE];
             dest->crc = (packet_crc_t *)&dest->data[AC_HEADER_SIZE + dest->header->body_length];
+
+            return true;
         }
 
        // устанавливает состояние конечного автомата
@@ -781,7 +783,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 // иначе просто выходим
                 return;
             };
-
 
             if (this->peek() == AC_PACKET_START_BYTE) {
                 // если во входящий пакет что-то уже загружено, значит это какие-то ошибочные данные или неизвестные пакеты
@@ -1584,6 +1585,27 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         // бинарный сенсор, отображающий состояние дисплея
         esphome::binary_sensor::BinarySensor *sensor_display_ = nullptr;
 
+
+        // загружает на выполнение последовательность команд на включение/выключение табло с температурой
+        bool _displaySequence(ac_display dsp = AC_DISPLAY_ON){
+            // нет смысла в последовательности, если нет коннекта с кондиционером
+            if (!get_has_connection()) {
+                _debugMsg(F("displaySequence: no pings from HVAC. It seems like no AC connected."), ESPHOME_LOG_LEVEL_ERROR, __LINE__);
+                return false;
+            }
+            if (dsp == AC_DISPLAY_UNTOUCHED) return false;  // выходим, чтобы не тратить время
+
+            // формируем команду
+            ac_command_t    cmd;
+            _clearCommand(&cmd);    // не забываем очищать, а то будет мусор
+            cmd.display = dsp;
+            // добавляем команду в последовательность
+            if (!commandSequence(&cmd)) return false;
+
+            _debugMsg(F("displaySequence: loaded (display = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, dsp);
+            return true;
+        }
+
     public:
         // инициализация объекта
         void initAC(esphome::uart::UARTComponent *parent = nullptr){
@@ -2273,12 +2295,12 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
             /*************************************** getBigInfo request ***********************************************/
             if (!_addSequenceFuncStep(&AirCon::sq_requestBigStatus)) {
-                _debugMsg(F("getStatusSmall: getBigInfo request sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                _debugMsg(F("getStatusBig: getBigInfo request sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                 return false;
             }
             /*************************************** getBigInfo control ***********************************************/
             if (!_addSequenceFuncStep(&AirCon::sq_controlBigStatus)) {
-                _debugMsg(F("getStatusSmall: getBigInfo control sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                _debugMsg(F("getStatusBig: getBigInfo control sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                 return false;
             }
             /**************************************************************************************/
@@ -2359,12 +2381,12 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
             /*************************************** set params request ***********************************************/
             if (!_addSequenceFuncStep(&AirCon::sq_requestDoCommand, cmd)) {
-                _debugMsg(F("getStatusSmall: getBigInfo request sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                _debugMsg(F("commandSequence: getBigInfo request sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                 return false;
             }
             /*************************************** set params control ***********************************************/
             if (!_addSequenceFuncStep(&AirCon::sq_controlDoCommand)) {
-                _debugMsg(F("getStatusSmall: getBigInfo control sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                _debugMsg(F("commandSequence: getBigInfo control sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                 return false;
             }
             /**************************************************************************************/
@@ -2399,38 +2421,18 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             return true;
         }
 
-        // загружает на выполнение последовательность команд на включение/выключение табло с температурой
-        bool displaySequence(ac_display dsp = AC_DISPLAY_ON){
-            // нет смысла в последовательности, если нет коннекта с кондиционером
-            if (!get_has_connection()) {
-                _debugMsg(F("displaySequence: no pings from HVAC. It seems like no AC connected."), ESPHOME_LOG_LEVEL_ERROR, __LINE__);
-                return false;
-            }
-            if (dsp == AC_DISPLAY_UNTOUCHED) return false;  // выходим, чтобы не тратить время
-
-            // формируем команду
-            ac_command_t    cmd;
-            _clearCommand(&cmd);    // не забываем очищать, а то будет мусор
-            cmd.display = dsp;
-            // добавляем команду в последовательность
-            if (!commandSequence(&cmd)) return false;
-
-            _debugMsg(F("displaySequence: loaded (display = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, dsp);
-            return true;
-        }
-
         // выключает экран
         bool displayOffSequence(){
             ac_display dsp = AC_DISPLAY_OFF;
             if (this->get_display_inverted()) dsp = AC_DISPLAY_ON;
-            return displaySequence(dsp);
+            return _displaySequence(dsp);
         }
 
         // включает экран
         bool displayOnSequence(){
             ac_display dsp = AC_DISPLAY_ON;
             if (this->get_display_inverted()) dsp = AC_DISPLAY_OFF;
-            return displaySequence(dsp);
+            return _displaySequence(dsp);
         }
 
         void set_period(uint32_t ms) { this->_update_period = ms; }
