@@ -123,12 +123,13 @@ climate:
 - **name** (**Required**, string): The name of the climate device. At least one of `id` or `name` is required!
 - **id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Manually specify the ID used for code generation. At least one of `id` or `name` is required!
 - **uart_id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Manually specify the ID of the [UART Bus](https://esphome.io/components/uart.html) if you want to use multiple UART buses.
-- **period** (*Optional*, [time](https://esphome.io/guides/configuration-types.html#config-time)): Period between status requests to the AC. Defaults to ``7s``. `Aux_ac` will receive the new air conditioner status only after a regular request, even if you change the settings of AC using IR-remote.
-- **show_action** (*Optional*, boolean): Whether to show current action of the device (experimental). For example in the HEAT-COOL mode AC hardware may be in one of the following actions:
+- **period** (*Optional*, [time](https://esphome.io/guides/configuration-types.html#config-time), default ``7s``): Period between status requests to the AC. `Aux_ac` will receive the new air conditioner status only after a regular request, even if you change the settings of AC using IR-remote.
+- **show_action** (*Optional*, boolean, default ``true``): Whether to show current action of the device (experimental). For example in the HEAT-COOL mode AC hardware may be in one of the following actions:
   - HEATING: AC is heating the air in the room;
   - IDLE: AC is working in the FAN mode cause the target temperature is reached;
   - COOLING: AC is cooling the air.
   The same thing will be in HEAT or COOL modes, with the only difference of the list of actions (IDLE + HEATING or IDLE + COOLING).
+  - **display_inverted** (*Optional*, boolean, default ``false``): It configures display driver logic level. As it turned out in the issue [#31](https://github.com/GrKoR/esphome_aux_ac_component/issues/31), different models of conditioners manage display different way. Rovex ACs powers off display by bit `1` in command packet and power it on by bit `0`. Many other conditioners do this vice versa.
 - **indoor_temperature** (*Optional*): The information for the air temperature sensor
   - **name** (**Required**, string): The name for the temperature sensor.
   - **id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Set the ID of this sensor for use in lambdas.

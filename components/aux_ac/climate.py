@@ -35,6 +35,7 @@ CONF_SHOW_ACTION = 'show_action'
 CONF_INDOOR_TEMPERATURE = 'indoor_temperature'
 CONF_DISPLAY_STATE = 'display_state'
 
+CONF_DISPLAY_INVERTED = 'display_inverted'
 ICON_DISPLAY = "mdi:numeric"
 
 aux_ac_ns = cg.esphome_ns.namespace("aux_ac")
@@ -89,6 +90,7 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(): cv.declare_id(AirCon),
             cv.Optional(CONF_PERIOD, default="7s"): cv.time_period,
             cv.Optional(CONF_SHOW_ACTION, default="true"): cv.boolean,
+            cv.Optional(CONF_DISPLAY_INVERTED, default="false"): cv.boolean,
             cv.Optional(CONF_INDOOR_TEMPERATURE): sensor.sensor_schema(
                 unit_of_measurement=UNIT_CELSIUS,
                 icon=ICON_THERMOMETER,
@@ -141,6 +143,7 @@ async def to_code(config):
 
     cg.add(var.set_period(config[CONF_PERIOD].total_milliseconds))
     cg.add(var.set_show_action(config[CONF_SHOW_ACTION]))
+    cg.add(var.set_display_inverted(config[CONF_DISPLAY_INVERTED]))
     if CONF_SUPPORTED_MODES in config:
         cg.add(var.set_supported_modes(config[CONF_SUPPORTED_MODES]))
     if CONF_SUPPORTED_SWING_MODES in config:

@@ -56,6 +56,7 @@ climate:
     uart_id: ac_uart_bus
     period: 7s            # период опроса состояния сплита, по дефолту 7 сек
     show_action: true     # надо ли показывать текущий режим работы: при HEAT_COOL mode сплит может греть (HEAT), охлаждать (COOL) или бездействовать (IDLE)
+    display_inverted: true  # как отрабатывать вкл/выкл дисплея: у Rovex "1" выключает дисплей, у многих других "1" дисплей включает
     indoor_temperature:   # сенсор, показывающий температуру воздуха на внутреннем блоке кондиционера; имеет все те же параметры, как и любой сенсор ESPHome
       name: AC Indoor Temperature
       id: ac_indoor_temp
