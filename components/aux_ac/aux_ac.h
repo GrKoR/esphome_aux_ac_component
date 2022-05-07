@@ -49,7 +49,7 @@ public:
     static const uint32_t AC_STATES_REQUEST_INTERVAL;
 };
 
-const std::string Constants::AC_FIRMWARE_VERSION = "0.2.1";
+const std::string Constants::AC_FIRMWARE_VERSION = "0.2.2";
 const char *const Constants::TAG = "AirCon";
 const std::string Constants::MUTE = "mute";
 const std::string Constants::TURBO = "turbo";
@@ -353,7 +353,7 @@ enum ac_fanmute : uint8_t { AC_FANMUTE_OFF = 0x00, AC_FANMUTE_ON = 0x80, AC_FANM
 
 // включение-выключение дисплея на корпусе внутреннего блока
 #define AC_DISPLAY_MASK    0b00010000
-enum ac_display : uint8_t { AC_DISPLAY_ON = 0x00, AC_DISPLAY_OFF = 0x10, AC_DISPLAY_UNTOUCHED = 0xFF };
+enum ac_display : uint8_t { AC_DISPLAY_OFF = 0x00, AC_DISPLAY_ON = 0x10, AC_DISPLAY_UNTOUCHED = 0xFF };
 
 // включение-выключение функции "Антиплесень". 
 // По факту: после выключения сплита он оставляет минут на 5 открытые жалюзи и глушит вентилятор. Уличный блок при этом гудит и тарахтит.
@@ -469,6 +469,11 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         // по дефолту показываем
         bool _show_action = true;
 
+        // как отрабатывается включание-выключение дисплея.
+        // если тут false, то 1 в соответствующем бите включает дисплей, а 0 выключает.
+        // если тут true, то 1 потушит дисплей, а 0 включит.
+        bool _display_inverted = false;
+
         // поддерживаемые кондиционером опции
         std::set<ClimateMode> _supported_modes{};
         std::set<ClimateSwingMode> _supported_swing_modes{};
@@ -576,7 +581,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             return true;
         }
         
-        // додбавляет в последовательность шаг с задержкой
+        // добавляет в последовательность шаг с задержкой
         bool _addSequenceDelayStep(uint16_t timeout){
             return this->_addSequenceStep(AC_SIT_DELAY, nullptr, nullptr, timeout);
         }
@@ -718,9 +723,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         }
 
         // копирует пакет из одной структуры в другую с корректным переносом указателей на заголовки и т.п.
-        void _copyPacket(packet_t *dest, packet_t *src){
-            if (dest == nullptr) return;
-            if (src == nullptr) return;
+        bool _copyPacket(packet_t *dest, packet_t *src){
+            if (dest == nullptr) return false;
+            if (src == nullptr) return false;
 
             dest->msec = src->msec;
             dest->bytesLoaded = src->bytesLoaded;
@@ -728,6 +733,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             dest->header = (packet_header_t *)&dest->data;
             if (dest->header->body_length > 0) dest->body = &dest->data[AC_HEADER_SIZE];
             dest->crc = (packet_crc_t *)&dest->data[AC_HEADER_SIZE + dest->header->body_length];
+
+            return true;
         }
 
        // устанавливает состояние конечного автомата
@@ -776,7 +783,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 // иначе просто выходим
                 return;
             };
-
 
             if (this->peek() == AC_PACKET_START_BYTE) {
                 // если во входящий пакет что-то уже загружено, значит это какие-то ошибочные данные или неизвестные пакеты
@@ -1579,6 +1585,27 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         // бинарный сенсор, отображающий состояние дисплея
         esphome::binary_sensor::BinarySensor *sensor_display_ = nullptr;
 
+
+        // загружает на выполнение последовательность команд на включение/выключение табло с температурой
+        bool _displaySequence(ac_display dsp = AC_DISPLAY_ON){
+            // нет смысла в последовательности, если нет коннекта с кондиционером
+            if (!get_has_connection()) {
+                _debugMsg(F("displaySequence: no pings from HVAC. It seems like no AC connected."), ESPHOME_LOG_LEVEL_ERROR, __LINE__);
+                return false;
+            }
+            if (dsp == AC_DISPLAY_UNTOUCHED) return false;  // выходим, чтобы не тратить время
+
+            // формируем команду
+            ac_command_t    cmd;
+            _clearCommand(&cmd);    // не забываем очищать, а то будет мусор
+            cmd.display = dsp;
+            // добавляем команду в последовательность
+            if (!commandSequence(&cmd)) return false;
+
+            _debugMsg(F("displaySequence: loaded (display = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, dsp);
+            return true;
+        }
+
     public:
         // инициализация объекта
         void initAC(esphome::uart::UARTComponent *parent = nullptr){
@@ -1858,11 +1885,19 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             if (sensor_display_ != nullptr)
                 switch (_current_ac_state.display) {
                     case AC_DISPLAY_ON:
-                        sensor_display_->publish_state(true);
+                        if (this->get_display_inverted()) {
+                            sensor_display_->publish_state(false);
+                        } else {
+                            sensor_display_->publish_state(true);
+                        }
                         break;
                     
                     case AC_DISPLAY_OFF:
-                        sensor_display_->publish_state(false);
+                        if (this->get_display_inverted()) {
+                            sensor_display_->publish_state(true);
+                        } else {
+                            sensor_display_->publish_state(false);
+                        }
                         break;
 
                     default:
@@ -1877,6 +1912,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             ESP_LOGCONFIG(Constants::TAG, "  [x] Firmware version: %s", Constants::AC_FIRMWARE_VERSION.c_str());
             ESP_LOGCONFIG(Constants::TAG, "  [x] Period: %dms", this->get_period());
             ESP_LOGCONFIG(Constants::TAG, "  [x] Show action: %s", this->get_show_action() ? "true" : "false");
+            ESP_LOGCONFIG(Constants::TAG, "  [x] Display inverted: %s", this->get_display_inverted() ? "true" : "false");
             if ((this->sensor_indoor_temperature_) != nullptr) {
                 ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Indoor Temperature"), (this->sensor_indoor_temperature_)->get_name().c_str());
                 if (!(this->sensor_indoor_temperature_)->get_device_class().empty()) {
@@ -2259,12 +2295,12 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
             /*************************************** getBigInfo request ***********************************************/
             if (!_addSequenceFuncStep(&AirCon::sq_requestBigStatus)) {
-                _debugMsg(F("getStatusSmall: getBigInfo request sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                _debugMsg(F("getStatusBig: getBigInfo request sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                 return false;
             }
             /*************************************** getBigInfo control ***********************************************/
             if (!_addSequenceFuncStep(&AirCon::sq_controlBigStatus)) {
-                _debugMsg(F("getStatusSmall: getBigInfo control sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                _debugMsg(F("getStatusBig: getBigInfo control sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                 return false;
             }
             /**************************************************************************************/
@@ -2345,12 +2381,12 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
             /*************************************** set params request ***********************************************/
             if (!_addSequenceFuncStep(&AirCon::sq_requestDoCommand, cmd)) {
-                _debugMsg(F("getStatusSmall: getBigInfo request sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                _debugMsg(F("commandSequence: getBigInfo request sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                 return false;
             }
             /*************************************** set params control ***********************************************/
             if (!_addSequenceFuncStep(&AirCon::sq_controlDoCommand)) {
-                _debugMsg(F("getStatusSmall: getBigInfo control sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                _debugMsg(F("commandSequence: getBigInfo control sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                 return false;
             }
             /**************************************************************************************/
@@ -2385,40 +2421,29 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             return true;
         }
 
-        // загружает на выполнение последовательность команд на включение/выключение табло с температурой
-        bool displaySequence(ac_display dsp = AC_DISPLAY_ON){
-            // нет смысла в последовательности, если нет коннекта с кондиционером
-            if (!get_has_connection()) {
-                _debugMsg(F("displaySequence: no pings from HVAC. It seems like no AC connected."), ESPHOME_LOG_LEVEL_ERROR, __LINE__);
-                return false;
-            }
-            if (dsp == AC_DISPLAY_UNTOUCHED) return false;  // выходим, чтобы не тратить время
-
-            // формируем команду
-            ac_command_t    cmd;
-            _clearCommand(&cmd);    // не забываем очищать, а то будет мусор
-            cmd.display = dsp;
-            // добавляем команду в последовательность
-            if (!commandSequence(&cmd)) return false;
-
-            _debugMsg(F("displaySequence: loaded (display = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, dsp);
-            return true;
-        }
-
         // выключает экран
         bool displayOffSequence(){
-            return displaySequence(AC_DISPLAY_OFF);
+            ac_display dsp = AC_DISPLAY_OFF;
+            if (this->get_display_inverted()) dsp = AC_DISPLAY_ON;
+            return _displaySequence(dsp);
         }
 
         // включает экран
         bool displayOnSequence(){
-            return displaySequence(AC_DISPLAY_ON);
+            ac_display dsp = AC_DISPLAY_ON;
+            if (this->get_display_inverted()) dsp = AC_DISPLAY_OFF;
+            return _displaySequence(dsp);
         }
 
-        void set_period(uint32_t ms) { this->_update_period = ms; };
-        uint32_t get_period() { return this->_update_period; };
-        void set_show_action(bool show_action) { this->_show_action = show_action; };
-        bool get_show_action() {return this->_show_action; };
+        void set_period(uint32_t ms) { this->_update_period = ms; }
+        uint32_t get_period() { return this->_update_period; }
+
+        void set_show_action(bool show_action) { this->_show_action = show_action; }
+        bool get_show_action() { return this->_show_action; }
+
+        void set_display_inverted(bool display_inverted) { this->_display_inverted = display_inverted; }
+        bool get_display_inverted() { return this->_display_inverted; }
+
         void set_supported_modes(const std::set<ClimateMode> &modes) { this->_supported_modes = modes; }
         void set_supported_swing_modes(const std::set<ClimateSwingMode> &modes) { this->_supported_swing_modes = modes; }
         void set_supported_presets(const std::set<ClimatePreset> &presets) { this->_supported_presets = presets; }
