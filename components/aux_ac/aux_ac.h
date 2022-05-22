@@ -513,6 +513,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         packet_t _inPacket;
         packet_t _outPacket;
 
+        // пакет для тестирования всякой фигни
+        packet_t _outTestPacket;
+
         // последовательность пакетов текущий шаг в последовательности
         sequence_item_t _sequence[AC_SEQUENCE_MAX_LEN];
         uint8_t _sequence_current_step;
@@ -1576,6 +1579,24 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             return relevant;
         }
 
+        // отправка запроса с тестовым пакетом
+        bool sq_requestTestPacket(){
+            // если исходящий пакет не пуст, то выходим и ждем освобождения
+            if (_outPacket.bytesLoaded > 0) return true;
+            
+            _copyPacket(&_outPacket, &_outTestPacket);
+            _copyPacket(&_sequence[_sequence_current_step].packet, &_outTestPacket);
+            _sequence[_sequence_current_step].packet_type = AC_SPT_SENT_PACKET;
+
+            // Отчитываемся в лог
+            _debugMsg(F("Sequence [step %u]: Test Packet request generated:"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _sequence_current_step);
+            _debugPrintPacket(&_outPacket, ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
+
+            // увеличиваем текущий шаг
+            _sequence_current_step++;
+            return true;
+        }
+
         // сенсоры, отображающие параметры сплита
         //esphome::sensor::Sensor *sensor_indoor_temperature = new esphome::sensor::Sensor();
         esphome::sensor::Sensor *sensor_indoor_temperature_ = nullptr;
@@ -1612,6 +1633,10 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             _dataMillis = millis();
             _clearInPacket();
             _clearOutPacket();
+
+            _clearPacket(&_outTestPacket);
+            _outTestPacket.header->start_byte = AC_PACKET_START_BYTE;
+            _outTestPacket.header->wifi = AC_PACKET_ANSWER;
 
             _setStateMachineState(ACSM_IDLE);
             _ac_serial = parent;
@@ -2435,6 +2460,67 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             return _displaySequence(dsp);
         }
 
+        // отправляет сплиту заданный набор байт
+        // Перед отправкой проверяет пакет на корректность структуры. CRC16 рассчитывает самостоятельно и перезаписывает.
+        bool sendTestPacket(const std::vector<uint8_t> &data){
+        //bool sendTestPacket(uint8_t *data = nullptr, uitn8_t data_length = 0){
+            //if (data == nullptr) return false;
+            //if (data_length == 0) return false;
+            if (data.size() == 0) return false;
+            //if (data_length > AC_BUFFER_SIZE) return false;
+            if (data.size() > AC_BUFFER_SIZE) return false;
+
+            // нет смысла в отправке, если нет коннекта с кондиционером
+            if (!get_has_connection()) {
+                _debugMsg(F("sendTestPacket: no pings from HVAC. It seems like no AC connected."), ESPHOME_LOG_LEVEL_ERROR, __LINE__);
+                return false;
+            }
+            // очищаем пакет
+            _clearPacket(&_outTestPacket);
+
+            // копируем данные в пакет
+            //memcpy(_outTestPacket.data, data, data_length);
+            uint8_t i = 0;
+            for (uint8_t n : data) {
+                _outTestPacket.data[i] = n;
+                i++;
+            }
+
+            // на всякий случай указываем правильные некоторые байты
+            _outTestPacket.header->start_byte = AC_PACKET_START_BYTE;
+            //_outTestPacket.header->wifi = AC_PACKET_ANSWER;
+
+            _outTestPacket.msec = millis();
+            _outTestPacket.body = &(_outTestPacket.data[AC_HEADER_SIZE]);
+            _outTestPacket.bytesLoaded = AC_HEADER_SIZE + _outTestPacket.header->body_length + 2;
+
+            // рассчитываем и записываем в пакет CRC
+            _outTestPacket.crc = (packet_crc_t *) &(_outTestPacket.data[AC_HEADER_SIZE + _outTestPacket.header->body_length]);
+            _setCRC16(&_outTestPacket);
+
+            _debugMsg(F("sendTestPacket: test packet loaded."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+            _debugPrintPacket(&_outTestPacket, ESPHOME_LOG_LEVEL_WARN, __LINE__);
+
+            // ниже блок добавления отправки пакета в последовательность команд
+            //*****************************************************************
+            // есть ли место на запрос в последовательности команд?
+            if (_getFreeSequenceSpace() < 1) {
+                _debugMsg(F("sendTestPacket: not enough space in command sequence. Sequence steps doesn't loaded."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
+
+            /*************************************** sendTestPacket request ***********************************************/
+            if (!_addSequenceFuncStep(&AirCon::sq_requestTestPacket)) {
+                _debugMsg(F("sendTestPacket: sendTestPacket request sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                return false;
+            }
+            /**************************************************************************************/
+
+            _debugMsg(F("sendTestPacket: loaded to sequence"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
+
+            return true;
+        }
+
         void set_period(uint32_t ms) { this->_update_period = ms; }
         uint32_t get_period() { return this->_update_period; }
 
@@ -2485,7 +2571,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
                 // обычный wifi-модуль запрашивает маленький пакет статуса
                 // но нам никто не мешает запрашивать и большой и маленький, чтобы чаще обновлять комнатную температуру
-                // делаем этот запросом только в случае, если есть коннект с кондиционером
+                // делаем этот запрос только в случае, если есть коннект с кондиционером
                 if (get_has_connection()) getStatusBigAndSmall();
             }
 

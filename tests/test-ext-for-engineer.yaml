@@ -29,6 +29,24 @@ logger:
 api:
   password: !secret api_pass
   reboot_timeout: 0s
+  services:
+    # этот сервис можно вызвать из Home Assistant или Python. Он отправляет полученные байты в кондиционер
+    - service: send_data
+      variables: 
+        data_buf: int[]
+      then:
+        # ВАЖНО! Только для инженеров!
+        # Вызывайте метод aux_ac.send_packet только если понимаете, что делаете! Он не проверяет данные, а передаёт
+        # кондиционеру всё как есть. Какой эффект получится от передачи кондиционеру рандомных байт, никто не знает.
+        # Вы действуете на свой страх и риск.
+        - aux_ac.send_packet:
+            id: aux_id
+            data: !lambda |-
+              std::vector<uint8_t> data{};
+              for (int n : data_buf) {
+                data.push_back( (uint8_t) n );
+              }
+              return data;
 
 ota: 
   password: !secret ota_pass
