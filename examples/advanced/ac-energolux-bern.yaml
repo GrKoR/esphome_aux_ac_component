@@ -65,23 +65,23 @@ climate:
     show_action: true
     display_inverted: false
     indoor_temperature:
-      name: ${upper_devicename} AC Indoor Temperature
+      name: ${upper_devicename} Indoor Temperature
       id: ${low_devicename}_indoor_temp
       internal: false
     outdoor_temperature:
-      name: ${upper_devicename} AC Outdoor Temperature
+      name: ${upper_devicename} Outdoor Temperature
       id: ${low_devicename}_outdoor_temp
       internal: false
     outbound_temperature:
-      name: ${upper_devicename} AC Colant Outbound Temperature
+      name: ${upper_devicename} Colant Outbound Temperature
       id: ${low_devicename}_outbound_temp
       internal: false
     inbound_temperature:
-      name: ${upper_devicename} AC Colant Inbound Temperature
+      name: ${upper_devicename} Colant Inbound Temperature
       id: ${low_devicename}_inbound_temp
       internal: false
     strange_temperature:
-      name: ${upper_devicename} AC Strange Temperature
+      name: ${upper_devicename} Strange Temperature
       id: ${low_devicename}_strange_temp
       internal: false
     display_state:
