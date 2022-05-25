@@ -112,6 +112,7 @@ enum acsm_state : uint8_t {
 #define AC_PACKET_TIMEOUT   150     // 150 мсек - отработка буфера UART за раз, 600 мсек - отработка буфера UART по 1 байту за вызов loop
 
 // типы пакетов
+// https://github.com/GrKoR/AUX_HVAC_Protocol#packet_types
 #define AC_PTYPE_PING   0x01    // ping-пакет, рассылается кондиционером каждые 3 сек.; модуль на него отвечает 
 #define AC_PTYPE_CMD    0x06    // команда сплиту; модуль отправляет такие команды, когда что-то хочет от сплита
 #define AC_PTYPE_INFO   0x07    // информационный пакет; бывает 3 видов; один из них рассылается кондиционером самостоятельно раз в 10 мин. и все 3 могут быть ответом на запросы модуля
@@ -129,25 +130,20 @@ enum acsm_state : uint8_t {
 #define AC_PACKET_ANSWER        0x80    // признак ответа wifi-модуля
 
 // заголовок пакета
+// описание тут: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_header
 struct packet_header_t {
-    uint8_t start_byte;     // стартовый бит пакета, всегда 0xBB
-    uint8_t _unknown1;      // не расшифрован
-    uint8_t packet_type;    // тип пакета:
-                            //      0x01 - пинг
-                            //      0x06 - команда кондиционеру
-                            //      0x07 - информационный пакет со статусом кондиционера
-                            //      0x09 - (не разбирался) инициирование коннекта wifi-модуля с приложением на телефоне, с ESP работает и без этого
-                            //      0x0b - (не разбирался) wifi-модуль так сигналит, когда не получает пинги от кондиционера и в каких-то еще случаях
-    uint8_t wifi;           // признак пакета от wifi-модуля
-                            //      0x80 - для всех сообщений, посылаемых модулем
-                            //      0x00 - для всех сообщений, посылаемых кондиционером
-    uint8_t ping_answer_01; // не расшифрован, почти всегда 0x00, только в ответе на ping этот байт равен 0x01
-    uint8_t _unknown2;      // не расшифрован
-    uint8_t body_length;    // длина тела пакета в байтах
-    uint8_t _unknown3;      // не расшифрован
+    uint8_t start_byte = AC_PACKET_START_BYTE;
+    uint8_t _unknown1;
+    uint8_t packet_type;    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_header_2
+    uint8_t wifi;
+    uint8_t ping_answer_01;
+    uint8_t _unknown2;
+    uint8_t body_length;
+    uint8_t _unknown3;
 };
 
 // CRC пакета
+// описание тут: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_crc
 union packet_crc_t {
     uint16_t crc16;
     uint8_t crc[2];
@@ -163,76 +159,37 @@ struct packet_t {
 };
 
 // тело ответа на пинг
+// описание тут: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_type_ping
 struct packet_ping_answer_body_t {
     uint8_t byte_1C = 0x1C;        // первый байт всегда 0x1C
     uint8_t byte_27 = 0x27;        // второй байт тела пинг-ответа всегда 0x27
-    uint8_t zero1 = 0;          // всегда 0x00 
-    uint8_t zero2 = 0;          // всегда 0x00 
-    uint8_t zero3 = 0;          // всегда 0x00 
-    uint8_t zero4 = 0;          // всегда 0x00 
-    uint8_t zero5 = 0;          // всегда 0x00 
-    uint8_t zero6 = 0;          // всегда 0x00 
+    uint8_t zero1 = 0;             // всегда 0x00 
+    uint8_t zero2 = 0;             // всегда 0x00 
+    uint8_t zero3 = 0;             // всегда 0x00 
+    uint8_t zero4 = 0;             // всегда 0x00 
+    uint8_t zero5 = 0;             // всегда 0x00 
+    uint8_t zero6 = 0;             // всегда 0x00 
 };
 
 // тело большого информационного пакета
+// описание тут: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21
 struct packet_big_info_body_t {
-    uint8_t byte_01;        // всегда 0x01
-    uint8_t cmd_answer;     // код команды, ответом на которую пришел данный пакет (0x21);
-                            //      пакет может рассылаться и в дежурном режиме (без запроса со стороны wifi-модуля)
-                            //      в этом случае тут могут быть значения, отличные от 0x21
-    uint8_t byte_C0;        // не расшифрован, всегда 0xC0      11000000 
-							// для RoyalClima18HNI: всегда 0xE0 11100000
-                            // Brokly: для Energolux Bern: 0xE0; иногда, с равными промежутками во времени проскакивает )xE4
-                            //         предполагаю, что это байт конфига кондиционера (5 бит - инвертер), (2 бит - периодический мпульсный сигнал,период пимерно 500 сек)
+    uint8_t byte_01;
+    uint8_t cmd_answer;     // особенности тут: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_2x
+    uint8_t config;        // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_conf
+
     // БАЙТ 3
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_mode
     bool power:1;
     bool sleep:1;
     bool v_louver:1;
     bool h_louver:1;
     bool louvers_on:1;
-    uint8_t mode:3;         //   enum { AC_BIG_MODE_AUTO = 0,
-                            //          AC_BIG_MODE_COOL = 1,
-                            //          AC_BIG_MODE_DRY  = 2,
-                            //          AC_BIG_MODE_HEAT = 4,
-                            //          AC_BIG_MODE_FAN  = 6}
-                            //     
-                            //
-                            //      Встречались такие значения:
-                            //      0x04       100 - сплит выключен, до этого работал (статус держится 1 час после выкл.)
-                            //      0x05       101 - режим AUTO
-                            //      0x24    100100 - режим OFF
-                            //      0x25    100101 - режим COOL
-                            //      0x39    111001 - ??
-                            //      0x45   1000101 - режим DRY
-                            //      0x85  10000101 - режим HEAT
-                            //      0xC4  11000100 - режим OFF, выключен давно, зима
-                            //      0xC5  11000101 - режим FAN
-                            // Brokly: 
-                            //     Встречались такие значения :
-                            //      0x00  00000000 - OFF
-                            //      0x01  00000001 - AUTO // режим авто, нет отдельного бита
-                            //      0x41   1000001 - DRY
-                            //      0x21    100001 - COOL
-                            //      0x81  10000001 - HEAT
-                            //      0xC1  11000001 - FAN  // 7 и 6 бит связаны
-                            //      0x80  10000000 - продувка после переключения из HEAT в OFF 
-                            //      0xC5  11000101 - FAN+шторки верх-низ
-                            //      0xDD  11011101 - FAN+шторки лево-право/верх-низ
-                            //      0xD9  11011001 - FAN+шторки лево-право
-                            //      0xD8  11011000 - из FAN+шторки лево-право в OFF
-                            //      0x39    111001 - COOL+шторки лево-право 
-                            //     Очевидно битовые, но связные, поля, предположительные зависимости  
-                            //     ВНИМАНИЕ : режимы номинальны, например в режиме АВТО нагрев или охлаждение не отображаются 
-                            //      7+6+5     4     3      2    1     0
-                            //      MODE    LouvON  LouH  LouV SLEEP ON/OFF  
-                            //
-                            //   ФУНКЦМЯ CLEEN, HEALTH, ANTIFUNGUS на данный байт не влияют
-                            //
-                            //   #define AC_BIG_MASK_MODE  b11100000
-                            //   enum { AC_BIG_MODE_DRY  = 0x40,
-                            //          AC_BIG_MODE_COOL = 0x20,
-                            //          AC_BIG_MODE_HEAT = 0x80,
-                            //          AC_BIG_MODE_FAN  = 0xC0}
+    uint8_t mode:3;         //   #define AC_BIG_MASK_MODE  b11100000
+                            //   enum { AC_BIG_MODE_DRY  = 0x40,    // 0100 0000
+                            //          AC_BIG_MODE_COOL = 0x20,    // 0010 0000
+                            //          AC_BIG_MODE_HEAT = 0x80,    // 1000 0000
+                            //          AC_BIG_MODE_FAN  = 0xC0}    // 1100 0000
                             //   #define AC_BIG_MASK_POWER       b00000001
                             //   #define AC_BIG_MASK_LOUVERS_ON  b00010000
                             //   #define AC_BIG_MASK_LOUVERS_H   b00000100
@@ -240,21 +197,22 @@ struct packet_big_info_body_t {
                             //   #define AC_BIG_MASK_LOUVERS_L   b00001000
                             //   #define AC_BIG_MASK_SLEEP       b00000010
                             //   #define AC_BIG_MASK_COOL        b00100000
-                            //
+
     // БАЙТ 4
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_frst
     uint8_t reserv40:4;     // 8                      
     bool  needDefrost:1;    // 5 бит начало разморозки(накопление тепла) 
     bool  defrostMode:1;    // 6 бит режим разморозки внешнего блока (прогрев испарителя)
     bool  reserv41:1;       // для RoyalClima18HNI: режим разморозки внешнего блока - 0x20, в других случаях 0x00           
     bool  cleen:1;          // 8 бит CLEAN
+
     // БАЙТ5
-    uint8_t realFanSpeed:3; //   Brokly: Energolux Bern - подтверждаю, ВАЖНО !!!! Это реальная скорость фена
-    uint8_t reserv30:5;      //   та которая в данный момент. Например может быть установлен нагрев со скоростью 
-                            //   вентилятора HI, но кондей еще не произвел достаточно тепла, и крутит на LOW,
-                            //   Тут будет отображаться LOW
-                            //      fanSpeed: OFF=0x00, LOW=0x02, MID=0x04, HIGH=0x06, TURBO=0x07; режим CLEAN=0x01
-                            //      в дежурных пакетах тут похоже что-то другое
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_fspd
+    uint8_t realFanSpeed:3;
+    uint8_t reserv30:5;
+
     // БАЙТ6
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_fpwm
     bool reserv60:1;
     uint8_t fanPWM:7;       // скорость шима вентилятора
                             // 126...128 - turbo
@@ -264,6 +222,7 @@ struct packet_big_info_body_t {
                             // 0 - off
                             // 
     // БАЙТ7
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_tint
     uint8_t ambient_temperature_int;    // Brokly: ПОДТВЕРЖДАЮ это точно показания датчика под крышкой внутреннего блока, 
                                         // физически доступен для пользователя
                                         // целая часть комнатной температуры воздуха с датчика на внутреннем блоке сплит-системы
@@ -276,95 +235,68 @@ struct packet_big_info_body_t {
     // А значит это термодатчики внутри внутреннего блока !!!!!!
 
     // БАЙТ8
-    uint8_t in_temperature_int; // Brokly: скорее всего это действительно какая то температура или дельта температур
-                                // СКОРЕЕ ВСЕГО ЭТО ТЕМПЕРАТУРА ПОДАЧИ !!!!!! При охлаждении - холодная, при нагреве теплая
-                           
-                                // холоднее или горячее температуры в команте. В выключеном состоянии стремится к комнатной темп.
-                                // у меня на трех инверторных кондиционерах Energolux серии Bern 
-                                // в выключеном состоянии значение этого байта находится на уровне 57-68 (мощность 0%)
-                                // зависит от мощности работы компрессора (измерения при 12гр на улице)
-                                // в режиме охлаждения уменьшается и при мощности 47% = 40 / 73% = 38
-                                // в режиме нагрева увеличивается и при мощности 47% = 70 / 73% = 75 / 84% = 84
-                                // изменение этого значения более вялое, с западыванием относительно изменения мощности
-                                // видимо является реакцией (следствием работы) на изменение мощности инвертора
-                                // учитывая стиль записи температур имеет смысл рассматривать это значение как увеличенное на 0x20
-                           
-                           
-                           
-                           //       этот байт как-то связан с температурой во внешнем блоке. Требуются дополнительные исследования.
-                           //      При выключенном сплите характер изменения значения примерно соответствует изменению температуры на улице.
-                           //      При включенном сплите значение может очень сильно скакать.
-                           //      По схеме wiring diagram сплит-системы, во внешнем блоке есть термодатчик, отслеживающий температуру испарителя.
-                           //      Возможно, этот байт как раз и отражает изменение температуры на испарителе.
-                           //      Но я не смог разобраться, как именно перевести эти значения в градусы.
-                           //      Кроме того, зимой даже в минусовую температуру этот байт не уходит ниже 0x33 по крайней мере
-                           //      для температур в диапазоне -5..-10 градусов Цельсия.
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_int
+    uint8_t in_temperature_int;
+
     // БАЙТ9
-    uint8_t zero3;          // Brokly: полностью повторяет значение 8 байта 
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_int2
+    uint8_t zero3; 
 
     // БАЙТ10
-    uint8_t zero4;          // Brokly: полностью повторяет значение 8 байта
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_int3
+    uint8_t zero4;
 
     // БАЙТ11
-    uint8_t zero5;          // всегда = 100 (0x64)
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b19
+    uint8_t zero5;
 
     // БАЙТ12
-    uint8_t outdoor_temperature; // Brokly Energolux Bern: Внешняя температура формула T=БАЙТ12 - 0x20 
-                                 // Датчик на радиаторе внешнего блока, доступен для пользователя, без разборки блока
-							     // температура внешнего теплообменника влияет на это значение (при работе на обогрев - понижает, при охлаждении или при разморозке - повышает)
-							     // для RoyalClima18HNI: похоже на какую-то температуру, точно неизвестно
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b20
+    uint8_t outdoor_temperature; 
     
     // БАЙТ13
-    uint8_t out_temperature_int;    // всегда 0x00 
-                                    // для RoyalClima18HNI: 0x20
-                                    // Brokly Energolux Bern: похоже не какой то Термодатчик  T=БАЙТ13 - 0x20
-                                    // При охлаждении растет, при нагреве падает, можно делать вывод о режиме COOL или HEAT
-                                    // ПОХОЖЕ НА ТЕМПЕРАТУРУ ОБРАТКИ !!!
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b21
+    uint8_t out_temperature_int;
     
     // БАЙТ14
-    uint8_t strange_temperature_int;// всегда 0x00 
-                                    // для RoyalClima18HNI: 0x20
-                                    // Brokly Energolux Bern: похоже не какой то Термодатчик T=БАЙТ14 - 0x20
-                                    // показания РАСТЕТ ПРИ ВКЛЮЧЕНИИ ИНВЕРТОРА, при выключении падают до комнатной
-                                    // от режима охлаждения или нагрева не зависит !!!
-
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b22
+    uint8_t strange_temperature_int;
 
     // БАЙТ15
-    uint8_t zero9;          // всегда 0x00,  Brokly: Energolux Bern, всегда  0x39 111001 
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b23
+    uint8_t zero9;
+
     // БАЙТ16
-    uint8_t invertor_power; // МОщность инвертера (Brokly: подтверждаю)
-							// для RoyalClima18HNI: мощность инвертора (от 0 до 100) в %
-							// например, разморозка внешнего блока происходит при 80%
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b24
+    uint8_t invertor_power;
+
     // БАЙТ17
-    uint8_t zero11;         // всегда 0x00
-                            // Brokly: Energolux Bern : полное наложение на показания инвертора (от 0 до 22, когда инвертор отключен и тут 0
-                            // при включении инвертора плавно растет, при выключении резко падает в 0, форма графика достаточно плавна
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b25
+    uint8_t zero11;
 
     // БАЙТ18
-    uint8_t zero13;         //  
-                            // Brokly: Energolux Bern : наложение на показания инвертора (от 144 до 174, когда инвертор отключен 
-                            // показания немного скачут в районе 149...154, при включении инвертора быстро растет, при выключении
-                            // моментально падает до 149...154, бывают опускания ниже этих значений до 144, чаще в момент первоначального
-                            // включения инвертора, а потом вверх, не всегда. При включении уходит в 0 на одну посылку
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b26
+    uint8_t zero13;
 
     // БАЙТ19
-    uint8_t zero12;         // Brokly: Energolux Bern : включение 144 -> 124 -> 110 далее все время держим 110
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b27
+    uint8_t zero12;
 
     // БАЙТ20
-    uint8_t zero14;         // 
-                            // Brokly: Energolux Bern : полное наложение на показания инвертора (от 0 до 45, когда инвертор отключен и тут 0
-                            // при включении инвертора плавно растет, при выключении резко падает в 0, форма графика дрожащая нестабильная 
-                            // колебания в районе +-2...4 единицы
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b28
+    uint8_t zero14;
+
     // БАЙТ21
-    uint8_t zero15;         // всегда 0x00 Brokly: подтверждаю
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b29
+    uint8_t zero15;
 
     // БАЙТ22
-    uint8_t zero16;         // всегда 0x00 Brokly: подтверждаю
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b30
+    uint8_t zero16;
 
     // БАЙТ23
-    uint8_t ambient_temperature_frac:4; // младшие 4 бита - дробная часть комнатной температуры воздуха с датчика на внутреннем блоке сплит-системы
-                                        //      подробнее смотреть ambient_temperature_int
-										// для RoyalClima18HNI: старшие 4 бита - 0x2 
+    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b31
+    uint8_t ambient_temperature_frac:4;
     uint8_t reserv023:4;
 };
 
