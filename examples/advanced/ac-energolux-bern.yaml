@@ -64,6 +64,7 @@ climate:
     period: 7s
     show_action: true
     display_inverted: false
+    store_settings: true
     indoor_temperature:
       name: ${upper_devicename} Indoor Temperature
       id: ${low_devicename}_indoor_temp
