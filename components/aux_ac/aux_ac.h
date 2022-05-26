@@ -56,7 +56,7 @@ public:
     static const uint32_t AC_STATES_REQUEST_INTERVAL;
 };
 
-const std::string Constants::AC_FIRMWARE_VERSION = "0.2.3";
+const std::string Constants::AC_FIRMWARE_VERSION = "0.2.4";
 const char *const Constants::TAG = "AirCon";
 const std::string Constants::MUTE = "Mute";
 const std::string Constants::TURBO = "Turbo";
@@ -112,7 +112,6 @@ enum acsm_state : uint8_t {
 #define AC_PACKET_TIMEOUT   150     // 150 мсек - отработка буфера UART за раз, 600 мсек - отработка буфера UART по 1 байту за вызов loop
 
 // типы пакетов
-// https://github.com/GrKoR/AUX_HVAC_Protocol#packet_types
 #define AC_PTYPE_PING   0x01    // ping-пакет, рассылается кондиционером каждые 3 сек.; модуль на него отвечает 
 #define AC_PTYPE_CMD    0x06    // команда сплиту; модуль отправляет такие команды, когда что-то хочет от сплита
 #define AC_PTYPE_INFO   0x07    // информационный пакет; бывает 3 видов; один из них рассылается кондиционером самостоятельно раз в 10 мин. и все 3 могут быть ответом на запросы модуля
@@ -130,20 +129,25 @@ enum acsm_state : uint8_t {
 #define AC_PACKET_ANSWER        0x80    // признак ответа wifi-модуля
 
 // заголовок пакета
-// описание тут: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_header
 struct packet_header_t {
-    uint8_t start_byte = AC_PACKET_START_BYTE;
-    uint8_t _unknown1;
-    uint8_t packet_type;    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_header_2
-    uint8_t wifi;
-    uint8_t ping_answer_01;
-    uint8_t _unknown2;
-    uint8_t body_length;
-    uint8_t _unknown3;
+    uint8_t start_byte;     // стартовый бит пакета, всегда 0xBB
+    uint8_t _unknown1;      // не расшифрован
+    uint8_t packet_type;    // тип пакета:
+                            //      0x01 - пинг
+                            //      0x06 - команда кондиционеру
+                            //      0x07 - информационный пакет со статусом кондиционера
+                            //      0x09 - (не разбирался) инициирование коннекта wifi-модуля с приложением на телефоне, с ESP работает и без этого
+                            //      0x0b - (не разбирался) wifi-модуль так сигналит, когда не получает пинги от кондиционера и в каких-то еще случаях
+    uint8_t wifi;           // признак пакета от wifi-модуля
+                            //      0x80 - для всех сообщений, посылаемых модулем
+                            //      0x00 - для всех сообщений, посылаемых кондиционером
+    uint8_t ping_answer_01; // не расшифрован, почти всегда 0x00, только в ответе на ping этот байт равен 0x01
+    uint8_t _unknown2;      // не расшифрован
+    uint8_t body_length;    // длина тела пакета в байтах
+    uint8_t _unknown3;      // не расшифрован
 };
 
 // CRC пакета
-// описание тут: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_crc
 union packet_crc_t {
     uint16_t crc16;
     uint8_t crc[2];
@@ -159,37 +163,78 @@ struct packet_t {
 };
 
 // тело ответа на пинг
-// описание тут: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_type_ping
 struct packet_ping_answer_body_t {
     uint8_t byte_1C = 0x1C;        // первый байт всегда 0x1C
     uint8_t byte_27 = 0x27;        // второй байт тела пинг-ответа всегда 0x27
-    uint8_t zero1 = 0;             // всегда 0x00 
-    uint8_t zero2 = 0;             // всегда 0x00 
-    uint8_t zero3 = 0;             // всегда 0x00 
-    uint8_t zero4 = 0;             // всегда 0x00 
-    uint8_t zero5 = 0;             // всегда 0x00 
-    uint8_t zero6 = 0;             // всегда 0x00 
+    uint8_t zero1 = 0;          // всегда 0x00 
+    uint8_t zero2 = 0;          // всегда 0x00 
+    uint8_t zero3 = 0;          // всегда 0x00 
+    uint8_t zero4 = 0;          // всегда 0x00 
+    uint8_t zero5 = 0;          // всегда 0x00 
+    uint8_t zero6 = 0;          // всегда 0x00 
 };
 
 // тело большого информационного пакета
-// описание тут: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21
 struct packet_big_info_body_t {
-    uint8_t byte_01;
-    uint8_t cmd_answer;     // особенности тут: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_2x
-    uint8_t config;        // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_conf
-
+    uint8_t byte_01;        // всегда 0x01
+    uint8_t cmd_answer;     // код команды, ответом на которую пришел данный пакет (0x21);
+                            //      пакет может рассылаться и в дежурном режиме (без запроса со стороны wifi-модуля)
+                            //      в этом случае тут могут быть значения, отличные от 0x21
+    // БАЙТ2
+    uint8_t reserv20 :5;    // не расшифрован, всегда 0xC0      11000000 
+	bool is_invertor :1;	// флаг инвертора				
+    uint8_t reserv21 :2;    // для RoyalClima18HNI: всегда 0xE0 11100000
+                            // Brokly: для Energolux Bern: 0xE0; иногда, с равными промежутками во времени проскакивает )xE4
+                            //         предполагаю, что это байт конфига кондиционера (5 бит - инвертер), (2 бит - периодический мпульсный сигнал,период пимерно 500 сек)
     // БАЙТ 3
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_mode
     bool power:1;
     bool sleep:1;
     bool v_louver:1;
     bool h_louver:1;
     bool louvers_on:1;
-    uint8_t mode:3;         //   #define AC_BIG_MASK_MODE  b11100000
-                            //   enum { AC_BIG_MODE_DRY  = 0x40,    // 0100 0000
-                            //          AC_BIG_MODE_COOL = 0x20,    // 0010 0000
-                            //          AC_BIG_MODE_HEAT = 0x80,    // 1000 0000
-                            //          AC_BIG_MODE_FAN  = 0xC0}    // 1100 0000
+    uint8_t mode:3;         //   enum { AC_BIG_MODE_AUTO = 0,
+                            //          AC_BIG_MODE_COOL = 1,
+                            //          AC_BIG_MODE_DRY  = 2,
+                            //          AC_BIG_MODE_HEAT = 4,
+                            //          AC_BIG_MODE_FAN  = 6}
+                            //     
+                            //
+                            //      Встречались такие значения:
+                            //      0x04       100 - сплит выключен, до этого работал (статус держится 1 час после выкл.)
+                            //      0x05       101 - режим AUTO
+                            //      0x24    100100 - режим OFF
+                            //      0x25    100101 - режим COOL
+                            //      0x39    111001 - ??
+                            //      0x45   1000101 - режим DRY
+                            //      0x85  10000101 - режим HEAT
+                            //      0xC4  11000100 - режим OFF, выключен давно, зима
+                            //      0xC5  11000101 - режим FAN
+                            // Brokly: 
+                            //     Встречались такие значения :
+                            //      0x00  00000000 - OFF
+                            //      0x01  00000001 - AUTO // режим авто, нет отдельного бита
+                            //      0x41   1000001 - DRY
+                            //      0x21    100001 - COOL
+                            //      0x81  10000001 - HEAT
+                            //      0xC1  11000001 - FAN  // 7 и 6 бит связаны
+                            //      0x80  10000000 - продувка после переключения из HEAT в OFF 
+                            //      0xC5  11000101 - FAN+шторки верх-низ
+                            //      0xDD  11011101 - FAN+шторки лево-право/верх-низ
+                            //      0xD9  11011001 - FAN+шторки лево-право
+                            //      0xD8  11011000 - из FAN+шторки лево-право в OFF
+                            //      0x39    111001 - COOL+шторки лево-право 
+                            //     Очевидно битовые, но связные, поля, предположительные зависимости  
+                            //     ВНИМАНИЕ : режимы номинальны, например в режиме АВТО нагрев или охлаждение не отображаются 
+                            //      7+6+5     4     3      2    1     0
+                            //      MODE    LouvON  LouH  LouV SLEEP ON/OFF  
+                            //
+                            //   ФУНКЦМЯ CLEEN, HEALTH, ANTIFUNGUS на данный байт не влияют
+                            //
+                            //   #define AC_BIG_MASK_MODE  b11100000
+                            //   enum { AC_BIG_MODE_DRY  = 0x40,
+                            //          AC_BIG_MODE_COOL = 0x20,
+                            //          AC_BIG_MODE_HEAT = 0x80,
+                            //          AC_BIG_MODE_FAN  = 0xC0}
                             //   #define AC_BIG_MASK_POWER       b00000001
                             //   #define AC_BIG_MASK_LOUVERS_ON  b00010000
                             //   #define AC_BIG_MASK_LOUVERS_H   b00000100
@@ -197,22 +242,36 @@ struct packet_big_info_body_t {
                             //   #define AC_BIG_MASK_LOUVERS_L   b00001000
                             //   #define AC_BIG_MASK_SLEEP       b00000010
                             //   #define AC_BIG_MASK_COOL        b00100000
-
+                            //
     // БАЙТ 4
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_frst
     uint8_t reserv40:4;     // 8                      
     bool  needDefrost:1;    // 5 бит начало разморозки(накопление тепла) 
     bool  defrostMode:1;    // 6 бит режим разморозки внешнего блока (прогрев испарителя)
     bool  reserv41:1;       // для RoyalClima18HNI: режим разморозки внешнего блока - 0x20, в других случаях 0x00           
     bool  cleen:1;          // 8 бит CLEAN
-
+    
+                            // Для кондея старт-стоп
+                            //    x xx
+                            // C5 11000101
+                            // C4 11000100
+                            // 85 10000101
+                            // 84 10000100
+                            // 3D 00111101
+                            // 3C 00111100
+                            // 25 00100101
+                            // 24 00100100
+                            //  5 00000101 
+                            //  4 00000100
+    
+    
     // БАЙТ5
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_fspd
-    uint8_t realFanSpeed:3;
-    uint8_t reserv30:5;
-
+    uint8_t realFanSpeed:3; //   Brokly: Energolux Bern - подтверждаю, ВАЖНО !!!! Это реальная скорость фена
+    uint8_t reserv30:5;      //   та которая в данный момент. Например может быть установлен нагрев со скоростью 
+                            //   вентилятора HI, но кондей еще не произвел достаточно тепла, и крутит на LOW,
+                            //   Тут будет отображаться LOW
+                            //      fanSpeed: OFF=0x00, MUTE=0x01, LOW=0x02, MID=0x04, HIGH=0x06, TURBO=0x07
+                            //      в дежурных пакетах тут похоже что-то другое
     // БАЙТ6
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_fpwm
     bool reserv60:1;
     uint8_t fanPWM:7;       // скорость шима вентилятора
                             // 126...128 - turbo
@@ -222,7 +281,6 @@ struct packet_big_info_body_t {
                             // 0 - off
                             // 
     // БАЙТ7
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_tint
     uint8_t ambient_temperature_int;    // Brokly: ПОДТВЕРЖДАЮ это точно показания датчика под крышкой внутреннего блока, 
                                         // физически доступен для пользователя
                                         // целая часть комнатной температуры воздуха с датчика на внутреннем блоке сплит-системы
@@ -235,68 +293,95 @@ struct packet_big_info_body_t {
     // А значит это термодатчики внутри внутреннего блока !!!!!!
 
     // БАЙТ8
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_int
-    uint8_t in_temperature_int;
+    uint8_t zero3;          // Brokly: полностью повторяет значение 9 байта 
 
     // БАЙТ9
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_int2
-    uint8_t zero3; 
-
+    uint8_t in_temperature_int; // Brokly: скорее всего это действительно какая то температура или дельта температур
+                                // СКОРЕЕ ВСЕГО ЭТО ТЕМПЕРАТУРА ПОДАЧИ !!!!!! При охлаждении - холодная, при нагреве теплая
+                           
+                                // холоднее или горячее температуры в команте. В выключеном состоянии стремится к комнатной темп.
+                                // у меня на трех инверторных кондиционерах Energolux серии Bern 
+                                // в выключеном состоянии значение этого байта находится на уровне 57-68 (мощность 0%)
+                                // зависит от мощности работы компрессора (измерения при 12гр на улице)
+                                // в режиме охлаждения уменьшается и при мощности 47% = 40 / 73% = 38
+                                // в режиме нагрева увеличивается и при мощности 47% = 70 / 73% = 75 / 84% = 84
+                                // изменение этого значения более вялое, с западыванием относительно изменения мощности
+                                // видимо является реакцией (следствием работы) на изменение мощности инвертора
+                                // учитывая стиль записи температур имеет смысл рассматривать это значение как увеличенное на 0x20
+                           
+                           
+                           
+                           //       этот байт как-то связан с температурой во внешнем блоке. Требуются дополнительные исследования.
+                           //      При выключенном сплите характер изменения значения примерно соответствует изменению температуры на улице.
+                           //      При включенном сплите значение может очень сильно скакать.
+                           //      По схеме wiring diagram сплит-системы, во внешнем блоке есть термодатчик, отслеживающий температуру испарителя.
+                           //      Возможно, этот байт как раз и отражает изменение температуры на испарителе.
+                           //      Но я не смог разобраться, как именно перевести эти значения в градусы.
+                           //      Кроме того, зимой даже в минусовую температуру этот байт не уходит ниже 0x33 по крайней мере
+                           //      для температур в диапазоне -5..-10 градусов Цельсия.
     // БАЙТ10
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_int3
-    uint8_t zero4;
+    uint8_t zero4;          // Brokly: полностью повторяет значение 9 байта
 
     // БАЙТ11
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b19
-    uint8_t zero5;
+    uint8_t zero5;          // всегда = 100 (0x64)
 
     // БАЙТ12
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b20
-    uint8_t outdoor_temperature; 
+    uint8_t outdoor_temperature; // Brokly Energolux Bern: Внешняя температура формула T=БАЙТ12 - 0x20 
+                                 // Датчик на радиаторе внешнего блока, доступен для пользователя, без разборки блока
+							     // температура внешнего теплообменника влияет на это значение (при работе на обогрев - понижает, при охлаждении или при разморозке - повышает)
+							     // для RoyalClima18HNI: похоже на какую-то температуру, точно неизвестно
     
     // БАЙТ13
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b21
-    uint8_t out_temperature_int;
+    uint8_t out_temperature_int;    // всегда 0x00 
+                                    // для RoyalClima18HNI: 0x20
+                                    // Brokly Energolux Bern: похоже не какой то Термодатчик  T=БАЙТ13 - 0x20
+                                    // При охлаждении растет, при нагреве падает, можно делать вывод о режиме COOL или HEAT
+                                    // ПОХОЖЕ НА ТЕМПЕРАТУРУ ОБРАТКИ !!!
     
     // БАЙТ14
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b22
-    uint8_t strange_temperature_int;
+    uint8_t strange_temperature_int;// всегда 0x00 
+                                    // для RoyalClima18HNI: 0x20
+                                    // Brokly Energolux Bern: похоже не какой то Термодатчик T=БАЙТ14 - 0x20
+                                    // показания РАСТЕТ ПРИ ВКЛЮЧЕНИИ ИНВЕРТОРА, при выключении падают до комнатной
+                                    // от режима охлаждения или нагрева не зависит !!!
+
 
     // БАЙТ15
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b23
-    uint8_t zero9;
-
+    uint8_t zero9;          // всегда 0x00,  Brokly: Energolux Bern, всегда  0x39 111001 
     // БАЙТ16
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b24
-    uint8_t invertor_power;
-
+    uint8_t invertor_power; // МОщность инвертера (Brokly: подтверждаю)
+							// для RoyalClima18HNI: мощность инвертора (от 0 до 100) в %
+							// например, разморозка внешнего блока происходит при 80%
     // БАЙТ17
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b25
-    uint8_t zero11;
+    uint8_t zero11;         // всегда 0x00
+                            // Brokly: Energolux Bern : полное наложение на показания инвертора (от 0 до 22, когда инвертор отключен и тут 0
+                            // при включении инвертора плавно растет, при выключении резко падает в 0, форма графика достаточно плавна
 
     // БАЙТ18
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b26
-    uint8_t zero13;
+    uint8_t zero13;         //  
+                            // Brokly: Energolux Bern : наложение на показания инвертора (от 144 до 174, когда инвертор отключен 
+                            // показания немного скачут в районе 149...154, при включении инвертора быстро растет, при выключении
+                            // моментально падает до 149...154, бывают опускания ниже этих значений до 144, чаще в момент первоначального
+                            // включения инвертора, а потом вверх, не всегда. При включении уходит в 0 на одну посылку
 
     // БАЙТ19
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b27
-    uint8_t zero12;
+    uint8_t zero12;         // Brokly: Energolux Bern : включение 144 -> 124 -> 110 далее все время держим 110
 
     // БАЙТ20
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b28
-    uint8_t zero14;
-
+    uint8_t zero14;         // 
+                            // Brokly: Energolux Bern : полное наложение на показания инвертора (от 0 до 45, когда инвертор отключен и тут 0
+                            // при включении инвертора плавно растет, при выключении резко падает в 0, форма графика дрожащая нестабильная 
+                            // колебания в районе +-2...4 единицы
     // БАЙТ21
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b29
-    uint8_t zero15;
+    uint8_t zero15;         // всегда 0x00 Brokly: подтверждаю
 
     // БАЙТ22
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b30
-    uint8_t zero16;
+    uint8_t zero16;         // всегда 0x00 Brokly: подтверждаю
 
     // БАЙТ23
-    // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b31
-    uint8_t ambient_temperature_frac:4;
+    uint8_t ambient_temperature_frac:4; // младшие 4 бита - дробная часть комнатной температуры воздуха с датчика на внутреннем блоке сплит-системы
+                                        //      подробнее смотреть ambient_temperature_int
+										// для RoyalClima18HNI: старшие 4 бита - 0x2 
     uint8_t reserv023:4;
 };
 
@@ -444,7 +529,7 @@ enum ac_mildew : uint8_t { AC_MILDEW_OFF = 0x00, AC_MILDEW_ON = 0x08, AC_MILDEW_
 
 // настройка усреднения фильтра температуры. Это значение - взнос нового измерения
 // в усредненные показания в процентах
-#define OUTDOOR_FILTER_PESCENT 5                         
+#define OUTDOOR_FILTER_PESCENT 1                         
 
 /** команда для кондиционера
  * 
@@ -468,11 +553,12 @@ enum ac_mildew : uint8_t { AC_MILDEW_OFF = 0x00, AC_MILDEW_ON = 0x08, AC_MILDEW_
                             ac_mildew   mildew;\
                             ac_timer    timer;\
                             uint8_t     timer_hours;\
-                            uint8_t     timer_minutes;
+                            uint8_t     timer_minutes;\
+                            bool        temp_target_matter\
                             
 // чистый размер этой структуры 20 байт, скорее всего из-за выравнивания, она будет больше  
 // из-за такого приема нужно контролировать размер копируемых данных руками
-#define AC_COMMAND_BASE_SIZE 20  
+#define AC_COMMAND_BASE_SIZE 21  
                          
 struct ac_command_t {
 /*
@@ -491,18 +577,17 @@ struct ac_command_t {
     ac_timer    timer;
     uint8_t     timer_hours;
     uint8_t     timer_minutes;
-    ac_health_error   health_error; // ошибка ионизатора
     float       temp_target;
+    bool        temp_target_matter; // показывает, задана ли температура. Если false, то оставляем уже установленную
 */
     AC_COMMAND_BASE;
     ac_health_error   health_error;
-    bool        temp_target_matter; // показывает, задана ли температура. Если false, то оставляем уже установленную
     float       temp_ambient;    // внутренняя температура
     int8_t      temp_outdoor;    // внешняя температура
     int8_t      temp_inbound;    // температура входящая
     int8_t      temp_outbound;   // температура исходящая
     int8_t      temp_strange;    // непонятная температура, понаблюдаем
-    ac_realFan  realFanSpeed;   // текущая скорость вентилятора
+    ac_realFan  realFanSpeed;    // текущая скорость вентилятора
     uint8_t     invertor_power;  // мощность инвертора 
     uint8_t     pressure;        // предположительно давление
     bool        defrost;         // режим разморозки внешнего блока (накопление тепла + прогрев испарителя)
@@ -597,7 +682,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         
         // массив для сохранения данных глобальных персетов
         ac_save_command_t global_presets[POS_MODE_OFF+1];
-        
         #if defined(ESP32)
             // тут будем хранить данные глобальных пресетов во флеше
             // ВНИМАНИЕ на данный момент 22.05.22 ESPHOME 20022.5.0 имеет ошибку
@@ -605,9 +689,12 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             // из-за этого сохранение в энергонезависимую память не работает !!!
             ESPPreferenceObject storage = global_preferences->make_preference<ac_save_command_t[POS_MODE_OFF+1]>(this->get_object_id_hash(), true);
         #endif
+        // настройка-ключ, для включения сохранения - восстановления настроек каждого
+        // режима работы в отдельности, то есть каждый режим работы имеет свои настройки
+        // температуры, шторок, скорости вентилятора, пресетов
+        bool _store_settings = false;
         // флаги для сохранения пресетов
-        bool new_command_set = false; // флаг отправки новой команды
-        bool new_command_reply = false; // флаг получения ответа на новую команду
+        bool _new_command_set = false; // флаг отправки новой команды, необходимо сохранить данные пресета, если разрешено
         
         // время последнего запроса статуса у кондея
         uint32_t _dataMillis;
@@ -623,6 +710,13 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         // если тут false, то 1 в соответствующем бите включает дисплей, а 0 выключает.
         // если тут true, то 1 потушит дисплей, а 0 включит.
         bool _display_inverted = false;
+        
+        // флаг типа кондиционера инвертор - true,  ON/OFF - false, начальная установка false
+        // в таком режиме точность и скорость определения реального состояния системы для инвертора,
+        // будет работать, но будет ниже, переменная устанавливается при первом получении большого пакета;
+        // если эта переменная установлена, то режим работы не инверторного кондиционера будет распознаваться
+        // как "в простое" (IDLE)
+        bool _is_invertor = false;
 
         // поддерживаемые кондиционером опции
         std::set<ClimateMode> _supported_modes{};
@@ -1207,6 +1301,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             packet_big_info_body_t * big_info_body;
                             big_info_body = (packet_big_info_body_t *) (_inPacket.body);
                             
+                            // тип кондея (инвертор или старт стоп)
+                            _is_invertor = big_info_body->is_invertor;
+                            
                             // температура воздуха в помещении по версии сплит-системы
                             stateFloat = big_info_body->ambient_temperature_int - 0x20 + (float)(big_info_body->ambient_temperature_frac & 0x0f) / 10.0;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.temp_ambient != stateFloat);
@@ -1257,10 +1354,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             // уведомляем об изменении статуса сплита
                             if (stateChangedFlag) {
                                 stateChanged();
-                                if(new_command_set){ // это ответ на исходящий пакет
-                                   new_command_set = false;
-                                   new_command_reply = true; //флаг о получении ответа, нужно сохранить пресет, после полуучения ответа от кондея
-                                }
                             }
                             break;
                         }
@@ -1851,7 +1944,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             if(num_preset < sizeof(global_presets)/sizeof(global_presets[0])){ // проверка выхода за пределы массива
                 if(cmd->power == global_presets[num_preset].power && cmd->mode == global_presets[num_preset].mode){ //контроль инициализации
                     memcpy(cmd,&(global_presets[num_preset]), AC_COMMAND_BASE_SIZE); // просто копируем из массива
-                    cmd->temp_target_matter = true; // флаг изменения температуры
                     _debugMsg(F("Preset %02d read from RAM massive."), ESPHOME_LOG_LEVEL_WARN, __LINE__, num_preset);
                 } else {
                     _debugMsg(F("Preset %02d not initialized, use current settings."), ESPHOME_LOG_LEVEL_WARN, __LINE__, num_preset);
@@ -1862,10 +1954,10 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         // запись данных в массив персетов
         void save_preset(ac_command_t* cmd){
             uint8_t num_preset = get_num_preset(cmd);
-            //if(memcmp(cmd,&(global_presets[num_preset]), AC_COMMAND_BASE_SIZE) != 0){ // содержимое пресетов разное
+            if(memcmp(cmd,&(global_presets[num_preset]), AC_COMMAND_BASE_SIZE) != 0){ // содержимое пресетов разное
                 memcpy(&(global_presets[num_preset]), cmd, AC_COMMAND_BASE_SIZE); // копируем пресет в массив
                 #if defined(ESP32)
-                    _debugMsg(F("Try save preset %02d to NVRAM."), ESPHOME_LOG_LEVEL_WARN, __LINE__, num_preset);
+                    _debugMsg(F("Save preset %02d to NVRAM."), ESPHOME_LOG_LEVEL_WARN, __LINE__, num_preset);
                     if(storage.save(global_presets)){
                         if(!global_preferences->sync()) // сохраняем все пресеты
                             _debugMsg(F("Sync NVRAM error ! (load result: %02d)"), ESPHOME_LOG_LEVEL_ERROR, __LINE__, load_presets_result);
@@ -1873,7 +1965,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         _debugMsg(F("Save presets to flash ERROR ! (load result: %02d)"), ESPHOME_LOG_LEVEL_ERROR, __LINE__, load_presets_result);
                     }
                 #endif
-            //}
+            } else {
+                _debugMsg(F("Preset %02d has not been changed, Saving canceled."), ESPHOME_LOG_LEVEL_WARN, __LINE__, num_preset);
+            }
         }
         
     public:
@@ -1916,39 +2010,81 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             return (_sequence[0].item_type != AC_SIT_NONE);
         }
 
-        // вызывается, если параметры кондиционера изменились, ДЛЯ ПУБЛИКАЦИИ
+        // вызывается для обновления отображения состояния кондиционера, ДЛЯ ПУБЛИКАЦИИ
         void stateChanged(){
             _debugMsg(F("State changed, let's publish it."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
-            static uint32_t timerInv = 0;
-            if(_current_ac_state.invertor_power == 0){ // инвертор выключен
-                timerInv = millis();
-                if(_current_ac_state.realFanSpeed == AC_REAL_FAN_OFF &&
-                   _current_ac_state.power == AC_POWER_OFF ){ // внутренний кулер остановлен, кондей выключен
-                    this->action = climate::CLIMATE_ACTION_OFF; // значит кондей не работает
-                } else if (_current_ac_state.realFanSpeed == AC_REAL_FAN_MUTE ||
-                           _current_ac_state.realFanSpeed == AC_REAL_FAN_OFF ){ // кулер чуть вертится
-                    this->action = climate::CLIMATE_ACTION_IDLE; // кондей в простое
+            if(_is_invertor){ // анализ режима для инвертора, точнее потому что использует показания мощности инвертора
+                static uint32_t timerInv = 0;
+                if(_current_ac_state.invertor_power == 0){ // инвертор выключен
+                    timerInv = millis();
+                    if(_current_ac_state.realFanSpeed == AC_REAL_FAN_OFF &&
+                       _current_ac_state.power == AC_POWER_OFF ){ // внутренний кулер остановлен, кондей выключен
+                        this->action = climate::CLIMATE_ACTION_OFF; // значит кондей не работает
+                    } else {
+                        int16_t delta_temp=_current_ac_state.temp_ambient - _current_ac_state.temp_inbound;
+                        if (delta_temp > 0 && delta_temp < 2 &&
+                            (_current_ac_state.realFanSpeed == AC_REAL_FAN_OFF  || 
+                             _current_ac_state.realFanSpeed == AC_REAL_FAN_MUTE ||
+                             _current_ac_state.realFanSpeed == AC_REAL_FAN_MUTE )){ 
+                            this->action = climate::CLIMATE_ACTION_DRYING; // ОСУШЕНИЕ  
+                        } else if (_current_ac_state.realFanSpeed == AC_REAL_FAN_MUTE ||
+                               _current_ac_state.realFanSpeed == AC_REAL_FAN_OFF ){ // кулер чуть вертится
+                            this->action = climate::CLIMATE_ACTION_IDLE; // кондей в простое
+                        } else {
+                            this->action = climate::CLIMATE_ACTION_FAN; // другие режимы - вентиляция
+                        }
+                    }
+                } else if(millis()-timerInv > 2000){ // инвертор включен, но нужно дождаться реакции на его включение
+                    if(_current_ac_state.realFanSpeed == AC_REAL_FAN_OFF ||
+                       _current_ac_state.realFanSpeed == AC_REAL_FAN_MUTE ){ //медленное вращение
+                        if(_current_ac_state.temp_ambient - _current_ac_state.temp_inbound > 0){ //холодный радиатор
+                            this->action = climate::CLIMATE_ACTION_DRYING; // ОСУШЕНИЕ
+                        } else { // теплый радиатор, видимо переходный режим
+                            this->action = climate::CLIMATE_ACTION_IDLE;
+                        }
+                    } else {
+                        int16_t delta_temp=_current_ac_state.temp_ambient - _current_ac_state.temp_inbound;
+                        if(delta_temp < -2){ // входящая температура выше комнатной, быстрый фен - ОБОГРЕВ
+                            this->action = climate::CLIMATE_ACTION_HEATING;
+                        } else if(delta_temp > 2){ // ниже, быстрый фен - ОХЛАЖДЕНИЕ
+                            this->action = climate::CLIMATE_ACTION_COOLING;
+                        } else { // просто вентиляция
+                            this->action = climate::CLIMATE_ACTION_IDLE;
+                        }
+                    }
                 } else {
-                    this->action = climate::CLIMATE_ACTION_FAN; // другие режимы - вентиляция
+                    if(_current_ac_state.realFanSpeed == AC_REAL_FAN_OFF || 
+                       _current_ac_state.realFanSpeed == AC_REAL_FAN_MUTE){
+                        this->action = climate::CLIMATE_ACTION_IDLE;
+                    } else {
+                        this->action = climate::CLIMATE_ACTION_FAN; // другие режимы - вентиляция
+                    }
                 }
-            } else if(millis()-timerInv > 2000){ // инвертор включен, но нужно дождаться реакции на его включение
-                int16_t delta=_current_ac_state.temp_ambient - _current_ac_state.temp_inbound;
-                if(_current_ac_state.realFanSpeed == AC_REAL_FAN_OFF ||
-                   _current_ac_state.realFanSpeed == AC_REAL_FAN_MUTE ){ //медленное вращение
-                    if(delta > 0){ //холодный радиатор
-                        this->action = climate::CLIMATE_ACTION_DRYING; // ОСУШЕНИЕ
-                    } else { // теплый радиатор, видимо переходный режим
+            } else {
+                if(_current_ac_state.realFanSpeed == AC_REAL_FAN_OFF &&  
+                   _current_ac_state.power == AC_POWER_OFF){
+                    this->action = climate::CLIMATE_ACTION_OFF; // значит кондей не работает
+                } else {
+                    int16_t delta_temp=_current_ac_state.temp_ambient - _current_ac_state.temp_inbound; // разность температуры между комнатной и входящей
+                    if (delta_temp > 0 && delta_temp < 2 &&
+                        (_current_ac_state.realFanSpeed == AC_REAL_FAN_OFF  || 
+                         _current_ac_state.realFanSpeed == AC_REAL_FAN_MUTE ||
+                         _current_ac_state.realFanSpeed == AC_REAL_FAN_MUTE )){ 
+                        this->action = climate::CLIMATE_ACTION_DRYING; // ОСУШЕНИЕ  
+                    } else if(_current_ac_state.realFanSpeed != AC_REAL_FAN_OFF && 
+                        _current_ac_state.realFanSpeed != AC_REAL_FAN_MUTE){ 
+                        if(delta_temp > 2){
+                            this->action = climate::CLIMATE_ACTION_COOLING;    
+                        } else if(delta_temp < -2){
+                            this->action = climate::CLIMATE_ACTION_HEATING;
+                        } else {
+                            this->action = climate::CLIMATE_ACTION_FAN; // другие режимы - вентиляция
+                        }
+                    } else {
                         this->action = climate::CLIMATE_ACTION_IDLE;
                     }
-                } else if(delta < -2){ // входящая температура выше комнатной, быстрый фен - ОБОГРЕВ
-                    this->action = climate::CLIMATE_ACTION_HEATING;
-                } else if(delta > 2){ // ниже, быстрый фен - ОХЛАЖДЕНИЕ
-                    this->action = climate::CLIMATE_ACTION_COOLING;
-                } else { // просто вентиляция
-                    this->action = climate::CLIMATE_ACTION_IDLE;
                 }
             }
-            
             _debugMsg(F("Action mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->action);
             /*************************** POWER & MODE ***************************/
             if (_current_ac_state.power == AC_POWER_ON){
@@ -2219,9 +2355,10 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             ESP_LOGCONFIG(Constants::TAG, "AUX HVAC:");
             ESP_LOGCONFIG(Constants::TAG, "  [x] Firmware version: %s", Constants::AC_FIRMWARE_VERSION.c_str());
             ESP_LOGCONFIG(Constants::TAG, "  [x] Period: %dms", this->get_period());
-            ESP_LOGCONFIG(Constants::TAG, "  [x] Show action: %s", this->get_show_action() ? "true" : "false");
-            ESP_LOGCONFIG(Constants::TAG, "  [x] Display inverted: %s", this->get_display_inverted() ? "true" : "false");
- 
+            ESP_LOGCONFIG(Constants::TAG, "  [x] Show action: %s",  TRUEFALSE(this->get_show_action()));
+            ESP_LOGCONFIG(Constants::TAG, "  [x] Display inverted: %s",  TRUEFALSE(this->get_display_inverted()));
+            ESP_LOGCONFIG(Constants::TAG, "  [x] Save settings %s",  TRUEFALSE(this->get_store_settings()));
+            ESP_LOGCONFIG(Constants::TAG, "  [?] Detect invertor %s", millis() > _update_period + 1000 ? YESNO(_is_invertor): "unread");
             if ((this->sensor_indoor_temperature_) != nullptr) {
                 ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Indoor Temperature"), (this->sensor_indoor_temperature_)->get_name().c_str());
                 if (!(this->sensor_indoor_temperature_)->get_device_class().empty()) {
@@ -2368,6 +2505,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         void control(const esphome::climate::ClimateCall &call) override {
             bool hasCommand = false;
             ac_command_t    cmd;
+
             _clearCommand(&cmd);    // не забываем очищать, а то будет мусор
 
             // User requested mode change
@@ -2378,11 +2516,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                     case climate::CLIMATE_MODE_OFF:
                         hasCommand = true;
                         cmd.power = AC_POWER_OFF;
-                        if(_current_ac_state.power != AC_POWER_OFF){
-                            load_preset(&cmd, POS_MODE_OFF);
-                            cmd.temp_target = _current_ac_state.temp_ambient; // просто от нехрен делать
-                            cmd.temp_target_matter = true;
-                        }
+                        load_preset(&cmd, POS_MODE_OFF);
+                        cmd.temp_target = _current_ac_state.temp_ambient; // просто от нехрен делать
                         this->mode = mode;
                         break;
                     
@@ -2390,9 +2525,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         hasCommand = true;
                         cmd.power = AC_POWER_ON;
                         cmd.mode = AC_MODE_COOL;
-                        if(_current_ac_state.mode != AC_MODE_COOL){
-                           load_preset(&cmd, POS_MODE_COOL);
-                        }
+                        load_preset(&cmd, POS_MODE_COOL);
                         this->mode = mode;
                         break;
                     
@@ -2400,9 +2533,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         hasCommand = true;
                         cmd.power = AC_POWER_ON;
                         cmd.mode = AC_MODE_HEAT;
-                        if(_current_ac_state.mode != AC_MODE_HEAT){
-                           load_preset(&cmd, POS_MODE_HEAT);
-                        }
+                        load_preset(&cmd, POS_MODE_HEAT);
                         this->mode = mode;
                         break;
                     
@@ -2410,11 +2541,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         hasCommand = true;
                         cmd.power = AC_POWER_ON;
                         cmd.mode = AC_MODE_AUTO;
-                        if(_current_ac_state.mode != AC_MODE_AUTO){
-                            load_preset(&cmd, POS_MODE_AUTO);
-                            cmd.temp_target = 25; // зависимость от режима HEAT_COOL 
-                            cmd.temp_target_matter = true;
-                        }
+                        load_preset(&cmd, POS_MODE_AUTO);
+                        cmd.temp_target = 25; // зависимость от режима HEAT_COOL 
+                        cmd.temp_target_matter = true;
                         cmd.fanTurbo = AC_FANTURBO_OFF; // зависимость от режима HEAT_COOL  
                         this->mode = mode;
                         break;
@@ -2423,11 +2552,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         hasCommand = true;
                         cmd.power = AC_POWER_ON;
                         cmd.mode = AC_MODE_FAN;
-                        if(_current_ac_state.mode != AC_MODE_FAN){
-                            load_preset(&cmd, POS_MODE_FAN);
-                            cmd.temp_target = _current_ac_state.temp_ambient; // зависимость от режима FAN 
-                            cmd.temp_target_matter = true;
-                        }
+                        load_preset(&cmd, POS_MODE_FAN);
+                        cmd.temp_target = _current_ac_state.temp_ambient; // зависимость от режима FAN 
+                        cmd.temp_target_matter = true;
                         cmd.fanTurbo = AC_FANTURBO_OFF;  // зависимость от режима FAN                       
                         cmd.sleep = AC_SLEEP_OFF;
                         if(cmd.fanSpeed == AC_FANSPEED_AUTO || _current_ac_state.fanSpeed == AC_FANSPEED_AUTO){
@@ -2440,9 +2567,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         hasCommand = true;
                         cmd.power = AC_POWER_ON;
                         cmd.mode = AC_MODE_DRY;
-                        if(_current_ac_state.mode != AC_MODE_DRY){
-                           load_preset(&cmd, POS_MODE_DRY);
-                        }
+                        load_preset(&cmd, POS_MODE_DRY);
                         cmd.fanTurbo = AC_FANTURBO_OFF;   // зависимость от режима DRY 
                         cmd.sleep = AC_SLEEP_OFF;   // зависимость от режима DRY 
                         this->mode = mode;
@@ -2738,7 +2863,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             if (hasCommand) {
                 commandSequence(&cmd);
                 this->publish_state(); // Publish updated state
-                new_command_set = true; // флаг отправки новой команды, для процедуры сохранения пресетов
+                _new_command_set = _store_settings; // флаг отправки новой команды, для процедуры сохранения пресетов, если есть настройка
             }
         }
 
@@ -2976,6 +3101,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         void set_display_inverted(bool display_inverted) { this->_display_inverted = display_inverted; }
         bool get_display_inverted() { return this->_display_inverted; }
 
+        void set_store_settings(bool store_settings) { this->_store_settings = store_settings; }
+        bool get_store_settings() { return this->_store_settings; }
+
         void set_supported_modes(const std::set<ClimateMode> &modes) { this->_supported_modes = modes; }
         void set_supported_swing_modes(const std::set<ClimateSwingMode> &modes) { this->_supported_swing_modes = modes; }
         void set_supported_presets(const std::set<ClimatePreset> &presets) { this->_supported_presets = presets; }
@@ -2994,8 +3122,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             if (!get_hw_initialized()) return;
 
             // контролируем сохранение пресета 
-            if(new_command_reply){  //нужно сохранить пресет
-                new_command_reply = false;
+            if(_new_command_set){  //нужно сохранить пресет
+                _new_command_set = false;
                 save_preset((ac_command_t *)&_current_ac_state); // переносим текущие данные в массив пресетов
             }
 
