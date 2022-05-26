@@ -19,6 +19,7 @@ namespace aux_ac {
         AirCon *ac_;
     };
 
+
     template <typename... Ts>
     class AirConDisplayOnAction : public Action<Ts...>
     {
