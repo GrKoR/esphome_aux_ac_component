@@ -11,10 +11,19 @@ from esphome.const import (
     CONF_CUSTOM_FAN_MODES,
     CONF_CUSTOM_PRESETS,
     CONF_INTERNAL,
-    CONF_DATA,
+    CONF_SUPPORTED_MODES,
+    CONF_SUPPORTED_SWING_MODES,
+    CONF_SUPPORTED_PRESETS,
+    CONF_PRESSURE,
     UNIT_CELSIUS,
+    UNIT_PERCENT,
+    UNIT_PASCAL,
+    ICON_POWER,
     ICON_THERMOMETER,
+    ICON_GAS_CYLINDER,
     DEVICE_CLASS_TEMPERATURE,
+    DEVICE_CLASS_POWER_FACTOR,
+    DEVICE_CLASS_PRESSURE,
     STATE_CLASS_MEASUREMENT,
 )
 from esphome.components.climate import (
@@ -34,10 +43,22 @@ CONF_SUPPORTED_SWING_MODES = 'supported_swing_modes'
 CONF_SUPPORTED_PRESETS = 'supported_presets'
 CONF_SHOW_ACTION = 'show_action'
 CONF_INDOOR_TEMPERATURE = 'indoor_temperature'
+CONF_OUTDOOR_TEMPERATURE = 'outdoor_temperature'
+ICON_OUTDOOR_TEMPERATURE = 'mdi:home-thermometer-outline'
+CONF_INBOUND_TEMPERATURE = 'inbound_temperature'
+ICON_INBOUND_TEMPERATURE = 'mdi:thermometer-plus'
+CONF_OUTBOUND_TEMPERATURE = 'outbound_temperature'
+ICON_OUTBOUND_TEMPERATURE = 'mdi:thermometer-minus'
+CONF_STRANGE_TEMPERATURE = 'strange_temperature'
+ICON_STRANGE_TEMPERATURE = 'mdi:thermometer-lines'
 CONF_DISPLAY_STATE = 'display_state'
-
+CONF_INVERTOR_POWER = 'invertor_power'
+CONF_DEFROST_STATE = 'defrost_state'
+ICON_DEFROST = "mdi:snowflake-melt"
 CONF_DISPLAY_INVERTED = 'display_inverted'
-ICON_DISPLAY = "mdi:numeric"
+ICON_DISPLAY = "mdi:clock-digital"
+CONF_STORE_SETTINGS = 'store_settings'
+
 
 aux_ac_ns = cg.esphome_ns.namespace("aux_ac")
 AirCon = aux_ac_ns.class_("AirCon", climate.Climate, cg.Component)
@@ -45,7 +66,6 @@ Capabilities = aux_ac_ns.namespace("Constants")
 
 AirConDisplayOffAction = aux_ac_ns.class_("AirConDisplayOffAction", automation.Action)
 AirConDisplayOnAction = aux_ac_ns.class_("AirConDisplayOnAction", automation.Action)
-AirConSendTestPacketAction = aux_ac_ns.class_("AirConSendTestPacketAction", automation.Action)
 
 ALLOWED_CLIMATE_MODES = {
     "HEAT_COOL": ClimateMode.CLIMATE_MODE_HEAT_COOL,
@@ -82,15 +102,6 @@ CUSTOM_PRESETS = {
 }
 validate_custom_presets = cv.enum(CUSTOM_PRESETS, upper=True)
 
-
-def validate_raw_data(value):
-    if isinstance(value, list):
-        return cv.Schema([cv.hex_uint8_t])(value)
-    raise cv.Invalid(
-        "data must be a list of bytes"
-    )
-
-
 def output_info(config):
     """_LOGGER.info(config)"""
     return config
@@ -102,6 +113,19 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_PERIOD, default="7s"): cv.time_period,
             cv.Optional(CONF_SHOW_ACTION, default="true"): cv.boolean,
             cv.Optional(CONF_DISPLAY_INVERTED, default="false"): cv.boolean,
+            cv.Optional(CONF_STORE_SETTINGS, default="false"): cv.boolean,
+            cv.Optional(CONF_DEFROST_STATE, default="false"): cv.boolean,
+            cv.Optional(CONF_INVERTOR_POWER): sensor.sensor_schema(
+                unit_of_measurement=UNIT_PERCENT,
+                icon=ICON_POWER,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_POWER_FACTOR,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                }
+            ),
             cv.Optional(CONF_INDOOR_TEMPERATURE): sensor.sensor_schema(
                 unit_of_measurement=UNIT_CELSIUS,
                 icon=ICON_THERMOMETER,
@@ -113,6 +137,51 @@ CONFIG_SCHEMA = cv.All(
                     cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
                 }
             ),
+            cv.Optional(CONF_OUTDOOR_TEMPERATURE): sensor.sensor_schema(
+                unit_of_measurement=UNIT_CELSIUS,
+                icon=ICON_OUTDOOR_TEMPERATURE,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_TEMPERATURE,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                }
+            ),
+            cv.Optional(CONF_INBOUND_TEMPERATURE): sensor.sensor_schema(
+                unit_of_measurement=UNIT_CELSIUS,
+                icon=ICON_INBOUND_TEMPERATURE,
+                accuracy_decimals=1,
+                device_class=DEVICE_CLASS_TEMPERATURE,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                }
+            ),
+            cv.Optional(CONF_OUTBOUND_TEMPERATURE): sensor.sensor_schema(
+                unit_of_measurement=UNIT_CELSIUS,
+                icon=ICON_OUTBOUND_TEMPERATURE,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_TEMPERATURE,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                }
+            ),
+            cv.Optional(CONF_STRANGE_TEMPERATURE): sensor.sensor_schema(
+                unit_of_measurement=UNIT_CELSIUS,
+                icon=ICON_STRANGE_TEMPERATURE,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_TEMPERATURE,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                }
+            ),
+           
             cv.Optional(CONF_DISPLAY_STATE): binary_sensor.binary_sensor_schema(
                 icon=ICON_DISPLAY
             ).extend(
@@ -120,6 +189,16 @@ CONFIG_SCHEMA = cv.All(
                     cv.Optional(CONF_INTERNAL, default="true"): cv.boolean
                 }
             ),
+            
+            cv.Optional(CONF_DEFROST_STATE): binary_sensor.binary_sensor_schema(
+                icon=ICON_DEFROST
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean
+                }
+            ),
+
+            
             cv.Optional(CONF_SUPPORTED_MODES): cv.ensure_list(validate_modes),
             cv.Optional(CONF_SUPPORTED_SWING_MODES): cv.ensure_list(validate_swing_modes),
             cv.Optional(CONF_SUPPORTED_PRESETS): cv.ensure_list(validate_presets),
@@ -146,15 +225,46 @@ async def to_code(config):
         conf = config[CONF_INDOOR_TEMPERATURE]
         sens = await sensor.new_sensor(conf)
         cg.add(var.set_indoor_temperature_sensor(sens))
+    
+    if CONF_OUTDOOR_TEMPERATURE in config:
+        conf = config[CONF_OUTDOOR_TEMPERATURE]
+        sens = await sensor.new_sensor(conf)
+        cg.add(var.set_outdoor_temperature_sensor(sens))
+
+    if CONF_OUTBOUND_TEMPERATURE in config:
+        conf = config[CONF_OUTBOUND_TEMPERATURE]
+        sens = await sensor.new_sensor(conf)
+        cg.add(var.set_outbound_temperature_sensor(sens))
+
+    if CONF_INBOUND_TEMPERATURE in config:
+        conf = config[CONF_INBOUND_TEMPERATURE]
+        sens = await sensor.new_sensor(conf)
+        cg.add(var.set_inbound_temperature_sensor(sens))
+
+    if CONF_STRANGE_TEMPERATURE in config:
+        conf = config[CONF_STRANGE_TEMPERATURE]
+        sens = await sensor.new_sensor(conf)
+        cg.add(var.set_strange_temperature_sensor(sens))
 
     if CONF_DISPLAY_STATE in config:
         conf = config[CONF_DISPLAY_STATE]
         sens = await binary_sensor.new_binary_sensor(conf)
         cg.add(var.set_display_sensor(sens))
+        
+    if CONF_DEFROST_STATE in config:
+        conf = config[CONF_DEFROST_STATE]
+        sens = await binary_sensor.new_binary_sensor(conf)
+        cg.add(var.set_defrost_state(sens))
+
+    if CONF_INVERTOR_POWER in config:
+        conf = config[CONF_INVERTOR_POWER]
+        sens = await sensor.new_sensor(conf)
+        cg.add(var.set_invertor_power_sensor(sens))
 
     cg.add(var.set_period(config[CONF_PERIOD].total_milliseconds))
     cg.add(var.set_show_action(config[CONF_SHOW_ACTION]))
     cg.add(var.set_display_inverted(config[CONF_DISPLAY_INVERTED]))
+    cg.add(var.set_store_settings(config[CONF_STORE_SETTINGS]))
     if CONF_SUPPORTED_MODES in config:
         cg.add(var.set_supported_modes(config[CONF_SUPPORTED_MODES]))
     if CONF_SUPPORTED_SWING_MODES in config:
@@ -166,8 +276,6 @@ async def to_code(config):
     if CONF_CUSTOM_FAN_MODES in config:
         cg.add(var.set_custom_fan_modes(config[CONF_CUSTOM_FAN_MODES]))
 
-
-
 DISPLAY_ACTION_SCHEMA = maybe_simple_id(
     {
         cv.Required(CONF_ID): cv.use_id(AirCon),
@@ -175,47 +283,11 @@ DISPLAY_ACTION_SCHEMA = maybe_simple_id(
 )
 
 @automation.register_action("aux_ac.display_off", AirConDisplayOffAction, DISPLAY_ACTION_SCHEMA)
-async def display_off_to_code(config, action_id, template_arg, args):
+async def switch_toggle_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
 
 @automation.register_action("aux_ac.display_on", AirConDisplayOnAction, DISPLAY_ACTION_SCHEMA)
-async def display_on_to_code(config, action_id, template_arg, args):
+async def switch_toggle_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
-
-
-SEND_TEST_PACKET_ACTION_SCHEMA = maybe_simple_id(
-    {
-        cv.Required(CONF_ID): cv.use_id(AirCon),
-        cv.Required(CONF_DATA): cv.templatable(validate_raw_data),
-    }
-)
-
-
-# *********************************************************************************************************
-# ВАЖНО! Только для инженеров!
-# Вызывайте метод aux_ac.send_packet только если понимаете, что делаете! Он не проверяет данные, а передаёт
-# кондиционеру всё как есть. Какой эффект получится от передачи кондиционеру рандомных байт, никто не знает.
-# Вы действуете на свой страх и риск.
-# *********************************************************************************************************
-@automation.register_action(
-    "aux_ac.send_packet",
-    AirConSendTestPacketAction,
-    SEND_TEST_PACKET_ACTION_SCHEMA
-)
-async def send_packet_to_code(config, action_id, template_arg, args):
-    paren = await cg.get_variable(config[CONF_ID])
-    var = cg.new_Pvariable(action_id, template_arg, paren)
-
-    data = config[CONF_DATA]
-    if isinstance(data, bytes):
-        data = list(data)
-
-    if cg.is_template(data):
-        templ = await cg.templatable(data, args, cg.std_vector.template(cg.uint8))
-        cg.add(var.set_data_template(templ))
-    else:
-        cg.add(var.set_data_static(data))
-
-    return var

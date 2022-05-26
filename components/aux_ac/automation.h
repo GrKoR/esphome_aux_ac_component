@@ -17,7 +17,7 @@ namespace aux_ac {
 
     protected:
         AirCon *ac_;
-    };
+    };    
 
     template <typename... Ts>
     class AirConDisplayOnAction : public Action<Ts...>
@@ -59,7 +59,7 @@ namespace aux_ac {
         bool static_{false};
         std::function<std::vector<uint8_t>(Ts...)> data_func_{};
         std::vector<uint8_t> data_static_{};
-    };
+    };    
 
 } // namespace aux_ac
 } // namespace esphome
