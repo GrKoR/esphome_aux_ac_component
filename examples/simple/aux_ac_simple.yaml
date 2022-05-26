@@ -1,5 +1,5 @@
 external_components:
-  - source: github://GrKoR/esphome_aux_ac_component
+  - source: github://Brokly/esphome_aux_ac_component
     components: [ aux_ac ]
     refresh: 0s
 
