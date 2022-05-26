@@ -11,6 +11,7 @@ from esphome.const import (
     CONF_CUSTOM_FAN_MODES,
     CONF_CUSTOM_PRESETS,
     CONF_INTERNAL,
+    CONF_DATA,
     CONF_SUPPORTED_MODES,
     CONF_SUPPORTED_SWING_MODES,
     CONF_SUPPORTED_PRESETS,
@@ -66,6 +67,7 @@ Capabilities = aux_ac_ns.namespace("Constants")
 
 AirConDisplayOffAction = aux_ac_ns.class_("AirConDisplayOffAction", automation.Action)
 AirConDisplayOnAction = aux_ac_ns.class_("AirConDisplayOnAction", automation.Action)
+AirConSendTestPacketAction = aux_ac_ns.class_("AirConSendTestPacketAction", automation.Action)
 
 ALLOWED_CLIMATE_MODES = {
     "HEAT_COOL": ClimateMode.CLIMATE_MODE_HEAT_COOL,
@@ -102,6 +104,14 @@ CUSTOM_PRESETS = {
 }
 validate_custom_presets = cv.enum(CUSTOM_PRESETS, upper=True)
 
+def validate_raw_data(value):
+    if isinstance(value, list):
+        return cv.Schema([cv.hex_uint8_t])(value)
+    raise cv.Invalid(
+        "data must be a list of bytes"
+    )
+    
+    
 def output_info(config):
     """_LOGGER.info(config)"""
     return config
@@ -283,11 +293,47 @@ DISPLAY_ACTION_SCHEMA = maybe_simple_id(
 )
 
 @automation.register_action("aux_ac.display_off", AirConDisplayOffAction, DISPLAY_ACTION_SCHEMA)
-async def switch_toggle_to_code(config, action_id, template_arg, args):
+async def display_off_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
 
 @automation.register_action("aux_ac.display_on", AirConDisplayOnAction, DISPLAY_ACTION_SCHEMA)
-async def switch_toggle_to_code(config, action_id, template_arg, args):
+async def display_on_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
+    
+    
+SEND_TEST_PACKET_ACTION_SCHEMA = maybe_simple_id(
+    {
+        cv.Required(CONF_ID): cv.use_id(AirCon),
+        cv.Required(CONF_DATA): cv.templatable(validate_raw_data),
+    }
+)
+
+
+# *********************************************************************************************************
+# ВАЖНО! Только для инженеров!
+# Вызывайте метод aux_ac.send_packet только если понимаете, что делаете! Он не проверяет данные, а передаёт
+# кондиционеру всё как есть. Какой эффект получится от передачи кондиционеру рандомных байт, никто не знает.
+# Вы действуете на свой страх и риск.
+# *********************************************************************************************************
+@automation.register_action(
+    "aux_ac.send_packet",
+    AirConSendTestPacketAction,
+    SEND_TEST_PACKET_ACTION_SCHEMA
+)
+async def send_packet_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(action_id, template_arg, paren)
+
+    data = config[CONF_DATA]
+    if isinstance(data, bytes):
+        data = list(data)
+
+    if cg.is_template(data):
+        templ = await cg.templatable(data, args, cg.std_vector.template(cg.uint8))
+        cg.add(var.set_data_template(templ))
+    else:
+        cg.add(var.set_data_static(data))
+
+    return var    

@@ -452,13 +452,13 @@ enum ac_power : uint8_t { AC_POWER_OFF = 0x00, AC_POWER_ON = 0x20, AC_POWER_UNTO
 enum ac_clean : uint8_t { AC_CLEAN_OFF = 0x00, AC_CLEAN_ON = 0x04, AC_CLEAN_UNTOUCHED = 0xFF };
 
 // для включения ионизатора нужно установить второй бит в байте
-// по результату этот бит останется установленным
+// по результату этот бит останется установленным, но кондиционер еще и установит первый бит
 #define AC_HEALTH_MASK    0b00000010
 enum ac_health : uint8_t { AC_HEALTH_OFF = 0x00, AC_HEALTH_ON = 0x02, AC_HEALTH_UNTOUCHED = 0xFF };
 
 // Статус ионизатора. Если бит поднят, то обнаружена ошибка ключения ионизатора
 #define AC_HEALTH_STATUS_MASK    0b00000001
-enum ac_health_status : uint8_t { AC_HEALTH_ERROR_NO = 0x00, AC_HEALTH_ERROR_ACT = 0x01, AC_HEALTH_STATUS_UNTOUCHED = 0xFF };
+enum ac_health_status : uint8_t { AC_HEALTH_STATUS_OFF = 0x00, AC_HEALTH_STATUS_ON = 0x01, AC_HEALTH_STATUS_UNTOUCHED = 0xFF };
 
 // целевая температура
 #define AC_TEMP_TARGET_INT_PART_MASK    0b11111000
@@ -756,7 +756,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         // входящий и исходящий пакеты
         packet_t _inPacket;
         packet_t _outPacket;
-        
+
         // пакет для тестирования всякой фигни
         packet_t _outTestPacket;
 
@@ -915,7 +915,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                     break;
             }
         }
-       
+
         // заполняет структуру команды нейтральными значениями
         void _clearCommand(ac_command_t * cmd){
             cmd->clean = AC_CLEAN_UNTOUCHED;
@@ -944,7 +944,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             cmd->temp_strange = 0;
             cmd->realFanSpeed = AC_REAL_FAN_UNTOUCHED;
         };
-        
+
         // очистка буфера размером AC_BUFFER_SIZE
         void _clearBuffer(uint8_t * buf){
             memset(buf, 0, AC_BUFFER_SIZE);
@@ -1287,7 +1287,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             stateByte = small_info_body->display_and_mildew & AC_MILDEW_MASK;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.mildew != (ac_mildew)stateByte);
                             _current_ac_state.mildew = (ac_mildew)stateByte;
-                            
+
                             // уведомляем об изменении статуса сплита
                             if (stateChangedFlag) stateChanged();
 
@@ -2000,9 +2000,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
             _clearPacket(&_outTestPacket);
             _outTestPacket.header->start_byte = AC_PACKET_START_BYTE;
-            _outTestPacket.header->wifi = AC_PACKET_ANSWER;            
-            
-            _setStateMachineState(ACSM_IDLE);            
+            _outTestPacket.header->wifi = AC_PACKET_ANSWER;
+
+            _setStateMachineState(ACSM_IDLE);
             _ac_serial = parent;
             _hw_initialized = (_ac_serial != nullptr);
             _has_connection = false;
@@ -2772,7 +2772,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                                 cmd.sleep = AC_SLEEP_ON;
                                 cmd.iFeel = AC_IFEEL_OFF;  // для логики пресетов
                                 cmd.health = AC_HEALTH_OFF; // для логики пресетов
-                                cmd.health_status = AC_HEALTH_ERROR_NO;
+                                cmd.health_status = AC_HEALTH_STATUS_OFF;
                                 this->preset = preset;
                             } else {
                                 _debugMsg(F("SLEEP preset is suitable in COOL,HEAT and AUTO modes only."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
@@ -2782,7 +2782,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             // выбран пустой пресет, сбрасываем все настройки
                             hasCommand = true;
                             cmd.health = AC_HEALTH_OFF; // для логики пресетов
-                            cmd.health_status = AC_HEALTH_ERROR_NO; 
+                            cmd.health_status = AC_HEALTH_STATUS_OFF; 
                             cmd.sleep = AC_SLEEP_OFF; // для логики пресетов
                             cmd.iFeel = AC_IFEEL_OFF; // для логики пресетов
                             this->preset = preset;
@@ -2802,13 +2802,13 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         hasCommand = true;
                         cmd.iFeel = AC_IFEEL_ON;
                         cmd.health = AC_HEALTH_OFF; // для логики пресетов
-                        cmd.health_status = AC_HEALTH_ERROR_NO;
+                        cmd.health_status = AC_HEALTH_STATUS_OFF;
                         cmd.sleep = AC_SLEEP_OFF; // для логики пресетов
                         this->custom_preset = custom_preset;
                     } else if (custom_preset == Constants::HEALTH) {
                         hasCommand = true;
                         cmd.health = AC_HEALTH_ON;
-                        cmd.health_status = AC_HEALTH_ERROR_ACT;
+                        cmd.health_status = AC_HEALTH_STATUS_ON;
                         cmd.iFeel = AC_IFEEL_ON; // зависимость от health
                         cmd.fanTurbo = AC_FANTURBO_OFF; // зависимость от health
                         cmd.fanMute = AC_FANMUTE_OFF;  // зависимость от health
