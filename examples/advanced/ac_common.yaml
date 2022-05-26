@@ -65,7 +65,7 @@ climate:
     show_action: true
     display_inverted: true
     indoor_temperature:
-      name: ${upper_devicename} AC Indoor Temperature
+      name: ${upper_devicename} Indoor Temperature
       id: ${devicename}_indoor_temp
       internal: false
     display_state:
