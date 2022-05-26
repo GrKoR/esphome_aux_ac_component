@@ -118,7 +118,6 @@ climate:
     supported_presets:
       - SLEEP
     custom_presets:
-      - CLEAN
       - FEEL
       - HEALTH
       - ANTIFUNGUS
