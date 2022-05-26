@@ -6,7 +6,8 @@
 #===================================================================================
 
 substitutions:
-  devicename: livingroom_ac
+  devicename: livingroom-ac
+  low_devicename: livingroom_ac
   upper_devicename: Livingroom AC
   
   # use different wifi_ip and wifi_ota_ip in case of esp ip-address change
@@ -14,4 +15,4 @@ substitutions:
   wifi_ip: !secret wifi_ip_livingroom
   wifi_ota_ip: !secret wifi_ota_ip_livingroom
 
-<<: !include ac_common.yaml
+<<: !include ac-energolux-bern.yaml
