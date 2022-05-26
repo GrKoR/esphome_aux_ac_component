@@ -19,7 +19,7 @@
     #warning "Saving presets does not work with ESP8266" 
 #endif    
 
-//#define HOLMS 19 // раскоментируй ключ для вывода лога под Эксель, значение ключа - размер пакетов которые будут видны
+#define HOLMS 9 // раскоментируй ключ для вывода лога под Эксель, значение ключа - размер пакетов которые будут видны
 
 namespace esphome {
 namespace aux_ac {
@@ -189,9 +189,8 @@ struct packet_big_info_body_t {
     // БАЙТ 3
     bool power:1;
     bool sleep:1;
-    bool v_louver:1;
-    bool h_louver:1;
-    bool louvers_on:1;
+    bool louver_V:1;
+    uint8_t louver_H:2;     // у шторок лево-право, почему то два бита
     uint8_t mode:3;         //   enum { AC_BIG_MODE_AUTO = 0,
                             //          AC_BIG_MODE_COOL = 1,
                             //          AC_BIG_MODE_DRY  = 2,
@@ -216,6 +215,8 @@ struct packet_big_info_body_t {
                             //      0x41   1000001 - DRY
                             //      0x21    100001 - COOL
                             //      0x81  10000001 - HEAT
+                            //      0x85  10000101 - HEAT+шторки верх-низ
+                            //      0x99  10011001 - HEAT+шторки влево вправо
                             //      0xC1  11000001 - FAN  // 7 и 6 бит связаны
                             //      0x80  10000000 - продувка после переключения из HEAT в OFF 
                             //      0xC5  11000101 - FAN+шторки верх-низ
@@ -225,8 +226,8 @@ struct packet_big_info_body_t {
                             //      0x39    111001 - COOL+шторки лево-право 
                             //     Очевидно битовые, но связные, поля, предположительные зависимости  
                             //     ВНИМАНИЕ : режимы номинальны, например в режиме АВТО нагрев или охлаждение не отображаются 
-                            //      7+6+5     4     3      2    1     0
-                            //      MODE    LouvON  LouH  LouV SLEEP ON/OFF  
+                            //      7+6+5  4+3     2      1     0
+                            //      MODE  Louv_L Louv_H SLEEP ON/OFF  
                             //
                             //   ФУНКЦМЯ CLEEN, HEALTH, ANTIFUNGUS на данный байт не влияют
                             //
@@ -235,11 +236,11 @@ struct packet_big_info_body_t {
                             //          AC_BIG_MODE_COOL = 0x20,
                             //          AC_BIG_MODE_HEAT = 0x80,
                             //          AC_BIG_MODE_FAN  = 0xC0}
+                            //   #define AC_BIG_MASK_MODE  b00011100
+                            //   enum { AC_BIG_LOUVERS_H = 0x04,
+                            //          AC_BIG_LOUVERS_L = 0x18,
+                            //          AC_BIG_LOUVERS_BOTH = 0x1C}
                             //   #define AC_BIG_MASK_POWER       b00000001
-                            //   #define AC_BIG_MASK_LOUVERS_ON  b00010000
-                            //   #define AC_BIG_MASK_LOUVERS_H   b00000100
-                    
-                            //   #define AC_BIG_MASK_LOUVERS_L   b00001000
                             //   #define AC_BIG_MASK_SLEEP       b00000010
                             //   #define AC_BIG_MASK_COOL        b00100000
                             //
@@ -411,6 +412,7 @@ struct packet_small_info_body_t {
     uint8_t fan_speed;      // три старших бита - скорость вентилятора, остальные биты не известны
                             // AUTO = 0xA0, LOW = 0x60, MEDIUM = 0x40, HIGH = 0x20 
     uint8_t fan_turbo_and_mute;             // бит 7 = режим MUTE, бит 6 - режим TURBO; остальные не известны
+    // БФЙТ 7  
     uint8_t mode;           // режим работы сплита:
                             //      AUTO : bits[7, 6, 5] = [0, 0, 0] 
                             //      COOL : bits[7, 6, 5] = [0, 0, 1] 
@@ -529,7 +531,7 @@ enum ac_mildew : uint8_t { AC_MILDEW_OFF = 0x00, AC_MILDEW_ON = 0x08, AC_MILDEW_
 
 // настройка усреднения фильтра температуры. Это значение - взнос нового измерения
 // в усредненные показания в процентах
-#define OUTDOOR_FILTER_PESCENT 1                         
+#define OUTDOOR_FILTER_PESCENT 0.2                         
 
 /** команда для кондиционера
  * 
