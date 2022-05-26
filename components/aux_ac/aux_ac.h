@@ -358,14 +358,14 @@ struct packet_big_info_body_t {
                             // при включении инвертора плавно растет, при выключении резко падает в 0, форма графика достаточно плавна
 
     // БАЙТ18
-    uint8_t zero13;         //  
+    uint8_t zero12;         //  
                             // Brokly: Energolux Bern : наложение на показания инвертора (от 144 до 174, когда инвертор отключен 
                             // показания немного скачут в районе 149...154, при включении инвертора быстро растет, при выключении
                             // моментально падает до 149...154, бывают опускания ниже этих значений до 144, чаще в момент первоначального
                             // включения инвертора, а потом вверх, не всегда. При включении уходит в 0 на одну посылку
 
     // БАЙТ19
-    uint8_t zero12;         // Brokly: Energolux Bern : включение 144 -> 124 -> 110 далее все время держим 110
+    uint8_t zero13;         // Brokly: Energolux Bern : включение 144 -> 124 -> 110 далее все время держим 110
 
     // БАЙТ20
     uint8_t zero14;         // 
@@ -452,13 +452,13 @@ enum ac_power : uint8_t { AC_POWER_OFF = 0x00, AC_POWER_ON = 0x20, AC_POWER_UNTO
 enum ac_clean : uint8_t { AC_CLEAN_OFF = 0x00, AC_CLEAN_ON = 0x04, AC_CLEAN_UNTOUCHED = 0xFF };
 
 // для включения ионизатора нужно установить второй бит в байте
-// по результату этот бит останется установленным
+// по результату этот бит останется установленным, но кондиционер еще и установит первый бит
 #define AC_HEALTH_MASK    0b00000010
 enum ac_health : uint8_t { AC_HEALTH_OFF = 0x00, AC_HEALTH_ON = 0x02, AC_HEALTH_UNTOUCHED = 0xFF };
 
 // Статус ионизатора. Если бит поднят, то обнаружена ошибка ключения ионизатора
-#define AC_HEALTH_ERROR_MASK    0b00000001
-enum ac_health_error : uint8_t { AC_HEALTH_ERROR_NO = 0x00, AC_HEALTH_ERROR_ACT = 0x01, AC_HEALTH_ERROR_UNTOUCHED = 0xFF };
+#define AC_HEALTH_STATUS_MASK    0b00000001
+enum ac_health_status : uint8_t { AC_HEALTH_STATUS_OFF = 0x00, AC_HEALTH_STATUS_ON = 0x01, AC_HEALTH_STATUS_UNTOUCHED = 0xFF };
 
 // целевая температура
 #define AC_TEMP_TARGET_INT_PART_MASK    0b11111000
@@ -581,7 +581,7 @@ struct ac_command_t {
     bool        temp_target_matter; // показывает, задана ли температура. Если false, то оставляем уже установленную
 */
     AC_COMMAND_BASE;
-    ac_health_error   health_error;
+    ac_health_status   health_status;
     float       temp_ambient;    // внутренняя температура
     int8_t      temp_outdoor;    // внешняя температура
     int8_t      temp_inbound;    // температура входящая
@@ -1707,8 +1707,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             }
 
             // какой то флаг ионизатора
-            if (cmd->health_error != AC_HEALTH_ERROR_UNTOUCHED){
-                pack->body[10] = (pack->body[10] & ~AC_HEALTH_ERROR_MASK) | cmd->health_error;
+            if (cmd->health_status != AC_HEALTH_STATUS_UNTOUCHED){
+                pack->body[10] = (pack->body[10] & ~AC_HEALTH_STATUS_MASK) | cmd->health_status;
             }
 
             // дисплей
@@ -1885,6 +1885,24 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 // ...и прерываем последовательность
             }
             return relevant;
+        }
+
+        // отправка запроса с тестовым пакетом
+        bool sq_requestTestPacket(){
+            // если исходящий пакет не пуст, то выходим и ждем освобождения
+            if (_outPacket.bytesLoaded > 0) return true;
+
+            _copyPacket(&_outPacket, &_outTestPacket);
+            _copyPacket(&_sequence[_sequence_current_step].packet, &_outTestPacket);
+            _sequence[_sequence_current_step].packet_type = AC_SPT_SENT_PACKET;
+
+            // Отчитываемся в лог
+            _debugMsg(F("Sequence [step %u]: Test Packet request generated:"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _sequence_current_step);
+            _debugPrintPacket(&_outPacket, ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
+
+            // увеличиваем текущий шаг
+            _sequence_current_step++;
+            return true;
         }
 
         // сенсоры, отображающие параметры сплита
@@ -2747,7 +2765,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                                 cmd.sleep = AC_SLEEP_ON;
                                 cmd.iFeel = AC_IFEEL_OFF;  // для логики пресетов
                                 cmd.health = AC_HEALTH_OFF; // для логики пресетов
-                                cmd.health_error = AC_HEALTH_ERROR_NO;
+                                cmd.health_status = AC_HEALTH_STATUS_OFF;
                                 this->preset = preset;
                             } else {
                                 _debugMsg(F("SLEEP preset is suitable in COOL,HEAT and AUTO modes only."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
@@ -2757,7 +2775,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             // выбран пустой пресет, сбрасываем все настройки
                             hasCommand = true;
                             cmd.health = AC_HEALTH_OFF; // для логики пресетов
-                            cmd.health_error = AC_HEALTH_ERROR_NO; 
+                            cmd.health_status = AC_HEALTH_STATUS_OFF; 
                             cmd.sleep = AC_SLEEP_OFF; // для логики пресетов
                             cmd.iFeel = AC_IFEEL_OFF; // для логики пресетов
                             this->preset = preset;
@@ -2777,14 +2795,14 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         hasCommand = true;
                         cmd.iFeel = AC_IFEEL_ON;
                         cmd.health = AC_HEALTH_OFF; // для логики пресетов
-                        cmd.health_error = AC_HEALTH_ERROR_NO;
+                        cmd.health_status = AC_HEALTH_STATUS_OFF;
                         cmd.sleep = AC_SLEEP_OFF; // для логики пресетов
                         this->custom_preset = custom_preset;
                     } else if (custom_preset == Constants::HEALTH) {
                         hasCommand = true;
                         cmd.health = AC_HEALTH_ON;
-                        cmd.health_error = AC_HEALTH_ERROR_ACT;
-                        cmd.iFeel = AC_IFEEL_ON; // зависимость от health
+                        cmd.health_status = AC_HEALTH_STATUS_ON;
+                      cmd.iFeel = AC_IFEEL_ON; // зависимость от health
                         cmd.fanTurbo = AC_FANTURBO_OFF; // зависимость от health
                         cmd.fanMute = AC_FANMUTE_OFF;  // зависимость от health
                         cmd.sleep = AC_SLEEP_OFF; // для логики пресетов
@@ -3156,7 +3174,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
                 // обычный wifi-модуль запрашивает маленький пакет статуса
                 // но нам никто не мешает запрашивать и большой и маленький, чтобы чаще обновлять комнатную температуру
-                // делаем этот запросом только в случае, если есть коннект с кондиционером
+                // делаем этот запросо только в случае, если есть коннект с кондиционером
                 if (get_has_connection()) getStatusBigAndSmall();
             }
 
