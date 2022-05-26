@@ -39,9 +39,6 @@ CODEOWNERS = ["@GrKoR"]
 DEPENDENCIES = ["climate", "uart"]
 AUTO_LOAD = ["sensor", "binary_sensor"]
 
-CONF_SUPPORTED_MODES = 'supported_modes'
-CONF_SUPPORTED_SWING_MODES = 'supported_swing_modes'
-CONF_SUPPORTED_PRESETS = 'supported_presets'
 CONF_SHOW_ACTION = 'show_action'
 CONF_INDOOR_TEMPERATURE = 'indoor_temperature'
 CONF_OUTDOOR_TEMPERATURE = 'outdoor_temperature'
@@ -59,7 +56,6 @@ ICON_DEFROST = "mdi:snowflake-melt"
 CONF_DISPLAY_INVERTED = 'display_inverted'
 ICON_DISPLAY = "mdi:clock-digital"
 CONF_STORE_SETTINGS = 'store_settings'
-
 
 aux_ac_ns = cg.esphome_ns.namespace("aux_ac")
 AirCon = aux_ac_ns.class_("AirCon", climate.Climate, cg.Component)
@@ -301,8 +297,9 @@ async def display_off_to_code(config, action_id, template_arg, args):
 async def display_on_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
-    
-    
+
+
+
 SEND_TEST_PACKET_ACTION_SCHEMA = maybe_simple_id(
     {
         cv.Required(CONF_ID): cv.use_id(AirCon),
