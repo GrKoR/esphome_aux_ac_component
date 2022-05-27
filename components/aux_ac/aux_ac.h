@@ -65,12 +65,18 @@ public:
 
 const std::string Constants::AC_FIRMWARE_VERSION = "0.2.4";
 const char *const Constants::TAG = "AirCon";
+
+// custom fan modes
 const std::string Constants::MUTE = "mute";
 const std::string Constants::TURBO = "turbo";
+
+// custom presets
 const std::string Constants::CLEAN = "Clean";
 const std::string Constants::FEEL = "Feel";
 const std::string Constants::HEALTH = "Health";
 const std::string Constants::ANTIFUNGUS = "Antifungus";
+
+// params
 const float Constants::AC_MIN_TEMPERATURE = 16.0;
 const float Constants::AC_MAX_TEMPERATURE = 32.0;
 const float Constants::AC_TEMPERATURE_STEP = 0.5;
@@ -2493,11 +2499,13 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
                         cmd.temp_target = _current_ac_state.temp_ambient; // зависимость от режима FAN 
                         cmd.temp_target_matter = true;
-                        cmd.fanTurbo = AC_FANTURBO_OFF;  // зависимость от режима FAN                       
+                        // GK: в режиме FAN работает TURBO, так что отключать не нужно!
+                        //cmd.fanTurbo = AC_FANTURBO_OFF;  // зависимость от режима FAN                       
                         cmd.sleep = AC_SLEEP_OFF;
-                        if(cmd.fanSpeed == AC_FANSPEED_AUTO || _current_ac_state.fanSpeed == AC_FANSPEED_AUTO){
+                        // GK: для меня AUTO = HIGH. Скорее всего сплит сам меняет скорость. Поэтому ниже закомментировал
+                        /*  if(cmd.fanSpeed == AC_FANSPEED_AUTO || _current_ac_state.fanSpeed == AC_FANSPEED_AUTO){
                             cmd.fanSpeed = AC_FANSPEED_LOW; // зависимость от режима FAN
-                        }
+                        } */
                         this->mode = mode;
                         break;
                     
@@ -2515,7 +2523,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         this->mode = mode;
                         break;
                     
-                    case climate::CLIMATE_MODE_AUTO:        // этот режим в будущем можно будет использовать для автоматического пресета (ПИД-регулятора, например)
+                    // другие возможные значения (чтоб не забыть)
+                    //case climate::CLIMATE_MODE_AUTO:        // этот режим в будущем можно будет использовать для автоматического пресета (ПИД-регулятора, например)
                     default:
                         break;
                 }
@@ -2530,7 +2539,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                     case climate::CLIMATE_FAN_AUTO:
                         hasCommand = true;
                         cmd.fanSpeed = AC_FANSPEED_AUTO;
-                        // changing fan speed cancels fan TURBO and MUTE modes for ROVEX air conditioners
                         cmd.fanTurbo = AC_FANTURBO_OFF;
                         cmd.fanMute = AC_FANMUTE_OFF;
                         this->fan_mode = fanmode;
@@ -2539,7 +2547,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                     case climate::CLIMATE_FAN_LOW:
                         hasCommand = true;
                         cmd.fanSpeed = AC_FANSPEED_LOW;
-                        // changing fan speed cancels fan TURBO and MUTE modes for ROVEX air conditioners
                         cmd.fanTurbo = AC_FANTURBO_OFF;
                         cmd.fanMute = AC_FANMUTE_OFF;
                         this->fan_mode = fanmode;
@@ -2548,7 +2555,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                     case climate::CLIMATE_FAN_MEDIUM:
                         hasCommand = true;
                         cmd.fanSpeed = AC_FANSPEED_MEDIUM;
-                        // changing fan speed cancels fan TURBO and MUTE modes for ROVEX air conditioners
                         cmd.fanTurbo = AC_FANTURBO_OFF;
                         cmd.fanMute = AC_FANMUTE_OFF;
                         this->fan_mode = fanmode;
@@ -2557,17 +2563,17 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                     case climate::CLIMATE_FAN_HIGH:
                         hasCommand = true;
                         cmd.fanSpeed = AC_FANSPEED_HIGH;
-                        // changing fan speed cancels fan TURBO and MUTE modes for ROVEX air conditioners
                         cmd.fanTurbo = AC_FANTURBO_OFF;
                         cmd.fanMute = AC_FANMUTE_OFF;
                         this->fan_mode = fanmode;
                         break;
                     
-                    case climate::CLIMATE_FAN_ON:
-                    case climate::CLIMATE_FAN_OFF:
-                    case climate::CLIMATE_FAN_MIDDLE:
-                    case climate::CLIMATE_FAN_FOCUS:
-                    case climate::CLIMATE_FAN_DIFFUSE:
+                    // другие возможные значения (чтобы не забыть)
+                    //case climate::CLIMATE_FAN_ON:
+                    //case climate::CLIMATE_FAN_OFF:
+                    //case climate::CLIMATE_FAN_MIDDLE:
+                    //case climate::CLIMATE_FAN_FOCUS:
+                    //case climate::CLIMATE_FAN_DIFFUSE:
                     default:
                         break;
                 }
@@ -2614,6 +2620,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             // Пользователь выбрал пресет
             if (call.get_preset().has_value()) {
                 ClimatePreset preset = *call.get_preset();
+
                 switch (preset) {
                     case climate::CLIMATE_PRESET_SLEEP:
                         // Ночной режим (SLEEP).
@@ -2640,23 +2647,29 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             _debugMsg(F("SLEEP preset is suitable in COOL and HEAT modes only."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                         }
                         break;
-                        case climate::CLIMATE_PRESET_NONE:
-                            // выбран пустой пресет, сбрасываем все настройки
-                            hasCommand = true;
-                            cmd.health = AC_HEALTH_OFF; // для логики пресетов
-                            cmd.health_status = AC_HEALTH_STATUS_OFF; 
-                            cmd.sleep = AC_SLEEP_OFF; // для логики пресетов
-                            this->preset = preset;
-                            
-                            _debugMsg(F("Clear all power ON presets"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
+
+                    case climate::CLIMATE_PRESET_NONE:
+                        // выбран пустой пресет, сбрасываем все настройки
+                        hasCommand = true;
+                        cmd.health = AC_HEALTH_OFF;
+                        //cmd.health_status = AC_HEALTH_STATUS_OFF;   // GK: не нужно ставить, т.к. этот флаг устанавливается самим сплитом
+                        cmd.sleep = AC_SLEEP_OFF;
+                        cmd.mildew = AC_MILDEW_OFF;
+                        cmd.clean = AC_CLEAN_OFF;
+                        cmd.iFeel = AC_IFEEL_OFF;   // хоть и не реализован, но отрубим. А то потом забудем указать.
+                        this->preset = preset;
+                        
+                        _debugMsg(F("Clear all builtin presets."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
                         break;
                     default:
                         // никакие другие встроенные пресеты не поддерживаются
+                        _debugMsg(F("Preset %02X is unsupported."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, preset);
                         break;
                 }
 
             } else if (call.get_custom_preset().has_value()) {
                 std::string custom_preset = *call.get_custom_preset();
+
                 if (custom_preset == Constants::CLEAN) {
                     // режим очистки кондиционера, включается (или должен включаться) при AC_POWER_OFF
                     // TODO: надо отдебажить выключение этого режима
@@ -2735,7 +2748,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             // User requested swing_mode change
             if (call.get_swing_mode().has_value()) {
                 ClimateSwingMode swingmode = *call.get_swing_mode();
-                // Send fan mode to hardware
+
                 switch (swingmode) {
                     // The protocol allows other combinations for SWING.
                     // For example "turn the louvers to the desired position or "spread to the sides" / "concentrate in the center".
@@ -2772,15 +2785,18 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
             }
 
+            // User requested target temperature change
             if (call.get_target_temperature().has_value()) {
-                hasCommand = true;
-                // User requested target temperature change
-                float temp = *call.get_target_temperature();
-                // Send target temp to climate
-                if (temp > Constants::AC_MAX_TEMPERATURE) temp = Constants::AC_MAX_TEMPERATURE;
-                if (temp < Constants::AC_MIN_TEMPERATURE) temp = Constants::AC_MIN_TEMPERATURE;
-                cmd.temp_target = temp;
-                cmd.temp_target_matter = true;
+                // выставлять температуру в режиме FAN не нужно
+                if ( cmd.fanSpeed != AC_FANSPEED_AUTO && _current_ac_state.fanSpeed != AC_FANSPEED_AUTO ) {
+                    hasCommand = true;
+                    float temp = *call.get_target_temperature();
+                    // Send target temp to climate
+                    if (temp > Constants::AC_MAX_TEMPERATURE) temp = Constants::AC_MAX_TEMPERATURE;
+                    if (temp < Constants::AC_MIN_TEMPERATURE) temp = Constants::AC_MIN_TEMPERATURE;
+                    cmd.temp_target = temp;
+                    cmd.temp_target_matter = true;
+                }
             }
 
             if (hasCommand) {
