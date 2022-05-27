@@ -410,7 +410,7 @@ struct packet_small_info_body_t {
     uint8_t fan_speed;      // три старших бита - скорость вентилятора, остальные биты не известны
                             // AUTO = 0xA0, LOW = 0x60, MEDIUM = 0x40, HIGH = 0x20 
     uint8_t fan_turbo_and_mute;             // бит 7 = режим MUTE, бит 6 - режим TURBO; остальные не известны
-    // БФЙТ 7  
+    // БАЙТ 7  
     uint8_t mode;           // режим работы сплита:
                             //      AUTO : bits[7, 6, 5] = [0, 0, 0] 
                             //      COOL : bits[7, 6, 5] = [0, 0, 1] 
@@ -2144,16 +2144,13 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
             /*************************** FAN SPEED ***************************/
             if(_current_ac_state.power == AC_POWER_ON){
-                this->fan_mode = climate::CLIMATE_FAN_OFF;
                 switch (_current_ac_state.fanSpeed) {
                     case AC_FANSPEED_HIGH:
                         this->fan_mode = climate::CLIMATE_FAN_HIGH;
-                        this->custom_fan_mode = (std::string)"";
                     break;
                     
                     case AC_FANSPEED_MEDIUM:
                         this->fan_mode = climate::CLIMATE_FAN_MEDIUM;
-                        this->custom_fan_mode = (std::string)"";
                     break;
                 
                     case AC_FANSPEED_LOW:
@@ -2165,6 +2162,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                     break;
                 
                     default:
+                        this->custom_fan_mode = Constants::MUTE;
                     break;
                 }
                 /*************************** TURBO FAN MODE ***************************/
@@ -2188,7 +2186,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                     break;
                 }
             } else { // при выключеном питании публикуем фальшивый статус
-                //this->fan_mode = climate::CLIMATE_FAN_LOW ;
                 this->custom_fan_mode = Constants::MUTE;
             }
 
@@ -2490,7 +2487,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         // вызывается пользователем из интерфейса ESPHome или Home Assistant
         void control(const esphome::climate::ClimateCall &call) override {
             bool hasCommand = false;
-            ac_command_t    cmd;
+            static ac_command_t cmd;
 
             _clearCommand(&cmd);    // не забываем очищать, а то будет мусор
 
@@ -2504,7 +2501,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         cmd.power = AC_POWER_OFF;
                         load_preset(&cmd, POS_MODE_OFF);
                         cmd.temp_target = _current_ac_state.temp_ambient; // просто от нехрен делать
-                        this->mode = mode;
+                        //this->mode = mode;
                         break;
                     
                     case climate::CLIMATE_MODE_COOL:
@@ -2512,7 +2509,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         cmd.power = AC_POWER_ON;
                         cmd.mode = AC_MODE_COOL;
                         load_preset(&cmd, POS_MODE_COOL);
-                        this->mode = mode;
+                        //this->mode = mode;
                         break;
                     
                     case climate::CLIMATE_MODE_HEAT:
@@ -2520,7 +2517,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         cmd.power = AC_POWER_ON;
                         cmd.mode = AC_MODE_HEAT;
                         load_preset(&cmd, POS_MODE_HEAT);
-                        this->mode = mode;
+                        //this->mode = mode;
                         break;
                     
                     case climate::CLIMATE_MODE_HEAT_COOL:
@@ -2531,7 +2528,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         cmd.temp_target = 25; // зависимость от режима HEAT_COOL 
                         cmd.temp_target_matter = true;
                         cmd.fanTurbo = AC_FANTURBO_OFF; // зависимость от режима HEAT_COOL  
-                        this->mode = mode;
+                        //this->mode = mode;
                         break;
                     
                     case climate::CLIMATE_MODE_FAN_ONLY:
@@ -2546,7 +2543,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         if(cmd.fanSpeed == AC_FANSPEED_AUTO || _current_ac_state.fanSpeed == AC_FANSPEED_AUTO){
                             cmd.fanSpeed = AC_FANSPEED_LOW; // зависимость от режима FAN
                         }
-                        this->mode = mode;
+                        //this->mode = mode;
                         break;
                     
                     case climate::CLIMATE_MODE_DRY:
@@ -2556,13 +2553,14 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         load_preset(&cmd, POS_MODE_DRY);
                         cmd.fanTurbo = AC_FANTURBO_OFF;   // зависимость от режима DRY 
                         cmd.sleep = AC_SLEEP_OFF;   // зависимость от режима DRY 
-                        this->mode = mode;
+                        //this->mode = mode;
                         break;
                     
                     case climate::CLIMATE_MODE_AUTO:        // этот режим в будущем можно будет использовать для автоматического пресета (ПИД-регулятора, например)
                     default:
                         break;
                 }
+                //this->mode = mode;
             }
 
             // User requested fan_mode change
@@ -2580,30 +2578,31 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             cmd.louver.louver_h = AC_LOUVERH_OFF;
                             cmd.louver.louver_v = AC_LOUVERV_OFF;
                             hasCommand = true;
-                            this->swing_mode = swingmode;
+                            //this->swing_mode = swingmode;
                         break;
 
                         case climate::CLIMATE_SWING_BOTH:
                             cmd.louver.louver_h = AC_LOUVERH_SWING_LEFTRIGHT;
                             cmd.louver.louver_v = AC_LOUVERV_SWING_UPDOWN;
                             hasCommand = true;
-                            this->swing_mode = swingmode;
+                            //this->swing_mode = swingmode;
                         break;
 
                         case climate::CLIMATE_SWING_VERTICAL:
                             cmd.louver.louver_h = AC_LOUVERH_OFF;
                             cmd.louver.louver_v = AC_LOUVERV_SWING_UPDOWN;
                             hasCommand = true;
-                            this->swing_mode = swingmode;
+                            //this->swing_mode = swingmode;
                         break;
 
                         case climate::CLIMATE_SWING_HORIZONTAL:
                             cmd.louver.louver_h = AC_LOUVERH_SWING_LEFTRIGHT;
                             cmd.louver.louver_v = AC_LOUVERV_OFF;
                             hasCommand = true;
-                            this->swing_mode = swingmode;
+                            //this->swing_mode = swingmode;
                         break;
                     }
+                    //this->swing_mode = swingmode;
                 }
                 
                 if (call.get_target_temperature().has_value()) {
@@ -2640,7 +2639,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                                // changing fan speed cancels fan TURBO and MUTE modes for ROVEX air conditioners
                                cmd.fanTurbo = AC_FANTURBO_OFF;
                                cmd.fanMute = AC_FANMUTE_OFF;
-                               this->fan_mode = fanmode;
+                               //this->fan_mode = fanmode;
                             }
                         break;
                    
@@ -2650,7 +2649,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             // changing fan speed cancels fan TURBO and MUTE modes for ROVEX air conditioners
                             cmd.fanTurbo = AC_FANTURBO_OFF;
                             cmd.fanMute = AC_FANMUTE_OFF;
-                            this->fan_mode = fanmode;
+                            //this->fan_mode = fanmode;
                         break;
                     
                         case climate::CLIMATE_FAN_MEDIUM:
@@ -2659,7 +2658,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             // changing fan speed cancels fan TURBO and MUTE modes for ROVEX air conditioners
                             cmd.fanTurbo = AC_FANTURBO_OFF;
                             cmd.fanMute = AC_FANMUTE_OFF;
-                            this->fan_mode = fanmode;
+                            //this->fan_mode = fanmode;
                         break;
                     
                         case climate::CLIMATE_FAN_HIGH:
@@ -2668,7 +2667,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             // changing fan speed cancels fan TURBO and MUTE modes for ROVEX air conditioners
                             cmd.fanTurbo = AC_FANTURBO_OFF;
                             cmd.fanMute = AC_FANMUTE_OFF;
-                            this->fan_mode = fanmode;
+                            //this->fan_mode = fanmode;
                         break;
                     
                         case climate::CLIMATE_FAN_ON:
@@ -2679,6 +2678,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         default:
                         break;
                     }
+                    //this->fan_mode = fanmode;
 
                 } else if (call.get_custom_fan_mode().has_value()) {
                     std::string customfanmode = *call.get_custom_fan_mode();
@@ -2693,7 +2693,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             hasCommand = true;
                             cmd.fanTurbo = AC_FANTURBO_ON; 
                             cmd.fanMute = AC_FANMUTE_OFF; // зависимость от fanturbo
-                            this->custom_fan_mode = customfanmode;
+                            //this->custom_fan_mode = customfanmode;
                         } else {
                             _debugMsg(F("TURBO fan mode is suitable in COOL and HEAT modes only."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                         }
@@ -2707,11 +2707,12 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             hasCommand = true;
                             cmd.fanMute = AC_FANMUTE_ON; 
                             cmd.fanTurbo = AC_FANTURBO_OFF; // зависимость от fanmute
-                            this->custom_fan_mode = customfanmode;
+                            //this->custom_fan_mode = customfanmode;
                         //} else {
                         //    _debugMsg(F("MUTE fan mode is suitable in FAN mode only."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                         //}
                     }
+                    //this->custom_fan_mode = customfanmode;
                 }
 
                 // Пользователь выбрал пресет
@@ -2731,7 +2732,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                                 cmd.sleep = AC_SLEEP_ON;
                                 cmd.health = AC_HEALTH_OFF; // для логики пресетов
                                 cmd.health_status = AC_HEALTH_STATUS_OFF;
-                                this->preset = preset;
+                                //this->preset = preset;
                             } else {
                                 _debugMsg(F("SLEEP preset is suitable in COOL,HEAT and AUTO modes only."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
                             }
@@ -2742,13 +2743,14 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             cmd.health = AC_HEALTH_OFF; // для логики пресетов
                             cmd.health_status = AC_HEALTH_STATUS_OFF; 
                             cmd.sleep = AC_SLEEP_OFF; // для логики пресетов
-                            this->preset = preset;
+                            //this->preset = preset;
                             _debugMsg(F("Clear all power ON presets"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
                         break;
                         default:
                             // никакие другие встроенные пресеты не поддерживаются
                         break;
                     } 
+                    //this->preset = preset;
                 } else if (call.get_custom_preset().has_value()) {
                     std::string custom_preset = *call.get_custom_preset();
                     if (custom_preset == Constants::HEALTH) {
@@ -2766,12 +2768,13 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         } else if(cmd.mode == AC_MODE_FAN || _current_ac_state.mode == AC_MODE_FAN){
                             cmd.fanSpeed = AC_FANSPEED_MEDIUM; // зависимость от health
                         }
-                        this->custom_preset = custom_preset;
+                        //this->custom_preset = custom_preset;
                     } else if (custom_preset == Constants::CLEAN) {
                         _debugMsg(F("CLEAN work only in POWER ON mode."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__); 
                     } else if (custom_preset == Constants::ANTIFUNGUS) {
                         _debugMsg(F("Anti-FUNGUS works only in POWER ON mode."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__); 
-                    }                        
+                    }  
+                    //this->custom_preset = custom_preset;
                 }
             } else if(_current_ac_state.power == AC_POWER_OFF || cmd.power == AC_POWER_OFF){ // функции при выключеном питании
                 
@@ -2791,13 +2794,14 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             hasCommand = true;
                             cmd.clean = AC_CLEAN_OFF; // для логики пресетов
                             cmd.mildew = AC_MILDEW_OFF; // для логики пресетов
-                            this->preset = preset;
+                            //this->preset = preset;
                             _debugMsg(F("Clear all 'Power OFF' presets"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
                         break;
                         default:
                             // никакие другие встроенные пресеты не поддерживаются
                         break;
                     }
+                    //this->preset = preset;
                 } else {
                     std::string custom_preset = *call.get_custom_preset();
                     if (call.get_custom_preset().has_value()) {
@@ -2806,7 +2810,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             hasCommand = true;
                             cmd.clean = AC_CLEAN_ON;
                             cmd.mildew = AC_MILDEW_OFF; // для логики пресетов
-                            this->custom_preset = custom_preset;
+                            //this->custom_preset = custom_preset;
                         } else if (custom_preset == Constants::ANTIFUNGUS) {
                             // Brokly:
                             // включение-выключение функции "Антиплесень". 
@@ -2819,11 +2823,12 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             cmd.mildew = AC_MILDEW_ON;
                             cmd.clean = AC_CLEAN_OFF; // для логики пресетов
                             hasCommand = true;
-                            this->custom_preset = custom_preset;
+                            //this->custom_preset = custom_preset;
                         } else if (custom_preset == Constants::HEALTH) {
                             _debugMsg(F("HEALTH is not supported in POWER OFF mode."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__); 
                         }
                     }
+                    //this->custom_preset = custom_preset;
                 }
             }
 
@@ -3144,6 +3149,12 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 load_presets_result = storage.load(global_presets); // читаем все пресеты из флеша
                 _debugMsg(F("Preset base read from NVRAM, result %02d."), ESPHOME_LOG_LEVEL_WARN, __LINE__, load_presets_result);
             #endif
+            this->preset = climate::CLIMATE_PRESET_NONE;
+            this->custom_preset = (std::string)"";
+            this->mode = climate::CLIMATE_MODE_OFF;
+            this->action = climate::CLIMATE_ACTION_IDLE;
+            this->fan_mode = climate::CLIMATE_FAN_LOW;
+            this->custom_fan_mode = (std::string)"";
         };
 
         void loop() override {
