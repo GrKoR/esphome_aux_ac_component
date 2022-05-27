@@ -19,7 +19,7 @@
     #warning "Saving presets does not work with ESP8266" 
 #endif    
 
-#define HOLMS 9 // раскоментируй ключ для вывода лога под Эксель, значение ключа - размер пакетов которые будут видны
+//#define HOLMS 9 // раскоментируй ключ для вывода лога под Эксель, значение ключа - размер пакетов которые будут видны
 
 namespace esphome {
 namespace aux_ac {
@@ -40,7 +40,6 @@ public:
     static const std::string MUTE;
     static const std::string TURBO;
     static const std::string CLEAN;
-    static const std::string FEEL;
     static const std::string HEALTH;
     static const std::string ANTIFUNGUS;
 
@@ -58,12 +57,11 @@ public:
 
 const std::string Constants::AC_FIRMWARE_VERSION = "0.2.4";
 const char *const Constants::TAG = "AirCon";
-const std::string Constants::MUTE = "Mute";
-const std::string Constants::TURBO = "Turbo";
-const std::string Constants::CLEAN = "Clean";
-const std::string Constants::FEEL = "Feel";
-const std::string Constants::HEALTH = "Health";
-const std::string Constants::ANTIFUNGUS = "Antifugnus";
+const std::string Constants::MUTE = "mute";
+const std::string Constants::TURBO = "turbo";
+const std::string Constants::CLEAN = "clean";
+const std::string Constants::HEALTH = "health";
+const std::string Constants::ANTIFUNGUS = "antifungus";
 const float Constants::AC_MIN_TEMPERATURE = 16.0;
 const float Constants::AC_MAX_TEMPERATURE = 32.0;
 const float Constants::AC_TEMPERATURE_STEP = 0.5;
@@ -546,7 +544,6 @@ enum ac_mildew : uint8_t { AC_MILDEW_OFF = 0x00, AC_MILDEW_ON = 0x08, AC_MILDEW_
                             ac_health   health;\
                             ac_mode     mode;\
                             ac_sleep    sleep;\
-                            ac_ifeel    iFeel;\
                             ac_louver   louver;\
                             ac_fanspeed fanSpeed;\
                             ac_fanturbo fanTurbo;\
@@ -556,11 +553,11 @@ enum ac_mildew : uint8_t { AC_MILDEW_OFF = 0x00, AC_MILDEW_ON = 0x08, AC_MILDEW_
                             ac_timer    timer;\
                             uint8_t     timer_hours;\
                             uint8_t     timer_minutes;\
-                            bool        temp_target_matter\
+                            bool        temp_target_matter
                             
 // чистый размер этой структуры 20 байт, скорее всего из-за выравнивания, она будет больше  
 // из-за такого приема нужно контролировать размер копируемых данных руками
-#define AC_COMMAND_BASE_SIZE 21  
+#define AC_COMMAND_BASE_SIZE 20  
                          
 struct ac_command_t {
 /*
@@ -569,7 +566,6 @@ struct ac_command_t {
     ac_health   health; // включение ионизатора
     ac_mode     mode;
     ac_sleep    sleep;
-    ac_ifeel    iFeel;
     ac_louver   louver;
     ac_fanspeed fanSpeed;
     ac_fanturbo fanTurbo;
@@ -593,6 +589,7 @@ struct ac_command_t {
     uint8_t     invertor_power;  // мощность инвертора 
     uint8_t     pressure;        // предположительно давление
     bool        defrost;         // режим разморозки внешнего блока (накопление тепла + прогрев испарителя)
+    ac_ifeel    iFeel;
 };
 
 // структура для сохранения данных 
@@ -1263,7 +1260,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             _current_ac_state.sleep = (ac_sleep)stateByte;
                             
                             stateByte = small_info_body->mode & AC_IFEEL_MASK;
-                            stateChangedFlag = stateChangedFlag || (_current_ac_state.iFeel != (ac_ifeel)stateByte);
                             _current_ac_state.iFeel = (ac_ifeel)stateByte;
                             
                             stateByte = small_info_body->status & AC_POWER_MASK;
@@ -1318,10 +1314,10 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             // temp = big_info_body->outdoor_temperature - 0x20;
                             // фильтруем простейшим фильтром OUTDOOR_FILTER_PESCENT - взнос одного измерения в процентах
                             {
-                                const float koef = ((float)OUTDOOR_FILTER_PESCENT)/100;
-                                const float antkoef = 1.0 - koef;
-                                static float temp = _current_ac_state.temp_outdoor;
-                                temp = temp * antkoef + koef * (big_info_body->outdoor_temperature - 0x20);
+                                const float koef = ((float)OUTDOOR_FILTER_PESCENT);
+                                const float antkoef = 100 - koef;
+                                static float temp = _current_ac_state.temp_outdoor*100;
+                                temp = (temp * antkoef + koef * (big_info_body->outdoor_temperature - 0x20))/100;
                                 stateChangedFlag = stateChangedFlag || (_current_ac_state.temp_outdoor != temp);
                                 _current_ac_state.temp_outdoor = temp;
                             }
@@ -2201,100 +2197,63 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             _debugMsg(F("Climate fan MUTE mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.fanMute);
 
             //========================  ОТОБРАЖЕНИЕ ПРЕСЕТОВ ================================
-            if ( _current_ac_state.power == AC_POWER_ON){ // ЕСЛИ КОНДЕЙ ВКЛЮЧЕН
-                /*************************** iFEEL CUSTOM PRESET ***************************/
-                // режим поддержки температуры в районе пульта, работает только при включенном конедее
-                switch (_current_ac_state.iFeel) {
-                    case AC_IFEEL_ON:
-                        //if(_current_ac_state.mode != AC_MODE_FAN){ // в режиме FAN такой опции нет
-                           this->custom_preset = Constants::FEEL;
-                        //} else {
-                        ////    if (this->custom_preset == Constants::FEEL) this->custom_preset = (std::string)"";
-                        //}
-                    break;
-                    case AC_IFEEL_OFF:
-                    default:
-                        if (this->custom_preset == Constants::FEEL) {
-                            this->custom_preset = (std::string)"";
-                        }
-                    break;
-                }
             
-                _debugMsg(F("Climate iFEEL preset: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.iFeel);
-
-                 /*************************** HEALTH CUSTOM PRESET ***************************/
-                // режим работы ионизатора
-                if(_current_ac_state.health == AC_HEALTH_ON) {
-                    this->custom_preset = Constants::HEALTH;
-                } else {
-                    if (this->custom_preset == Constants::HEALTH) {
-                        this->custom_preset = (std::string)"";
-                    }
-                }
-
-                _debugMsg(F("Climate HEALTH preset: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.health);
-
-                /*************************** SLEEP PRESET ***************************/
-                // Комбинируется только с режимами COOL и HEAT. Автоматически выключается через 7 часов.
-                // COOL: температура +1 градус через час, еще через час дополнительные +1 градус, дальше не меняется.
-                // HEAT: температура -2 градуса через час, еще через час дополнительные -2 градуса, дальше не меняется.
-                // Восстанавливается ли температура через 7 часов при отключении режима - не понятно.
-                switch (_current_ac_state.sleep) {
-                    case AC_SLEEP_ON:
-                        this->preset = climate::CLIMATE_PRESET_SLEEP;
-                    break;
-                    case AC_SLEEP_OFF:
-                    default:
-                        if (this->preset == climate::CLIMATE_PRESET_SLEEP) this->preset = climate::CLIMATE_PRESET_NONE;
-                    break;
-                }
-
-                _debugMsg(F("Climate preset: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->preset);
-
-            } else if( _current_ac_state.power == AC_POWER_OFF){ // ЕСЛИ КОНДЕЙ ВЫКЛЮЧЕН
-                
-                if (this->custom_preset == Constants::FEEL) this->custom_preset = (std::string)"";
-                if (this->custom_preset == Constants::HEALTH) this->custom_preset = (std::string)"";
-                if (this->preset == climate::CLIMATE_PRESET_SLEEP) this->preset = climate::CLIMATE_PRESET_NONE;
-
-                /*************************** CLEAN CUSTOM PRESET ***************************/
-                // режим очистки кондиционера, включается (или должен включаться) при AC_POWER_OFF
-                switch (_current_ac_state.clean) {
-                    case AC_CLEAN_ON:
-                        this->custom_preset = Constants::CLEAN;
-                    break;
-                    case AC_CLEAN_OFF:
-                    default:
-                        if (this->custom_preset == Constants::CLEAN) this->custom_preset = (std::string)"";
-                    break;
-                }
-
-                _debugMsg(F("Climate CLEAN preset: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.clean);
-
-                /*************************** ANTIFUNGUS CUSTOM PRESET ***************************/
-                // пресет просушки кондиционера после выключения
-                // По факту: после выключения сплита он оставляет минут на 5 открытые жалюзи и глушит вентилятор.
-                // Уличный блок при этом гудит и тарахтит. Возможно, прогревается теплообменник для высыхания.
-                // Через некоторое время внешний блок замолкает и сплит закрывает жалюзи.
-                //
-                // Brokly:
-                // У меня есть на этот режим, конедй реагирует только в выключеном состоянии. Причем пульт шлет
-                // 5 посылок и при включении и при выключении. Но каких то видимых отличий в работе или в сценарии
-                // при выключении кондея, я не наблюдаю. На пульте горит пиктограмма этого режима, но просушки 
-                // я не вижу. После выключения , с активированым режимом Anti-FUNGUS, кондей сразу закрывает хлебало
-                // и затыкается.
-                switch (_current_ac_state.mildew) {
-                    case AC_MILDEW_ON:
-                        this->custom_preset = Constants::ANTIFUNGUS;
-                    break;
-                    case AC_MILDEW_OFF:
-                    default:
-                        if (this->custom_preset == Constants::ANTIFUNGUS) this->custom_preset = (std::string)"";
-                    break;
-                }
-
-                _debugMsg(F("Climate ANTIFUNGUS preset: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.mildew);
+            /*************************** SLEEP PRESET ***************************/
+            // Комбинируется только с режимами COOL и HEAT. Автоматически выключается через 7 часов.
+            // COOL: температура +1 градус через час, еще через час дополнительные +1 градус, дальше не меняется.
+            // HEAT: температура -2 градуса через час, еще через час дополнительные -2 градуса, дальше не меняется.
+            // Восстанавливается ли температура через 7 часов при отключении режима - не понятно.
+            if(_current_ac_state.sleep == AC_SLEEP_ON && 
+               _current_ac_state.power == AC_POWER_ON    ) {
+                this->preset = climate::CLIMATE_PRESET_SLEEP;
+            } else if (this->preset == climate::CLIMATE_PRESET_SLEEP) {
+                this->preset = climate::CLIMATE_PRESET_NONE;
             }
+                
+            _debugMsg(F("Climate preset: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->preset);
+               
+            /*************************** HEALTH CUSTOM PRESET ***************************/
+            // режим работы ионизатора
+            if(_current_ac_state.health == AC_HEALTH_ON && 
+               _current_ac_state.power == AC_POWER_ON    ) {
+                this->custom_preset = Constants::HEALTH;
+            } else if (this->custom_preset == Constants::HEALTH) {
+                this->custom_preset = (std::string)"";
+            }
+
+            _debugMsg(F("Climate HEALTH preset: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.health);
+
+            /*************************** CLEAN CUSTOM PRESET ***************************/
+            // режим очистки кондиционера, включается (или должен включаться) при AC_POWER_OFF
+            if(_current_ac_state.clean == AC_CLEAN_ON && 
+               _current_ac_state.power == AC_POWER_OFF    ) {
+                this->custom_preset = Constants::CLEAN;
+            } else if (this->custom_preset == Constants::CLEAN) {
+                this->custom_preset = (std::string)"";
+            }
+ 
+            _debugMsg(F("Climate CLEAN preset: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.clean);
+ 
+            /*************************** ANTIFUNGUS CUSTOM PRESET ***************************/
+            // пресет просушки кондиционера после выключения
+            // По факту: после выключения сплита он оставляет минут на 5 открытые жалюзи и глушит вентилятор.
+            // Уличный блок при этом гудит и тарахтит. Возможно, прогревается теплообменник для высыхания.
+            // Через некоторое время внешний блок замолкает и сплит закрывает жалюзи.
+            //
+            // Brokly:
+            // У меня есть на этот режим, конедй реагирует только в выключеном состоянии. Причем пульт шлет
+            // 5 посылок и при включении и при выключении. Но каких то видимых отличий в работе или в сценарии
+            // при выключении кондея, я не наблюдаю. На пульте горит пиктограмма этого режима, но просушки 
+            // я не вижу. После выключения , с активированым режимом Anti-FUNGUS, кондей сразу закрывает хлебало
+            // и затыкается.
+            if(_current_ac_state.mildew == AC_MILDEW_ON && 
+               _current_ac_state.power == AC_POWER_OFF    ) {
+                this->custom_preset = Constants::ANTIFUNGUS;
+            } else if (this->custom_preset == Constants::ANTIFUNGUS) {
+                this->custom_preset = (std::string)"";
+            }
+
+            _debugMsg(F("Climate ANTIFUNGUS preset: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.mildew);
 
             /*************************** LOUVERs ***************************/
             
@@ -2385,7 +2344,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             ESP_LOGCONFIG(Constants::TAG, "  [x] Show action: %s",  TRUEFALSE(this->get_show_action()));
             ESP_LOGCONFIG(Constants::TAG, "  [x] Display inverted: %s",  TRUEFALSE(this->get_display_inverted()));
             ESP_LOGCONFIG(Constants::TAG, "  [x] Save settings %s",  TRUEFALSE(this->get_store_settings()));
-            ESP_LOGCONFIG(Constants::TAG, "  [?] Detect invertor %s", millis() > _update_period + 1000 ? YESNO(_is_invertor): "unread");
+            ESP_LOGCONFIG(Constants::TAG, "  [?] Is invertor %s", millis() > _update_period + 1000 ? YESNO(_is_invertor): "pending...");
             if ((this->sensor_indoor_temperature_) != nullptr) {
                 ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Indoor Temperature"), (this->sensor_indoor_temperature_)->get_name().c_str());
                 if (!(this->sensor_indoor_temperature_)->get_device_class().empty()) {
@@ -2651,12 +2610,10 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                     if((cmd.mode !=AC_MODE_UNTOUCHED && cmd.mode == AC_MODE_FAN) ||
                        (cmd.mode ==AC_MODE_UNTOUCHED &&  _current_ac_state.mode == AC_MODE_FAN)){ // блокировка ввода температуры в режиме FAN
                         this->target_temperature = _current_ac_state.temp_ambient;
-                        //this->mode = climate::CLIMATE_MODE_FAN_ONLY;
                         this->publish_state();
                     } else if((cmd.mode !=AC_MODE_UNTOUCHED && cmd.mode == AC_MODE_AUTO) ||
                               (cmd.mode ==AC_MODE_UNTOUCHED && _current_ac_state.mode == AC_MODE_AUTO)){ // блокировка ввода температуры в режиме АВТО
                         this->target_temperature = 25;
-                        //this->mode = climate::CLIMATE_MODE_HEAT_COOL;
                         this->publish_state();
                     } else {                        
                         // User requested target temperature change
@@ -2772,7 +2729,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
                                 hasCommand = true;
                                 cmd.sleep = AC_SLEEP_ON;
-                                cmd.iFeel = AC_IFEEL_OFF;  // для логики пресетов
                                 cmd.health = AC_HEALTH_OFF; // для логики пресетов
                                 cmd.health_status = AC_HEALTH_STATUS_OFF;
                                 this->preset = preset;
@@ -2786,7 +2742,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             cmd.health = AC_HEALTH_OFF; // для логики пресетов
                             cmd.health_status = AC_HEALTH_STATUS_OFF; 
                             cmd.sleep = AC_SLEEP_OFF; // для логики пресетов
-                            cmd.iFeel = AC_IFEEL_OFF; // для логики пресетов
                             this->preset = preset;
                             _debugMsg(F("Clear all power ON presets"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
                         break;
@@ -2796,22 +2751,10 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                     } 
                 } else if (call.get_custom_preset().has_value()) {
                     std::string custom_preset = *call.get_custom_preset();
-                    if (custom_preset == Constants::FEEL) {
-                        // Пульт для работы этого режима не нужен. Как описывает производитель:
-                        // температура выбирается не четкой логикой, анализируя действий 
-                        // пользователясвязанных с изменением температуры температуры.
-                        // При этом этот режим можно установить только с пульта. Фигня какая то.
-                        hasCommand = true;
-                        cmd.iFeel = AC_IFEEL_ON;
-                        cmd.health = AC_HEALTH_OFF; // для логики пресетов
-                        cmd.health_status = AC_HEALTH_STATUS_OFF;
-                        cmd.sleep = AC_SLEEP_OFF; // для логики пресетов
-                        this->custom_preset = custom_preset;
-                    } else if (custom_preset == Constants::HEALTH) {
+                    if (custom_preset == Constants::HEALTH) {
                         hasCommand = true;
                         cmd.health = AC_HEALTH_ON;
                         cmd.health_status = AC_HEALTH_STATUS_ON;
-                        cmd.iFeel = AC_IFEEL_ON; // зависимость от health
                         cmd.fanTurbo = AC_FANTURBO_OFF; // зависимость от health
                         cmd.fanMute = AC_FANMUTE_OFF;  // зависимость от health
                         cmd.sleep = AC_SLEEP_OFF; // для логики пресетов
@@ -2834,7 +2777,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 
                 if (call.get_target_temperature().has_value()) { // блокировка изменения температуры в выключеном состоянии
                     this->target_temperature = _current_ac_state.temp_ambient;
-                    //this->mode = climate::CLIMATE_MODE_OFF;
                     this->publish_state();
                 }
                 
@@ -2878,8 +2820,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             cmd.clean = AC_CLEAN_OFF; // для логики пресетов
                             hasCommand = true;
                             this->custom_preset = custom_preset;
-                        } else if (custom_preset == Constants::FEEL) {
-                            _debugMsg(F("iFEEL is not supported in POWER OFF mode."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__); 
                         } else if (custom_preset == Constants::HEALTH) {
                             _debugMsg(F("HEALTH is not supported in POWER OFF mode."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__); 
                         }
