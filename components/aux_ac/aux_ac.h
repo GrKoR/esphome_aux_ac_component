@@ -14,39 +14,18 @@
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #include "esphome/core/helpers.h"
 
-/* TODO: Помечаю, чтобы не забыть.
+// весь функционал сохранения пресетов прячу под дефайн
+//#define PRESETS_SAVING
+#ifdef PRESETS_SAVING
+    #ifdef ESP32
+        #include "esphome/core/preferences.h"
+    #else
+        #warning "Saving presets does not work with ESP8266" 
+    #endif    
+#endif
 
-   GK:
-   Не понятно пока, зачем сохранять настройки в энергонезависимую память.
-   Вроде бы компоненту это не требуется - он отражает текущее состояние кондея.
-   А кондей при включении после пропадания питания сам переходит в последний включенный режим.
-   В общем, пока не понятно. Ждём пояснений =)
-
-   Brokly: У меня пульт выставляет свои настройки в завасимости от режима. У нагрева свои градусы со шторками ,
-   у охлаждения свои градусы со своими шторками
-
-   GK: ну то есть ты сохраняешь в памяти эти настройки, чтобы в умном доме вместо отправки указания
-   "выстави нагрев до 24 градусов + шторки так-то", отправлять просто команду "выстави нагрев",
-   а уже есп будет подтягивать температуру и шторки из памяти. Так? или я не понял?
-
-   Brokly: Да. А что эта функция чему то мешает ?
-
-   GK: фича не мешает, но наверное может вести к проблемам. Типа износа ячеек памяти... а может и не привести...
-   пока не уверен, что эту фичу надо в мастер кидать.
-   плюс исходники компонента вбирают в себя дополнительный функционал, который можно реализовать иначе.
-   Как минимум, старт с определенного пресета можно выполнить настройками в yaml (через глобальные переменные).
-   Не факт, что это будет проще и\или оптимальнее. Но зато фичи компонента будут соответствовать принципам атомарности,
-   в нем не будет дополнительного кода, который может в компоненте не быть.
-   в общем, надо будет взвесить все за и против
-*/
-#if defined(ESP32)
-    #define PRESETS_SAVING
-    #include "esphome/core/preferences.h"
-#else
-    #warning "Saving presets does not work with ESP8266" 
-#endif    
-
-//#define HOLMS 19 // раскоментируй ключ для вывода лога под Эксель, значение ключа - размер пакетов которые будут видны
+// раскоментируй ключ HOLMS для вывода лога под Эксель, значение ключа - размер пакетов которые будут видны
+//#define HOLMS 19
 
 
 namespace esphome {
@@ -86,8 +65,8 @@ public:
 
 const std::string Constants::AC_FIRMWARE_VERSION = "0.2.4";
 const char *const Constants::TAG = "AirCon";
-const std::string Constants::MUTE = "Mute";
-const std::string Constants::TURBO = "Turbo";
+const std::string Constants::MUTE = "mute";
+const std::string Constants::TURBO = "turbo";
 const std::string Constants::CLEAN = "Clean";
 const std::string Constants::FEEL = "Feel";
 const std::string Constants::HEALTH = "Health";
@@ -2451,7 +2430,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             // User requested mode change
             if (call.get_mode().has_value()) {
                 ClimateMode mode = *call.get_mode();
-                // Send mode to hardware
+
                 switch (mode) {
                     case climate::CLIMATE_MODE_OFF:
                         hasCommand = true;
@@ -2460,8 +2439,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         #if defined(PRESETS_SAVING)
                             load_preset(&cmd, POS_MODE_OFF);
                         #endif
-                        
-                        cmd.temp_target = _current_ac_state.temp_ambient; // TODO: не нужно же
+
                         this->mode = mode;
                         break;
                     
@@ -2547,7 +2525,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             // User requested fan_mode change
             if (call.get_fan_mode().has_value()) {
                 ClimateFanMode fanmode = *call.get_fan_mode();
-                // Send fan mode to hardware
+
                 switch (fanmode) {
                     case climate::CLIMATE_FAN_AUTO:
                         hasCommand = true;
@@ -2596,23 +2574,25 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
             } else if (call.get_custom_fan_mode().has_value()) {
                 std::string customfanmode = *call.get_custom_fan_mode();
-                // Send fan mode to hardware
+
                 if (customfanmode == Constants::TURBO) {
-                        // TURBO fan mode is suitable in COOL and HEAT modes for Rovex air conditioners.
+                        // TURBO fan mode is suitable in COOL and HEAT modes.
                         // Other modes don't accept TURBO fan mode.
-                        // May be other AUX-based air conditioners do the same.
+                        /*
                         if (       cmd.mode == AC_MODE_COOL
                                 or cmd.mode == AC_MODE_HEAT
                                 or _current_ac_state.mode == AC_MODE_COOL
                                 or _current_ac_state.mode == AC_MODE_HEAT) {
-
+                        */
                             hasCommand = true;
                             cmd.fanTurbo = AC_FANTURBO_ON;
                             cmd.fanMute = AC_FANMUTE_OFF; // зависимость от fanturbo
                             this->custom_fan_mode = customfanmode;
+                        /*
                         } else {
                             _debugMsg(F("TURBO fan mode is suitable in COOL and HEAT modes only."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                         }
+                        */
 
                 } else if (customfanmode == Constants::MUTE) {
                         // MUTE fan mode is suitable in FAN mode only for Rovex air conditioner.
