@@ -1316,7 +1316,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             {
                                 const float koef = ((float)OUTDOOR_FILTER_PESCENT)/100;
                                 const float antkoef = 1.0 - koef;
-                                static float temp = _current_ac_state.temp_outdoor;
+                                static float temp = big_info_body->outdoor_temperature - 0x20;
                                 temp = temp * antkoef + koef * (big_info_body->outdoor_temperature - 0x20);
                                 stateChangedFlag = stateChangedFlag || (_current_ac_state.temp_outdoor != temp);
                                 _current_ac_state.temp_outdoor = temp;
