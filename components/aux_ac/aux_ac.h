@@ -529,7 +529,7 @@ enum ac_mildew : uint8_t { AC_MILDEW_OFF = 0x00, AC_MILDEW_ON = 0x08, AC_MILDEW_
 
 // настройка усреднения фильтра температуры. Это значение - взнос нового измерения
 // в усредненные показания в процентах
-#define OUTDOOR_FILTER_PESCENT 0.2                         
+#define OUTDOOR_FILTER_PESCENT 0.5                         
 
 /** команда для кондиционера
  * 
@@ -1314,12 +1314,12 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             // temp = big_info_body->outdoor_temperature - 0x20;
                             // фильтруем простейшим фильтром OUTDOOR_FILTER_PESCENT - взнос одного измерения в процентах
                             {
-                                const float koef = ((float)OUTDOOR_FILTER_PESCENT);
-                                const float antkoef = 100 - koef;
-                                static float temp = _current_ac_state.temp_outdoor*100;
+                                const float koef = ((float)OUTDOOR_FILTER_PESCENT)/100;
+                                const float antkoef = 1.0 - koef;
+                                static float temp = _current_ac_state.temp_outdoor;
                                 temp = temp * antkoef + koef * (big_info_body->outdoor_temperature - 0x20);
-                                stateChangedFlag = stateChangedFlag || (_current_ac_state.temp_outdoor != temp/100);
-                                _current_ac_state.temp_outdoor = temp/100;
+                                stateChangedFlag = stateChangedFlag || (_current_ac_state.temp_outdoor != temp);
+                                _current_ac_state.temp_outdoor = temp;
                             }
                             
                             // температура входящей магистрали

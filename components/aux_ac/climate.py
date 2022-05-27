@@ -98,7 +98,6 @@ validate_custom_fan_modes = cv.enum(CUSTOM_FAN_MODES, upper=True)
 
 CUSTOM_PRESETS = {
     "CLEAN": Capabilities.CLEAN,
-    "FEEL": Capabilities.FEEL,
     "HEALTH": Capabilities.HEALTH,
     "ANTIFUNGUS": Capabilities.ANTIFUNGUS,
 }
