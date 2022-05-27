@@ -118,7 +118,7 @@ climate:
     supported_presets:
       - SLEEP
     custom_presets:
-      - CLEEN
+      - CLEAN
       - HEALTH
       - ANTIFUNGUS
     supported_swing_modes:
