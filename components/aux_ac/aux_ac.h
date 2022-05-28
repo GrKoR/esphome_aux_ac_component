@@ -393,12 +393,12 @@ enum ac_sleep : uint8_t { AC_SLEEP_OFF = 0x00, AC_SLEEP_ON = 0x04, AC_SLEEP_UNTO
 #define AC_IFEEL_MASK    0b00001000
 enum ac_ifeel : uint8_t { AC_IFEEL_OFF = 0x00, AC_IFEEL_ON = 0x08, AC_IFEEL_UNTOUCHED = 0xFF };
 
-// Вертикальные жалюзи. В протоколе зашита возможность двигать ими по всякому, но додлжна быть такая возможность на уровне железа.
+// Вертикальные жалюзи. В протоколе зашита возможность двигать ими по всякому, но должна быть такая возможность на уровне железа.
 // TODO: надо протестировать значения 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 для ac_louver_V
 #define AC_LOUVERV_MASK    0b00000111
 enum ac_louver_V : uint8_t { AC_LOUVERV_SWING_UPDOWN = 0x00,  AC_LOUVERV_OFF = 0x07, AC_LOUVERV_UNTOUCHED = 0xFF };
 
-// Горизонтальные жалюзи. В протоколе зашита возможность двигать ими по всякому, но додлжна быть такая возможность на уровне железа.
+// Горизонтальные жалюзи. В протоколе зашита возможность двигать ими по всякому, но должна быть такая возможность на уровне железа.
 // TODO: надо протестировать значения 0x20, 0x40, 0x60, 0x80, 0xA0, 0xC0 для ac_louver_H
 #define AC_LOUVERH_MASK    0b11100000
 enum ac_louver_H : uint8_t { AC_LOUVERH_SWING_LEFTRIGHT = 0x00,  AC_LOUVERH_OFF = 0xE0, AC_LOUVERH_UNTOUCHED = 0xFF };
@@ -1993,7 +1993,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             if (_current_ac_state.power == AC_POWER_ON){
                 switch (_current_ac_state.mode) {
                     case AC_MODE_AUTO:
-                        this->mode = climate::CLIMATE_MODE_HEAT_COOL;   // по факту режим, названный в AUX как AUTO, является режимом HEAT_COOL
+                        // по факту режим, названный в AUX как AUTO, является режимом HEAT_COOL
+                        this->mode = climate::CLIMATE_MODE_HEAT_COOL;
                         break;
                     
                     case AC_MODE_COOL:
@@ -2049,8 +2050,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             _debugMsg(F("Climate fan mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->fan_mode);
 
             /*************************** TURBO FAN MODE ***************************/
-            // TURBO работает только в режимах COOL и HEAT
-            // TODO: проверку на это несовместимые режимы пока выпилили, т.к. нет уверенности, что это поведение одинаково для всех
+            // TURBO работает в режимах FAN, COOL, HEAT, HEAT_COOL
+            // в режиме DRY изменение скорости вентилятора никак не влияло на его скорость, может сплит просто не вышел еще на режим? Надо попробовать долгую работу в этом режиме.
             switch (_current_ac_state.fanTurbo) {
                 case AC_FANTURBO_ON:
                     //if ((_current_ac_state.mode == AC_MODE_HEAT) || (_current_ac_state.mode == AC_MODE_COOL)) {
@@ -2067,7 +2068,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             _debugMsg(F("Climate fan TURBO mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.fanTurbo);
 
             /*************************** MUTE FAN MODE ***************************/
-            // MUTE работает только в режиме FAN. В режиме COOL кондей команду принимает, но MUTE не устанавливается
+            // MUTE работает в режиме FAN. В режимах HEAT, COOL, HEAT_COOL не работает. DRY не проверял.
             // TODO: проверку на это несовместимые режимы пока выпилили, т.к. нет уверенности, что это поведение одинаково для всех
             switch (_current_ac_state.fanMute) {
                 case AC_FANMUTE_ON:
@@ -2085,7 +2086,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             _debugMsg(F("Climate fan MUTE mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.fanMute);
 
             //========================  ОТОБРАЖЕНИЕ ПРЕСЕТОВ ================================
-
             /*************************** iFEEL CUSTOM PRESET ***************************/
             // режим поддержки температуры в районе пульта, работает только при включенном конедее
             if( _current_ac_state.iFeel == AC_IFEEL_ON &&
@@ -2190,15 +2190,12 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             /*************************** LOUVERs ***************************/
             this->swing_mode = climate::CLIMATE_SWING_OFF;
             if( _current_ac_state.power == AC_POWER_ON) {
-                if (_current_ac_state.louver.louver_h == AC_LOUVERH_SWING_LEFTRIGHT){
+                if (  _current_ac_state.louver.louver_h == AC_LOUVERH_SWING_LEFTRIGHT && _current_ac_state.louver.louver_v == AC_LOUVERV_OFF ){
                     this->swing_mode = climate::CLIMATE_SWING_HORIZONTAL;
-                }
-                if (_current_ac_state.louver.louver_v == AC_LOUVERV_SWING_UPDOWN){
-                    if (_current_ac_state.louver.louver_h == AC_LOUVERH_SWING_LEFTRIGHT){
-                        this->swing_mode = climate::CLIMATE_SWING_BOTH;
-                    } else {
-                        this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
-                    }
+                } else if (  _current_ac_state.louver.louver_h == AC_LOUVERH_OFF && _current_ac_state.louver.louver_v == AC_LOUVERV_SWING_UPDOWN ){
+                    this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
+                } else if (  _current_ac_state.louver.louver_h == AC_LOUVERH_SWING_LEFTRIGHT && _current_ac_state.louver.louver_v == AC_LOUVERV_SWING_UPDOWN ){
+                    this->swing_mode = climate::CLIMATE_SWING_BOTH;
                 }
             }
 
@@ -2206,7 +2203,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
             /*************************** TEMPERATURE ***************************/
             if(_current_ac_state.mode == AC_MODE_FAN || _current_ac_state.power == AC_POWER_OFF){
-                this->target_temperature = _current_ac_state.temp_ambient;  // в режиме вентилятора и в выключенном состоянии будем показывать текущую температуру
+                // в режиме вентилятора и в выключенном состоянии будем показывать текущую температуру
+                this->target_temperature = _current_ac_state.temp_ambient;
             } else if (_current_ac_state.mode == AC_MODE_AUTO ){
                 this->target_temperature = 25;  // в AUTO зашита температура 25 градусов
             } else {
@@ -2788,7 +2786,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             // User requested target temperature change
             if (call.get_target_temperature().has_value()) {
                 // выставлять температуру в режиме FAN не нужно
-                if ( cmd.fanSpeed != AC_FANSPEED_AUTO && _current_ac_state.fanSpeed != AC_FANSPEED_AUTO ) {
+                if ( cmd.mode != AC_MODE_FAN && _current_ac_state.mode != AC_MODE_FAN ) {
                     hasCommand = true;
                     float temp = *call.get_target_temperature();
                     // Send target temp to climate
