@@ -278,7 +278,7 @@ struct packet_big_info_body_t {
 
     // байт 14 тела (байт 22 пакета)
     // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b22
-    uint8_t strange_temperature_int;    // от режима не зависит, растет при включении инвертора; температура двигателя?
+    uint8_t compressor_temperature_int;    // от режима не зависит, растет при включении инвертора; температура двигателя?
 
     // байт 15 тела (байт 23 пакета)
     // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b23
@@ -453,7 +453,6 @@ enum ac_mildew : uint8_t { AC_MILDEW_OFF = 0x00, AC_MILDEW_ON = 0x08, AC_MILDEW_
                             ac_health   health;\
                             ac_mode     mode;\
                             ac_sleep    sleep;\
-                            ac_ifeel    iFeel;\
                             ac_louver   louver;\
                             ac_fanspeed fanSpeed;\
                             ac_fanturbo fanTurbo;\
@@ -467,7 +466,7 @@ enum ac_mildew : uint8_t { AC_MILDEW_OFF = 0x00, AC_MILDEW_ON = 0x08, AC_MILDEW_
 
 // чистый размер этой структуры 20 байт, скорее всего из-за выравнивания, она будет больше  
 // из-за такого приема нужно контролировать размер копируемых данных руками
-#define AC_COMMAND_BASE_SIZE 21  
+#define AC_COMMAND_BASE_SIZE 20  
 
 #if defined(PRESETS_SAVING)
     // структура для сохранения данных 
@@ -494,11 +493,11 @@ struct ac_command_t {
     int8_t      temp_outdoor;    // внешняя температура
     int8_t      temp_inbound;    // температура входящая
     int8_t      temp_outbound;   // температура исходящая
-    int8_t      temp_strange;    // непонятная температура, понаблюдаем
+    int8_t      temp_compressor;    // непонятная температура, понаблюдаем
     ac_realFan  realFanSpeed;    // текущая скорость вентилятора
     uint8_t     invertor_power;  // мощность инвертора 
-    uint8_t     pressure;        // предположительно давление
     bool        defrost;         // режим разморозки внешнего блока (накопление тепла + прогрев испарителя)
+    ac_ifeel    iFeel;
 };
 
 typedef ac_command_t ac_state_t;  // текущее состояние параметров кондея можно хранить в таком же формате, как и комманды
@@ -618,6 +617,10 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         std::set<ClimatePreset> _supported_presets{};
         std::set<std::string> _supported_custom_presets{};
         std::set<std::string> _supported_custom_fan_modes{};
+        
+        // The capabilities of the climate device
+        // Шаблон параметров отображения виджета
+        esphome::climate::ClimateTraits _traits;
 
         // состояние конечного автомата
         acsm_state _ac_state = ACSM_IDLE;
@@ -660,6 +663,18 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
         // флаг успешного выполнения стартовой последовательности команд
         bool _startupSequenceComlete = false;
+        
+        // нормализация показаний температуры, приведение в диапазон
+        float _temp_target_normalise(float temp){
+            auto traits = this->get_traits();
+            float temp_min = traits.get_visual_min_temperature();
+            float temp_max = traits.get_visual_max_temperature();
+            if (temp < temp_min) temp = temp_min;
+            if (temp > temp_max) temp = temp_max;
+            if (temp < Constants::AC_MIN_TEMPERATURE) temp = Constants::AC_MIN_TEMPERATURE;
+            if (temp > Constants::AC_MAX_TEMPERATURE) temp = Constants::AC_MAX_TEMPERATURE;
+            return temp;
+        }
 
         // очистка последовательности команд
         void _clearSequence(){
@@ -835,7 +850,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             cmd->temp_outdoor = 0;
             cmd->temp_inbound = 0;
             cmd->temp_outbound = 0;
-            cmd->temp_strange = 0;
+            cmd->temp_compressor = 0;
             cmd->realFanSpeed = AC_REAL_FAN_UNTOUCHED;
         };
 
@@ -1204,9 +1219,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             _current_ac_state.temp_outbound = stateFloat;
 
                             // температура непонятная температура
-                            stateFloat = big_info_body->strange_temperature_int - 0x20;
-                            stateChangedFlag = stateChangedFlag || (_current_ac_state.temp_strange != stateFloat);
-                            _current_ac_state.temp_strange = stateFloat;
+                            stateFloat = big_info_body->compressor_temperature_int - 0x20;
+                            stateChangedFlag = stateChangedFlag || (_current_ac_state.temp_compressor != stateFloat);
+                            _current_ac_state.temp_compressor = stateFloat;
 
                             // реальная скорость проперлера
                             stateFloat = big_info_body->realFanSpeed;
@@ -1515,9 +1530,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             // целевая температура кондиционера
             if (cmd->temp_target_matter){
                 // устраняем выход за границы диапазона (это ограничение самого кондиционера)
-                if (cmd->temp_target < Constants::AC_MIN_TEMPERATURE) cmd->temp_target = Constants::AC_MIN_TEMPERATURE;
-                if (cmd->temp_target > Constants::AC_MAX_TEMPERATURE) cmd->temp_target = Constants::AC_MAX_TEMPERATURE;
-
+                cmd->temp_target = _temp_target_normalise(cmd->temp_target);
                 // целая часть температуры
                 pack->body[2] = (pack->body[2] & ~AC_TEMP_TARGET_INT_PART_MASK) | (((uint8_t)(cmd->temp_target) - 8) << 3);
                 
@@ -1786,7 +1799,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         esphome::sensor::Sensor *sensor_outdoor_temperature_ = nullptr;   
         esphome::sensor::Sensor *sensor_inbound_temperature_ =nullptr;       
         esphome::sensor::Sensor *sensor_outbound_temperature_ =nullptr;       
-        esphome::sensor::Sensor *sensor_strange_temperature_ =nullptr;       
+        esphome::sensor::Sensor *sensor_compressor_temperature_ =nullptr;       
         // текущая мощность компрессора      
         esphome::sensor::Sensor *sensor_invertor_power_ = nullptr;
         // бинарный сенсор, отображающий состояние дисплея
@@ -1896,7 +1909,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         void set_outdoor_temperature_sensor(sensor::Sensor *temperature_sensor) { sensor_outdoor_temperature_ = temperature_sensor; }
         void set_inbound_temperature_sensor(sensor::Sensor *temperature_sensor) { sensor_inbound_temperature_ = temperature_sensor; }
         void set_outbound_temperature_sensor(sensor::Sensor *temperature_sensor) { sensor_outbound_temperature_ = temperature_sensor; }
-        void set_strange_temperature_sensor(sensor::Sensor *temperature_sensor) { sensor_strange_temperature_ = temperature_sensor; }
+        void set_compressor_temperature_sensor(sensor::Sensor *temperature_sensor) { sensor_compressor_temperature_ = temperature_sensor; }
         void set_defrost_state(binary_sensor::BinarySensor *defrost_state_sensor) { sensor_defrost_  = defrost_state_sensor; }
         void set_display_sensor(binary_sensor::BinarySensor *display_sensor) { sensor_display_ = display_sensor; }
         void set_invertor_power_sensor(sensor::Sensor *invertor_power_sensor) { sensor_invertor_power_ = invertor_power_sensor; }
@@ -2233,8 +2246,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             if (sensor_outbound_temperature_ != nullptr)
                 sensor_outbound_temperature_->publish_state(_current_ac_state.temp_outbound);
             // температура странного датчика
-            if (sensor_strange_temperature_ != nullptr)
-                sensor_strange_temperature_->publish_state(_current_ac_state.temp_strange);
+            if (sensor_compressor_temperature_ != nullptr)
+                sensor_compressor_temperature_->publish_state(_current_ac_state.temp_compressor);
             // мощность инвертора
             if (sensor_invertor_power_ != nullptr)
                 sensor_invertor_power_->publish_state(_current_ac_state.invertor_power);
@@ -2357,21 +2370,21 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 }
             }
 
-            if ((this->sensor_strange_temperature_) != nullptr) {
-                ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Strange Temperature"), (this->sensor_strange_temperature_)->get_name().c_str());
-                if (!(this->sensor_strange_temperature_)->get_device_class().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Device Class: '%s'", "  ", (this->sensor_strange_temperature_)->get_device_class().c_str());
+            if ((this->sensor_compressor_temperature_) != nullptr) {
+                ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Strange Temperature"), (this->sensor_compressor_temperature_)->get_name().c_str());
+                if (!(this->sensor_compressor_temperature_)->get_device_class().empty()) {
+                    ESP_LOGCONFIG(Constants::TAG, "%s  Device Class: '%s'", "  ", (this->sensor_compressor_temperature_)->get_device_class().c_str());
                 }
-                ESP_LOGCONFIG(Constants::TAG, "%s  State Class: '%s'", "  ", state_class_to_string((this->sensor_strange_temperature_)->get_state_class()).c_str());
-                ESP_LOGCONFIG(Constants::TAG, "%s  Unit of Measurement: '%s'", "  ", (this->sensor_strange_temperature_)->get_unit_of_measurement().c_str());
-                ESP_LOGCONFIG(Constants::TAG, "%s  Accuracy Decimals: %d", "  ", (this->sensor_strange_temperature_)->get_accuracy_decimals());
-                if (!(this->sensor_strange_temperature_)->get_icon().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Icon: '%s'", "  ", (this->sensor_strange_temperature_)->get_icon().c_str());
+                ESP_LOGCONFIG(Constants::TAG, "%s  State Class: '%s'", "  ", state_class_to_string((this->sensor_compressor_temperature_)->get_state_class()).c_str());
+                ESP_LOGCONFIG(Constants::TAG, "%s  Unit of Measurement: '%s'", "  ", (this->sensor_compressor_temperature_)->get_unit_of_measurement().c_str());
+                ESP_LOGCONFIG(Constants::TAG, "%s  Accuracy Decimals: %d", "  ", (this->sensor_compressor_temperature_)->get_accuracy_decimals());
+                if (!(this->sensor_compressor_temperature_)->get_icon().empty()) {
+                    ESP_LOGCONFIG(Constants::TAG, "%s  Icon: '%s'", "  ", (this->sensor_compressor_temperature_)->get_icon().c_str());
                 }
-                if (!(this->sensor_strange_temperature_)->unique_id().empty()) {
-                    ESP_LOGV(Constants::TAG, "%s  Unique ID: '%s'", "  ", (this->sensor_strange_temperature_)->unique_id().c_str());
+                if (!(this->sensor_compressor_temperature_)->unique_id().empty()) {
+                    ESP_LOGV(Constants::TAG, "%s  Unique ID: '%s'", "  ", (this->sensor_compressor_temperature_)->unique_id().c_str());
                 }
-                if ((this->sensor_strange_temperature_)->get_force_update()) {
+                if ((this->sensor_compressor_temperature_)->get_force_update()) {
                     ESP_LOGV(Constants::TAG, "%s  Force Update: YES", "  ");
                 }
             }
@@ -2788,11 +2801,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 // выставлять температуру в режиме FAN не нужно
                 if ( cmd.mode != AC_MODE_FAN && _current_ac_state.mode != AC_MODE_FAN ) {
                     hasCommand = true;
-                    float temp = *call.get_target_temperature();
-                    // Send target temp to climate
-                    if (temp > Constants::AC_MAX_TEMPERATURE) temp = Constants::AC_MAX_TEMPERATURE;
-                    if (temp < Constants::AC_MIN_TEMPERATURE) temp = Constants::AC_MIN_TEMPERATURE;
-                    cmd.temp_target = temp;
+                    cmd.temp_target = _temp_target_normalise(*call.get_target_temperature());// Send target temp to climate
                     cmd.temp_target_matter = true;
                 }
             }
@@ -2808,43 +2817,10 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             }
         }
 
+        // как оказалось сюда обращаются каждый раз для получения любого параметра
+        // по этому имеет смысл держать готовый объект
         esphome::climate::ClimateTraits traits() override {
-            // The capabilities of the climate device
-            auto traits = climate::ClimateTraits();
-
-            traits.set_supports_current_temperature(true);
-            
-            // if the climate device's target temperature should be split in target_temperature_low and target_temperature_high instead of just the single target_temperature
-            traits.set_supports_two_point_target_temperature(false);
-
-            // tells the frontend what range of temperatures the climate device should display (gauge min/max values)
-            traits.set_visual_min_temperature(Constants::AC_MIN_TEMPERATURE);
-            traits.set_visual_max_temperature(Constants::AC_MAX_TEMPERATURE);
-            // the step with which to increase/decrease target temperature. This also affects with how many decimal places the temperature is shown.
-            traits.set_visual_temperature_step(Constants::AC_TEMPERATURE_STEP);
-
-            traits.set_supported_modes(this->_supported_modes);
-            traits.set_supported_swing_modes(this->_supported_swing_modes);
-            traits.set_supported_presets(this->_supported_presets);
-            traits.set_supported_custom_presets(this->_supported_custom_presets);
-            traits.set_supported_custom_fan_modes(this->_supported_custom_fan_modes);
-
-            /* + MINIMAL SET */
-            traits.add_supported_mode(ClimateMode::CLIMATE_MODE_OFF);
-            traits.add_supported_mode(ClimateMode::CLIMATE_MODE_FAN_ONLY);
-            traits.add_supported_fan_mode(ClimateFanMode::CLIMATE_FAN_AUTO);
-            traits.add_supported_fan_mode(ClimateFanMode::CLIMATE_FAN_LOW);
-            traits.add_supported_fan_mode(ClimateFanMode::CLIMATE_FAN_MEDIUM);
-            traits.add_supported_fan_mode(ClimateFanMode::CLIMATE_FAN_HIGH);
-            traits.add_supported_swing_mode(ClimateSwingMode::CLIMATE_SWING_OFF);
-            //traits.add_supported_swing_mode(ClimateSwingMode::CLIMATE_SWING_VERTICAL);
-            //traits.add_supported_swing_mode(ClimateSwingMode::CLIMATE_SWING_BOTH);
-            traits.add_supported_preset(ClimatePreset::CLIMATE_PRESET_NONE);
-            //traits.add_supported_preset(ClimatePreset::CLIMATE_PRESET_SLEEP);
-
-            traits.set_supports_action(this->_show_action);
-
-            return traits;
+            return _traits;
         }
 
         // запрос маленького пакета статуса кондиционера
@@ -3111,11 +3087,21 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         void set_display_inverted(bool display_inverted) { this->_display_inverted = display_inverted; }
         bool get_display_inverted() { return this->_display_inverted; }
 
-        void set_supported_modes(const std::set<ClimateMode> &modes) { this->_supported_modes = modes; }
-        void set_supported_swing_modes(const std::set<ClimateSwingMode> &modes) { this->_supported_swing_modes = modes; }
-        void set_supported_presets(const std::set<ClimatePreset> &presets) { this->_supported_presets = presets; }
-        void set_custom_presets(const std::set<std::string> &presets) { this->_supported_custom_presets = presets; }
-        void set_custom_fan_modes(const std::set<std::string> &modes) { this->_supported_custom_fan_modes = modes; }
+        // возможно функции get и не нужны, но вроде как должны быть
+        void set_supported_modes(const std::set<ClimateMode> &modes) { this->_supported_modes = modes;}
+        std::set<ClimateMode>get_supported_modes(){return this->_supported_modes;}
+       
+        void set_supported_swing_modes(const std::set<ClimateSwingMode> &modes) { this->_supported_swing_modes = modes;}
+        std::set<ClimateSwingMode> get_supported_swing_modes(){return this->_supported_swing_modes;}
+        
+        void set_supported_presets(const std::set<ClimatePreset> &presets) { this->_supported_presets = presets;}
+        const std::set<climate::ClimatePreset>& get_supported_presets(){return this->_supported_presets;}
+        
+        void set_custom_presets(const std::set<std::string> &presets) { this->_supported_custom_presets = presets;}
+        const std::set<std::string>& get_supported_custom_presets(){return this->_supported_custom_presets;}
+        
+        void set_custom_fan_modes(const std::set<std::string> &modes) { this->_supported_custom_fan_modes = modes;}
+        const std::set<std::string>& get_supported_custom_fan_modes(){return this->_supported_custom_fan_modes;}
 
         #if defined(PRESETS_SAVING)
             void set_store_settings(bool store_settings) { this->_store_settings = store_settings; }
@@ -3129,16 +3115,56 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             #if defined(PRESETS_SAVING)
                 load_presets_result = storage.load(global_presets); // читаем все пресеты из флеша
                 _debugMsg(F("Preset base read from NVRAM, result %02d."), ESPHOME_LOG_LEVEL_WARN, __LINE__, load_presets_result);
-
-                // TODO: Может это надо вынести за пределы дефайна пресетов?
-                // если это всё же нужно при инициализации объекта, то надо закинуть в initAC()
-                this->preset = climate::CLIMATE_PRESET_NONE;
-                this->custom_preset = (std::string)"";
-                this->mode = climate::CLIMATE_MODE_OFF;
-                this->action = climate::CLIMATE_ACTION_IDLE;
-                this->fan_mode = climate::CLIMATE_FAN_LOW;
-                this->custom_fan_mode = (std::string)"";
             #endif
+            // TODO: Может это надо вынести за пределы дефайна пресетов?
+            // если это всё же нужно при инициализации объекта, то надо закинуть в initAC()
+            this->preset = climate::CLIMATE_PRESET_NONE;
+            this->custom_preset = (std::string)"";
+            this->mode = climate::CLIMATE_MODE_OFF;
+            this->action = climate::CLIMATE_ACTION_IDLE;
+            this->fan_mode = climate::CLIMATE_FAN_LOW;
+            this->custom_fan_mode = (std::string)"";
+                
+            // заполнение шаблона параметров отображения виджета
+            _traits.set_supports_current_temperature(true);
+            _traits.set_supports_two_point_target_temperature(false);    // if the climate device's target temperature should be split in target_temperature_low and target_temperature_high instead of just the single target_temperature
+
+            _traits.set_supported_modes(this->_supported_modes);
+            _traits.set_supported_swing_modes(this->_supported_swing_modes);
+            _traits.set_supported_presets(this->_supported_presets);
+            _traits.set_supported_custom_presets(this->_supported_custom_presets);
+            _traits.set_supported_custom_fan_modes(this->_supported_custom_fan_modes);
+
+            // tells the frontend what range of temperatures the climate device should display (gauge min/max values)
+            _traits.set_visual_min_temperature(Constants::AC_MIN_TEMPERATURE);
+            _traits.set_visual_max_temperature(Constants::AC_MAX_TEMPERATURE);
+            // the step with which to increase/decrease target temperature. This also affects with how many decimal places the temperature is shown.
+            _traits.set_visual_temperature_step(Constants::AC_TEMPERATURE_STEP);
+
+            /* + MINIMAL SET */
+            _traits.add_supported_mode(ClimateMode::CLIMATE_MODE_OFF);
+            _traits.add_supported_mode(ClimateMode::CLIMATE_MODE_FAN_ONLY);
+            _traits.add_supported_fan_mode(ClimateFanMode::CLIMATE_FAN_AUTO);
+            _traits.add_supported_fan_mode(ClimateFanMode::CLIMATE_FAN_LOW);
+            _traits.add_supported_fan_mode(ClimateFanMode::CLIMATE_FAN_MEDIUM);
+            _traits.add_supported_fan_mode(ClimateFanMode::CLIMATE_FAN_HIGH);
+            _traits.add_supported_swing_mode(ClimateSwingMode::CLIMATE_SWING_OFF);
+            //_traits.add_supported_swing_mode(ClimateSwingMode::CLIMATE_SWING_VERTICAL);
+            //_traits.add_supported_swing_mode(ClimateSwingMode::CLIMATE_SWING_BOTH);
+            _traits.add_supported_preset(ClimatePreset::CLIMATE_PRESET_NONE);
+            //_traits.add_supported_preset(ClimatePreset::CLIMATE_PRESET_SLEEP);
+
+            // if the climate device supports reporting the active current action of the device with the action property.
+            _traits.set_supports_action(this->_show_action);
+            
+            // нужно инициализировать эти данные !
+            this->preset = climate::CLIMATE_PRESET_NONE;
+            this->custom_preset = (std::string)"";
+            this->mode = climate::CLIMATE_MODE_OFF;
+            this->action = climate::CLIMATE_ACTION_IDLE;
+            this->fan_mode = climate::CLIMATE_FAN_LOW;
+            this->custom_fan_mode = (std::string)"";
+                
         };
 
         void loop() override {
