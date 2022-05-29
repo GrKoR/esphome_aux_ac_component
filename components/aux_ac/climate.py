@@ -50,15 +50,15 @@ CONF_INBOUND_TEMPERATURE = 'inbound_temperature'
 ICON_INBOUND_TEMPERATURE = 'mdi:thermometer-plus'
 CONF_OUTBOUND_TEMPERATURE = 'outbound_temperature'
 ICON_OUTBOUND_TEMPERATURE = 'mdi:thermometer-minus'
-CONF_STRANGE_TEMPERATURE = 'strange_temperature'
-ICON_STRANGE_TEMPERATURE = 'mdi:thermometer-lines'
+CONF_COMPRESSOR_TEMPERATURE = 'compressor_temperature'
+ICON_COMPRESSOR_TEMPERATURE = 'mdi:thermometer-lines'
 CONF_DISPLAY_STATE = 'display_state'
 CONF_INVERTOR_POWER = 'invertor_power'
 CONF_DEFROST_STATE = 'defrost_state'
 ICON_DEFROST = "mdi:snowflake-melt"
 CONF_DISPLAY_INVERTED = 'display_inverted'
 ICON_DISPLAY = "mdi:clock-digital"
-CONF_STORE_SETTINGS = 'store_settings'
+#CONF_STORE_SETTINGS = 'store_settings'
 
 
 aux_ac_ns = cg.esphome_ns.namespace("aux_ac")
@@ -123,7 +123,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_PERIOD, default="7s"): cv.time_period,
             cv.Optional(CONF_SHOW_ACTION, default="true"): cv.boolean,
             cv.Optional(CONF_DISPLAY_INVERTED, default="false"): cv.boolean,
-            cv.Optional(CONF_STORE_SETTINGS, default="false"): cv.boolean,
+            #cv.Optional(CONF_STORE_SETTINGS, default="false"): cv.boolean,
             cv.Optional(CONF_DEFROST_STATE, default="false"): cv.boolean,
             cv.Optional(CONF_INVERTOR_POWER): sensor.sensor_schema(
                 unit_of_measurement=UNIT_PERCENT,
@@ -161,7 +161,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_INBOUND_TEMPERATURE): sensor.sensor_schema(
                 unit_of_measurement=UNIT_CELSIUS,
                 icon=ICON_INBOUND_TEMPERATURE,
-                accuracy_decimals=1,
+                accuracy_decimals=0,
                 device_class=DEVICE_CLASS_TEMPERATURE,
                 state_class=STATE_CLASS_MEASUREMENT,
             ).extend(
@@ -180,9 +180,9 @@ CONFIG_SCHEMA = cv.All(
                     cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
                 }
             ),
-            cv.Optional(CONF_STRANGE_TEMPERATURE): sensor.sensor_schema(
+            cv.Optional(CONF_COMPRESSOR_TEMPERATURE): sensor.sensor_schema(
                 unit_of_measurement=UNIT_CELSIUS,
-                icon=ICON_STRANGE_TEMPERATURE,
+                icon=ICON_COMPRESSOR_TEMPERATURE,
                 accuracy_decimals=0,
                 device_class=DEVICE_CLASS_TEMPERATURE,
                 state_class=STATE_CLASS_MEASUREMENT,
@@ -251,10 +251,10 @@ async def to_code(config):
         sens = await sensor.new_sensor(conf)
         cg.add(var.set_inbound_temperature_sensor(sens))
 
-    if CONF_STRANGE_TEMPERATURE in config:
-        conf = config[CONF_STRANGE_TEMPERATURE]
+    if CONF_COMPRESSOR_TEMPERATURE in config:
+        conf = config[CONF_COMPRESSOR_TEMPERATURE]
         sens = await sensor.new_sensor(conf)
-        cg.add(var.set_strange_temperature_sensor(sens))
+        cg.add(var.set_compressor_temperature_sensor(sens))
 
     if CONF_DISPLAY_STATE in config:
         conf = config[CONF_DISPLAY_STATE]
@@ -274,7 +274,7 @@ async def to_code(config):
     cg.add(var.set_period(config[CONF_PERIOD].total_milliseconds))
     cg.add(var.set_show_action(config[CONF_SHOW_ACTION]))
     cg.add(var.set_display_inverted(config[CONF_DISPLAY_INVERTED]))
-    cg.add(var.set_store_settings(config[CONF_STORE_SETTINGS]))
+    #cg.add(var.set_store_settings(config[CONF_STORE_SETTINGS]))
     if CONF_SUPPORTED_MODES in config:
         cg.add(var.set_supported_modes(config[CONF_SUPPORTED_MODES]))
     if CONF_SUPPORTED_SWING_MODES in config:
