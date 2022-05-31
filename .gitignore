@@ -11,7 +11,7 @@
 **/secrets.yaml
 **/livingroom_ac/
 **/kitchen_ac/
-/examples/*/*.h
+**/examples/*/*.h
 **/tests/test_*
 **/__pycache__
 **/private/
