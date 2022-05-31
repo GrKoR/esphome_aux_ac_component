@@ -47,7 +47,6 @@ public:
     static const std::string MUTE;
     static const std::string TURBO;
     static const std::string CLEAN;
-    static const std::string FEEL;
     static const std::string HEALTH;
     static const std::string ANTIFUNGUS;
 
@@ -72,7 +71,6 @@ const std::string Constants::TURBO = "turbo";
 
 // custom presets
 const std::string Constants::CLEAN = "Clean";
-const std::string Constants::FEEL = "Feel";
 const std::string Constants::HEALTH = "Health";
 const std::string Constants::ANTIFUNGUS = "Antifungus";
 
@@ -389,10 +387,6 @@ enum ac_mode : uint8_t { AC_MODE_AUTO = 0x00, AC_MODE_COOL = 0x20, AC_MODE_DRY =
 #define AC_SLEEP_MASK    0b00000100
 enum ac_sleep : uint8_t { AC_SLEEP_OFF = 0x00, AC_SLEEP_ON = 0x04, AC_SLEEP_UNTOUCHED = 0xFF };
 
-// функция iFeel - поддерживате температуру по датчику в пульте ДУ, а не во внутреннем блоке кондиционера
-#define AC_IFEEL_MASK    0b00001000
-enum ac_ifeel : uint8_t { AC_IFEEL_OFF = 0x00, AC_IFEEL_ON = 0x08, AC_IFEEL_UNTOUCHED = 0xFF };
-
 // Вертикальные жалюзи. В протоколе зашита возможность двигать ими по всякому, но должна быть такая возможность на уровне железа.
 // TODO: надо протестировать значения 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 для ac_louver_V
 #define AC_LOUVERV_MASK    0b00000111
@@ -493,11 +487,10 @@ struct ac_command_t {
     int8_t      temp_outdoor;    // внешняя температура
     int8_t      temp_inbound;    // температура входящая
     int8_t      temp_outbound;   // температура исходящая
-    int8_t      temp_compressor;    // непонятная температура, понаблюдаем
+    int8_t      temp_compressor; // температура компрессора
     ac_realFan  realFanSpeed;    // текущая скорость вентилятора
     uint8_t     invertor_power;  // мощность инвертора 
     bool        defrost;         // режим разморозки внешнего блока (накопление тепла + прогрев испарителя)
-    ac_ifeel    iFeel;
 };
 
 typedef ac_command_t ac_state_t;  // текущее состояние параметров кондея можно хранить в таком же формате, как и комманды
@@ -834,7 +827,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             cmd->fanTurbo = AC_FANTURBO_UNTOUCHED;
             cmd->health = AC_HEALTH_UNTOUCHED;
             cmd->health_status = AC_HEALTH_STATUS_UNTOUCHED;
-            cmd->iFeel = AC_IFEEL_UNTOUCHED;
             cmd->louver.louver_h = AC_LOUVERH_UNTOUCHED;
             cmd->louver.louver_v = AC_LOUVERV_UNTOUCHED;
             cmd->mildew = AC_MILDEW_UNTOUCHED;
@@ -1149,10 +1141,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             stateByte = small_info_body->mode & AC_SLEEP_MASK;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.sleep != (ac_sleep)stateByte);
                             _current_ac_state.sleep = (ac_sleep)stateByte;
-                            
-                            stateByte = small_info_body->mode & AC_IFEEL_MASK;
-                            stateChangedFlag = stateChangedFlag || (_current_ac_state.iFeel != (ac_ifeel)stateByte);
-                            _current_ac_state.iFeel = (ac_ifeel)stateByte;
                             
                             stateByte = small_info_body->status & AC_POWER_MASK;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.power != (ac_power)stateByte);
@@ -1577,9 +1565,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             }
             if (cmd->sleep != AC_SLEEP_UNTOUCHED){
                 pack->body[7] = (pack->body[7] & ~AC_SLEEP_MASK) | cmd->sleep;
-            }
-            if (cmd->iFeel != AC_IFEEL_UNTOUCHED){
-                pack->body[7] = (pack->body[7] & ~AC_IFEEL_MASK) | cmd->iFeel;
             }
 
             // питание вкл/выкл
@@ -2099,23 +2084,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             _debugMsg(F("Climate fan MUTE mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.fanMute);
 
             //========================  ОТОБРАЖЕНИЕ ПРЕСЕТОВ ================================
-            /*************************** iFEEL CUSTOM PRESET ***************************/
-            // режим поддержки температуры в районе пульта, работает только при включенном конедее
-            if( _current_ac_state.iFeel == AC_IFEEL_ON &&
-                _current_ac_state.power == AC_POWER_ON  ) {
-                
-                this->custom_preset = Constants::FEEL;
-                
-            } else if (  this->custom_preset == Constants::FEEL  ) {
-                
-                // AC_IFEEL_OFF
-                // только в том случае, если до этого пресет был установлен
-                this->custom_preset = (std::string)"";
-                
-            }
-
-            _debugMsg(F("Climate iFEEL preset: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.iFeel);
-
             /*************************** HEALTH CUSTOM PRESET ***************************/
             // режим работы ионизатора
             if( _current_ac_state.health == AC_HEALTH_ON &&
@@ -2371,7 +2339,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             }
 
             if ((this->sensor_compressor_temperature_) != nullptr) {
-                ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Strange Temperature"), (this->sensor_compressor_temperature_)->get_name().c_str());
+                ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Compressor Temperature"), (this->sensor_compressor_temperature_)->get_name().c_str());
                 if (!(this->sensor_compressor_temperature_)->get_device_class().empty()) {
                     ESP_LOGCONFIG(Constants::TAG, "%s  Device Class: '%s'", "  ", (this->sensor_compressor_temperature_)->get_device_class().c_str());
                 }
@@ -2667,7 +2635,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         cmd.sleep = AC_SLEEP_OFF;
                         cmd.mildew = AC_MILDEW_OFF;
                         cmd.clean = AC_CLEAN_OFF;
-                        cmd.iFeel = AC_IFEEL_OFF;   // хоть и не реализован, но отрубим. А то потом забудем указать.
                         this->preset = preset;
                         
                         _debugMsg(F("Clear all builtin presets."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
@@ -2695,12 +2662,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                     } else {
                         _debugMsg(F("CLEAN preset is suitable in POWER_OFF mode only."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                     }
-
-                } else if (custom_preset == Constants::FEEL) {
-                    _debugMsg(F("iFEEL preset has not been implemented yet."), ESPHOME_LOG_LEVEL_INFO, __LINE__);
-                    // TODO: надо подумать, как заставить этот режим работать без пульта
-                    //hasCommand = true;
-                    //this->custom_preset = custom_preset;
 
                 } else if ( custom_preset == Constants::HEALTH ) {
 
@@ -3157,14 +3118,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             // if the climate device supports reporting the active current action of the device with the action property.
             _traits.set_supports_action(this->_show_action);
             
-            // нужно инициализировать эти данные !
-            this->preset = climate::CLIMATE_PRESET_NONE;
-            this->custom_preset = (std::string)"";
-            this->mode = climate::CLIMATE_MODE_OFF;
-            this->action = climate::CLIMATE_ACTION_IDLE;
-            this->fan_mode = climate::CLIMATE_FAN_LOW;
-            this->custom_fan_mode = (std::string)"";
-                
         };
 
         void loop() override {

@@ -39,9 +39,6 @@ CODEOWNERS = ["@GrKoR"]
 DEPENDENCIES = ["climate", "uart"]
 AUTO_LOAD = ["sensor", "binary_sensor"]
 
-CONF_SUPPORTED_MODES = 'supported_modes'
-CONF_SUPPORTED_SWING_MODES = 'supported_swing_modes'
-CONF_SUPPORTED_PRESETS = 'supported_presets'
 CONF_SHOW_ACTION = 'show_action'
 CONF_INDOOR_TEMPERATURE = 'indoor_temperature'
 CONF_OUTDOOR_TEMPERATURE = 'outdoor_temperature'
