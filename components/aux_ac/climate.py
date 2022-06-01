@@ -55,7 +55,6 @@ CONF_DEFROST_STATE = 'defrost_state'
 ICON_DEFROST = "mdi:snowflake-melt"
 CONF_DISPLAY_INVERTED = 'display_inverted'
 ICON_DISPLAY = "mdi:clock-digital"
-#CONF_STORE_SETTINGS = 'store_settings'
 
 
 aux_ac_ns = cg.esphome_ns.namespace("aux_ac")
@@ -120,7 +119,6 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_PERIOD, default="7s"): cv.time_period,
             cv.Optional(CONF_SHOW_ACTION, default="true"): cv.boolean,
             cv.Optional(CONF_DISPLAY_INVERTED, default="false"): cv.boolean,
-            #cv.Optional(CONF_STORE_SETTINGS, default="false"): cv.boolean,
             cv.Optional(CONF_DEFROST_STATE, default="false"): cv.boolean,
             cv.Optional(CONF_INVERTOR_POWER): sensor.sensor_schema(
                 unit_of_measurement=UNIT_PERCENT,
@@ -271,7 +269,6 @@ async def to_code(config):
     cg.add(var.set_period(config[CONF_PERIOD].total_milliseconds))
     cg.add(var.set_show_action(config[CONF_SHOW_ACTION]))
     cg.add(var.set_display_inverted(config[CONF_DISPLAY_INVERTED]))
-    #cg.add(var.set_store_settings(config[CONF_STORE_SETTINGS]))
     if CONF_SUPPORTED_MODES in config:
         cg.add(var.set_supported_modes(config[CONF_SUPPORTED_MODES]))
     if CONF_SUPPORTED_SWING_MODES in config:

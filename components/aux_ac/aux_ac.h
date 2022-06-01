@@ -1886,6 +1886,15 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
             // выполнена ли уже стартовая последовательность команд (сбор информации о статусе кондея)
             _startupSequenceComlete = false;
+
+            // первоначальная инициализация
+            // TODO: вроде бы введено Brokly, но было в setup(). Надо узнать, зачем оно нам вообще?
+            this->preset = climate::CLIMATE_PRESET_NONE;
+            this->custom_preset = (std::string)"";
+            this->mode = climate::CLIMATE_MODE_OFF;
+            this->action = climate::CLIMATE_ACTION_IDLE;
+            this->fan_mode = climate::CLIMATE_FAN_LOW;
+            this->custom_fan_mode = (std::string)"";
         };
 
         float get_setup_priority() const override { return esphome::setup_priority::DATA; }
@@ -3071,29 +3080,16 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             uint8_t load_presets_result = 0xFF;
         #endif
 
-        #if defined(PRESETS_SAVING)
-            void set_store_settings(bool store_settings) { this->_store_settings = store_settings; }
-            bool get_store_settings() { return this->_store_settings; }
-
-            uint8_t load_presets_result = 0xFF;
-        #endif
-
         void setup() override {
 
             #if defined(PRESETS_SAVING)
                 load_presets_result = storage.load(global_presets); // читаем все пресеты из флеша
                 _debugMsg(F("Preset base read from NVRAM, result %02d."), ESPHOME_LOG_LEVEL_WARN, __LINE__, load_presets_result);
             #endif
-            // TODO: Может это надо вынести за пределы дефайна пресетов?
-            // если это всё же нужно при инициализации объекта, то надо закинуть в initAC()
-            this->preset = climate::CLIMATE_PRESET_NONE;
-            this->custom_preset = (std::string)"";
-            this->mode = climate::CLIMATE_MODE_OFF;
-            this->action = climate::CLIMATE_ACTION_IDLE;
-            this->fan_mode = climate::CLIMATE_FAN_LOW;
-            this->custom_fan_mode = (std::string)"";
-                
+
             // заполнение шаблона параметров отображения виджета
+            // GK: всё же похоже правильнее это делать тут, а не в initAC()
+            // initAC() в формируемом питоном коде вызывается до вызова aux_ac.set_supported_***() с установленными пользователем в конфиге параметрами
             _traits.set_supports_current_temperature(true);
             _traits.set_supports_two_point_target_temperature(false);    // if the climate device's target temperature should be split in target_temperature_low and target_temperature_high instead of just the single target_temperature
 
@@ -3104,6 +3100,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             _traits.set_supported_custom_fan_modes(this->_supported_custom_fan_modes);
 
             // tells the frontend what range of temperatures the climate device should display (gauge min/max values)
+            // TODO: GK: а вот здесь похоже неправильно. Похоже, так мы не сможем выставить в конфиге свой диапазон температур - всегда будет от AC_MIN_TEMPERATURE до AC_MAX_TEMPERATURE
             _traits.set_visual_min_temperature(Constants::AC_MIN_TEMPERATURE);
             _traits.set_visual_max_temperature(Constants::AC_MAX_TEMPERATURE);
             // the step with which to increase/decrease target temperature. This also affects with how many decimal places the temperature is shown.
