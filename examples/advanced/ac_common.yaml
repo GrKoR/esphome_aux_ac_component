@@ -69,8 +69,36 @@ climate:
       id: ${devicename}_indoor_temp
       internal: false
     display_state:
-      name: $upper_devicename Display State
+      name: ${upper_devicename} Display State
       id: ${devicename}_display_state
+      internal: false
+    outdoor_temperature:
+      name: ${upper_devicename} Outdoor Temperature
+      id: ${devicename}_outdoor_temp
+      internal: false
+    outbound_temperature:
+      name: ${upper_devicename} Colant Outbound Temperature
+      id: ${devicename}_outbound_temp
+      internal: false
+    inbound_temperature:
+      name: ${upper_devicename} Colant Inbound Temperature
+      id: ${devicename}_inbound_temp
+      internal: false
+    compressor_temperature:
+      name: ${upper_devicename} Compressor Temperature
+      id: ${devicename}_strange_temp
+      internal: false
+    defrost_state:
+      name: ${upper_devicename} Defrost State
+      id: ${devicename}_defrost_state
+      internal: false
+    invertor_power:
+      name: ${upper_devicename} Invertor Power
+      id: ${devicename}_invertor_power
+      internal: false
+    state_reporter:
+      name: ${upper_devicename} State Reporter
+      id: ${devicename}_state_reporter
       internal: false
     visual:
       min_temperature: 16
@@ -89,7 +117,6 @@ climate:
       - SLEEP
     custom_presets:
       - CLEAN
-      - FEEL
       - HEALTH
       - ANTIFUNGUS
     supported_swing_modes:
@@ -109,7 +136,7 @@ sensor:
 
 switch:
   - platform: template
-    name: $upper_devicename Display
+    name: ${upper_devicename} Display
     lambda: |-
       if (id(${devicename}_display_state).state) {
         return true;
