@@ -96,9 +96,9 @@ climate:
       name: ${upper_devicename} Invertor Power
       id: ${devicename}_invertor_power
       internal: false
-    state_reporter:
-      name: ${upper_devicename} State Reporter
-      id: ${devicename}_state_reporter
+    preset_reporter:
+      name: ${upper_devicename} Preset Reporter
+      id: ${devicename}_preset_reporter
       internal: false
     visual:
       min_temperature: 16

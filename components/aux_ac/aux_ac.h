@@ -1793,7 +1793,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         // бинарный сенсор состония разморозки
         esphome::binary_sensor::BinarySensor *sensor_defrost_ = nullptr;
         // текстовый сенсор, отображающий текущий режим работы сплита
-        esphome::text_sensor::TextSensor *sensor_state_reporter_ = nullptr;
+        esphome::text_sensor::TextSensor *sensor_preset_reporter_ = nullptr;
 
 
         // загружает на выполнение последовательность команд на включение/выключение табло с температурой
@@ -1910,7 +1910,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         void set_defrost_state(binary_sensor::BinarySensor *defrost_state_sensor) { sensor_defrost_  = defrost_state_sensor; }
         void set_display_sensor(binary_sensor::BinarySensor *display_sensor) { sensor_display_ = display_sensor; }
         void set_invertor_power_sensor(sensor::Sensor *invertor_power_sensor) { sensor_invertor_power_ = invertor_power_sensor; }
-        void set_state_reporter_sensor(text_sensor::TextSensor *state_reporter_sensor) { sensor_state_reporter_ = state_reporter_sensor; }
+        void set_preset_reporter_sensor(text_sensor::TextSensor *preset_reporter_sensor) { sensor_preset_reporter_ = preset_reporter_sensor; }
 
         bool get_hw_initialized(){ return _hw_initialized; };
         bool get_has_connection(){ return _has_connection; };
@@ -2242,7 +2242,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 sensor_defrost_->publish_state(_current_ac_state.defrost);
             
             // сенсор состояния сплита
-            if (sensor_state_reporter_ != nullptr) {
+            if (sensor_preset_reporter_ != nullptr) {
                 std::string state_str = "";
                 if (this->preset == climate::CLIMATE_PRESET_SLEEP) {
                     state_str += "SLEEP";
@@ -2251,7 +2251,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 } else {
                     state_str += "NONE";
                 }                    
-                sensor_state_reporter_->publish_state(state_str.c_str());
+                sensor_preset_reporter_->publish_state(state_str.c_str());
             }
             
             // состояние дисплея

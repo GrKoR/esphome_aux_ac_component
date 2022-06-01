@@ -55,8 +55,8 @@ CONF_DEFROST_STATE = 'defrost_state'
 ICON_DEFROST = "mdi:snowflake-melt"
 CONF_DISPLAY_INVERTED = 'display_inverted'
 ICON_DISPLAY = "mdi:clock-digital"
-CONF_STATE_REPORTER = "state_reporter"
-ICON_STATE_REPORTER = "mdi:format-list-group"
+CONF_PRESET_REPORTER = "preset_reporter"
+ICON_PRESET_REPORTER = "mdi:format-list-group"
 
 
 aux_ac_ns = cg.esphome_ns.namespace("aux_ac")
@@ -205,8 +205,8 @@ CONFIG_SCHEMA = cv.All(
                 }
             ),
 
-            cv.Optional(CONF_STATE_REPORTER): text_sensor.text_sensor_schema(
-                icon=ICON_STATE_REPORTER
+            cv.Optional(CONF_PRESET_REPORTER): text_sensor.text_sensor_schema(
+                icon=ICON_PRESET_REPORTER
             ).extend(
                 {
                     cv.Optional(CONF_INTERNAL, default="true"): cv.boolean
@@ -276,10 +276,10 @@ async def to_code(config):
         sens = await sensor.new_sensor(conf)
         cg.add(var.set_invertor_power_sensor(sens))
 
-    if CONF_STATE_REPORTER in config:
-        conf = config[CONF_STATE_REPORTER]
+    if CONF_PRESET_REPORTER in config:
+        conf = config[CONF_PRESET_REPORTER]
         sens = await text_sensor.new_text_sensor(conf)
-        cg.add(var.set_state_reporter_sensor(sens))
+        cg.add(var.set_preset_reporter_sensor(sens))
 
     cg.add(var.set_period(config[CONF_PERIOD].total_milliseconds))
     cg.add(var.set_show_action(config[CONF_SHOW_ACTION]))
