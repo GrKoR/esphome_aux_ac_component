@@ -1206,7 +1206,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.temp_outbound != stateFloat);
                             _current_ac_state.temp_outbound = stateFloat;
 
-                            // температура непонятная температура
+                            // температура компрессора внешнего блока
                             stateFloat = big_info_body->compressor_temperature_int - 0x20;
                             stateChangedFlag = stateChangedFlag || (_current_ac_state.temp_compressor != stateFloat);
                             _current_ac_state.temp_compressor = stateFloat;
@@ -3063,6 +3063,13 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         
         void set_custom_fan_modes(const std::set<std::string> &modes) { this->_supported_custom_fan_modes = modes;}
         const std::set<std::string>& get_supported_custom_fan_modes(){return this->_supported_custom_fan_modes;}
+
+        #if defined(PRESETS_SAVING)
+            void set_store_settings(bool store_settings) { this->_store_settings = store_settings; }
+            bool get_store_settings() { return this->_store_settings; }
+
+            uint8_t load_presets_result = 0xFF;
+        #endif
 
         #if defined(PRESETS_SAVING)
             void set_store_settings(bool store_settings) { this->_store_settings = store_settings; }

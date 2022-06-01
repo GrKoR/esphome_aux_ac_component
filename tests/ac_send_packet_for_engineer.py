@@ -81,12 +81,65 @@ async def main():
             if isDallasLog:
                 log_Dallas(isDallasLog)
 
+    async def display_off():
+        await api.execute_service(
+            service,
+            data={
+                #               0     1     2     3     4     5     6     7     8     9    10    11    12    13    14    15    16    17    18    19    20    21    22
+                "data_buf": [0xBB, 0x00, 0x06, 0x80, 0x01, 0x00, 0x0F, 0x00, 0x01, 0x01, 0x97, 0xE0, 0x00, 0x20, 0x00, 0xC0, 0x00, 0x00, 0x20, 0x00, 0x10, 0x00, 0x00],
+            }
+        )
+
+    async def display_on():
+        await api.execute_service(
+            service,
+            data={
+                #               0     1     2     3     4     5     6     7     8     9    10    11    12    13    14    15    16    17    18    19    20    21    22
+                "data_buf": [0xBB, 0x00, 0x06, 0x80, 0x01, 0x00, 0x0F, 0x00, 0x01, 0x01, 0x97, 0xE0, 0x00, 0x20, 0x00, 0xC0, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00],
+            }
+        )
+
+    async def ac_enable():
+        await api.execute_service(
+            service,
+            data={
+                #               0     1     2     3     4     5     6     7     8     9    10    11    12    13    14    15    16    17    18    19    20    21    22
+                "data_buf": [0xBB, 0x00, 0x06, 0x80, 0x00, 0x00, 0x0F, 0x00, 0x01, 0x01, 0x97, 0xE0, 0x19, 0x60, 0x00, 0xC0, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00],
+            }
+        )
+
+    async def ac_disable():
+        await api.execute_service(
+            service,
+            data={
+                #               0     1     2     3     4     5     6     7     8     9    10    11    12    13    14    15    16    17    18    19    20    21    22
+                "data_buf": [0xBB, 0x00, 0x06, 0x80, 0x00, 0x00, 0x0F, 0x00, 0x01, 0x01, 0x97, 0xE0, 0x19, 0x60, 0x00, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+            }
+        )
+
+    async def ac_set_vlouver(lvr):
+        await api.execute_service(
+            service,
+            data={
+                #               0     1     2     3     4     5     6     7     8     9    10    11    12    13    14    15    16    17    18    19    20    21    22
+                "data_buf": [0xBB, 0x00, 0x06, 0x80, 0x00, 0x00, 0x0F, 0x00, 0x01, 0x01,  lvr, 0xE0, 0x00, 0x20, 0x00, 0xC0, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00],
+            }
+        )
+
+    async def ac_set_hlouver(lvr):
+        await api.execute_service(
+            service,
+            data={
+                #               0     1     2     3     4     5     6     7     8     9    10    11    12    13    14    15    16    17    18    19    20    21    22
+                "data_buf": [0xBB, 0x00, 0x06, 0x80, 0x00, 0x00, 0x0F, 0x00, 0x01, 0x01, 0x97,  lvr, 0x00, 0x20, 0x00, 0xC0, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00],
+            }
+        )
 
     # Subscribe to the log
     # await api.subscribe_logs(log_callback, LOG_LEVEL_DEBUG)
 
     # print(await api.device_info())
-    print(f"%s" % (await api.list_entities_services(),))
+    # print(f"%s" % (await api.list_entities_services(),))
 
     # key надо искать в выводе list_entities_services
     service = aioesphomeapi.UserService(
@@ -97,23 +150,57 @@ async def main():
         ],
     )
 
-    await api.execute_service(
-        service,
-        data={
-            # display off
-            "data_buf": [0xBB, 0x00, 0x06, 0x80, 0x00, 0x00, 0x0F, 0x00, 0x01, 0x01, 0x7F, 0xE0, 0x00, 0x20, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00],
-        }
-    )
+    #await ac_set_vlouver( 0b10010000 )  # swing on
+    #await ac_set_vlouver( 0b10010111 )   # swing off
+    #await ac_set_vlouver( 0b10010001 )   #  1
+    #await ac_set_vlouver( 0b10010010 )   #   2
+    #await ac_set_vlouver( 0b10010011 )   #   3
+    #await ac_set_vlouver( 0b10010100 )   #   4
+    #await ac_set_vlouver( 0b10010101 )   #   5
+    #await ac_set_vlouver( 0b10010110 )   # не работает, сбрасывает на swing on
+    #time.sleep(5)
 
-    time.sleep(3)
+    #await ac_set_hlouver( 0b00000000 )  # swing on
+    #await ac_set_hlouver( 0b11100000 )   # swing off
+    #await ac_set_hlouver( 0b00100000 )   # не работает, сбрасывает в swing off
+    #await ac_set_hlouver( 0b01000000 )   # не работает, сбрасывает в swing off
+    #await ac_set_hlouver( 0b01100000 )   # не работает, сбрасывает в swing off
+    #await ac_set_hlouver( 0b10000000 )   # не работает, сбрасывает в swing off
+    #await ac_set_hlouver( 0b10100000 )   # не работает, сбрасывает в swing off
+    #await ac_set_hlouver( 0b11000000 )   # не работает, сбрасывает в swing off
+    #time.sleep(5)
 
-    await api.execute_service(
-        service,
-        data={
-            # display on
-            "data_buf": [0xBB, 0x00, 0x06, 0x80, 0x00, 0x00, 0x0F, 0x00, 0x01, 0x01, 0x7F, 0xE0, 0x00, 0x20, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
-        }
-    )
+    async def test_byte(bt):
+        await api.execute_service(
+            service,
+            data={
+                #display on
+                #               0     1     2     3     4     5     6     7     8     9    10    11    12    13    14    15    16    17    18    19    20    21    22
+                #"data_buf": [0xBB, 0x00, 0x06, 0x80, 0x00, 0x00, 0x0F, 0x00, 0x01, 0x01, 0x97, 0xE0, 0x00, 0x20, 0x00, 0xC0, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00],
+                #display off
+                #               0     1     2     3     4     5     6     7     8     9    10    11    12    13    14    15    16    17    18    19    20    21    22
+                "data_buf": [0xBB, 0x00, 0x06, 0x80, 0x00, 0x00, 0x0F, 0x00, 0x01, 0x01, 0x97, 0xE0, 0x00, 0x20, 0x00, 0xC0, 0x00, 0x00, 0x20, 0x00, 0x10, 0x00, 0x00],
+                # swing on
+                #               0     1     2     3     4     5     6     7     8     9    10    11    12    13    14    15    16    17    18    19    20    21    22
+                #"data_buf": [0xBB, 0x00, 0x06, 0x80, 0x00, 0x00, 0x0F, 0x00, 0x01, 0x01,  0x90, 0xE0, 0x00, 0x20, 0x00, 0xC0, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00],
+                # swing off
+                #               0     1     2     3     4     5     6     7     8     9    10    11    12    13    14    15    16    17    18    19    20    21    22
+                #"data_buf": [0xBB, 0x00, 0x06, 0x80, 0x00, 0x00, 0x0F, 0x00, 0x01, 0x01,  0x97, 0xE0, 0x00, 0x20, 0x00, 0xC0, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00],
+            }
+        )
+    '''
+    не проходит команда, если байт 1 или 7 не 0x00
+    не проходит команда, если байт 3 не 0x80
+
+    проходит и не меняется, если меняю байт 4 или 5
+    '''
+
+    #await test_byte(0b10000110)
+    #await test_byte(0b01000110)
+    #await test_byte(0b00100110)
+    #await test_byte(0b00010110)
+    time.sleep(2)
+
 
 parser = createParser()
 namespace = parser.parse_args()
