@@ -1,7 +1,7 @@
 import logging
 import esphome.config_validation as cv
 import esphome.codegen as cg
-from esphome.components import climate, uart, sensor, binary_sensor
+from esphome.components import climate, uart, sensor, binary_sensor, text_sensor
 from esphome import automation
 from esphome.automation import maybe_simple_id
 from esphome.const import (
@@ -37,7 +37,7 @@ _LOGGER = logging.getLogger(__name__)
 
 CODEOWNERS = ["@GrKoR"]
 DEPENDENCIES = ["climate", "uart"]
-AUTO_LOAD = ["sensor", "binary_sensor"]
+AUTO_LOAD = ["sensor", "binary_sensor", "text_sensor"]
 
 CONF_SHOW_ACTION = 'show_action'
 CONF_INDOOR_TEMPERATURE = 'indoor_temperature'
@@ -55,6 +55,8 @@ CONF_DEFROST_STATE = 'defrost_state'
 ICON_DEFROST = "mdi:snowflake-melt"
 CONF_DISPLAY_INVERTED = 'display_inverted'
 ICON_DISPLAY = "mdi:clock-digital"
+CONF_STATE_REPORTER = "state_reporter"
+ICON_STATE_REPORTER = "mdi:format-list-group"
 
 
 aux_ac_ns = cg.esphome_ns.namespace("aux_ac")
@@ -203,6 +205,14 @@ CONFIG_SCHEMA = cv.All(
                 }
             ),
 
+            cv.Optional(CONF_STATE_REPORTER): text_sensor.text_sensor_schema(
+                icon=ICON_STATE_REPORTER
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean
+                }
+            ),
+
             
             cv.Optional(CONF_SUPPORTED_MODES): cv.ensure_list(validate_modes),
             cv.Optional(CONF_SUPPORTED_SWING_MODES): cv.ensure_list(validate_swing_modes),
@@ -265,6 +275,11 @@ async def to_code(config):
         conf = config[CONF_INVERTOR_POWER]
         sens = await sensor.new_sensor(conf)
         cg.add(var.set_invertor_power_sensor(sens))
+
+    if CONF_STATE_REPORTER in config:
+        conf = config[CONF_STATE_REPORTER]
+        sens = await text_sensor.new_text_sensor(conf)
+        cg.add(var.set_state_reporter_sensor(sens))
 
     cg.add(var.set_period(config[CONF_PERIOD].total_milliseconds))
     cg.add(var.set_show_action(config[CONF_SHOW_ACTION]))

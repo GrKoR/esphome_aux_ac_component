@@ -12,6 +12,7 @@
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/binary_sensor/binary_sensor.h"
+#include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/core/helpers.h"
 
 // весь функционал сохранения пресетов прячу под дефайн
@@ -1791,6 +1792,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         esphome::binary_sensor::BinarySensor *sensor_display_ = nullptr;
         // бинарный сенсор состония разморозки
         esphome::binary_sensor::BinarySensor *sensor_defrost_ = nullptr;
+        // текстовый сенсор, отображающий текущий режим работы сплита
+        esphome::text_sensor::TextSensor *sensor_state_reporter_ = nullptr;
 
 
         // загружает на выполнение последовательность команд на включение/выключение табло с температурой
@@ -1907,6 +1910,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         void set_defrost_state(binary_sensor::BinarySensor *defrost_state_sensor) { sensor_defrost_  = defrost_state_sensor; }
         void set_display_sensor(binary_sensor::BinarySensor *display_sensor) { sensor_display_ = display_sensor; }
         void set_invertor_power_sensor(sensor::Sensor *invertor_power_sensor) { sensor_invertor_power_ = invertor_power_sensor; }
+        void set_state_reporter_sensor(text_sensor::TextSensor *state_reporter_sensor) { sensor_state_reporter_ = state_reporter_sensor; }
 
         bool get_hw_initialized(){ return _hw_initialized; };
         bool get_has_connection(){ return _has_connection; };
@@ -2209,6 +2213,11 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             /*********************************************************************/
             /*************************** PUBLISH STATE ***************************/
             /*********************************************************************/
+            this->publish_all_states();
+        }
+
+        // публикуем все состояния сенсоров и сплита
+        void publish_all_states(){
             this->publish_state();
             // температура в комнате
             if (sensor_indoor_temperature_ != nullptr)
@@ -2231,6 +2240,19 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             // флаг режима разморозки
             if (sensor_defrost_ != nullptr)
                 sensor_defrost_->publish_state(_current_ac_state.defrost);
+            
+            // сенсор состояния сплита
+            if (sensor_state_reporter_ != nullptr) {
+                std::string state_str = "";
+                if (this->preset == climate::CLIMATE_PRESET_SLEEP) {
+                    state_str += "SLEEP";
+                } else if (this->custom_preset.has_value() && this->custom_preset.value().length() > 0) {
+                    state_str += this->custom_preset.value().c_str();
+                } else {
+                    state_str += "NONE";
+                }                    
+                sensor_state_reporter_->publish_state(state_str.c_str());
+            }
             
             // состояние дисплея
             if (sensor_display_ != nullptr) {
@@ -2778,7 +2800,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
             if (hasCommand) {
                 commandSequence(&cmd);
-                this->publish_state(); // Publish updated state
+                this->publish_all_states(); // Publish updated state
 
                 #if defined(PRESETS_SAVING)
                     // флаг отправки новой команды, для процедуры сохранения пресетов, если есть настройка
