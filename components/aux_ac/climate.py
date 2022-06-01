@@ -47,14 +47,15 @@ CONF_INBOUND_TEMPERATURE = 'inbound_temperature'
 ICON_INBOUND_TEMPERATURE = 'mdi:thermometer-plus'
 CONF_OUTBOUND_TEMPERATURE = 'outbound_temperature'
 ICON_OUTBOUND_TEMPERATURE = 'mdi:thermometer-minus'
-CONF_STRANGE_TEMPERATURE = 'strange_temperature'
-ICON_STRANGE_TEMPERATURE = 'mdi:thermometer-lines'
+CONF_COMPRESSOR_TEMPERATURE = 'compressor_temperature'
+ICON_COMPRESSOR_TEMPERATURE = 'mdi:thermometer-lines'
 CONF_DISPLAY_STATE = 'display_state'
 CONF_INVERTOR_POWER = 'invertor_power'
 CONF_DEFROST_STATE = 'defrost_state'
 ICON_DEFROST = "mdi:snowflake-melt"
 CONF_DISPLAY_INVERTED = 'display_inverted'
 ICON_DISPLAY = "mdi:clock-digital"
+
 
 aux_ac_ns = cg.esphome_ns.namespace("aux_ac")
 AirCon = aux_ac_ns.class_("AirCon", climate.Climate, cg.Component)
@@ -93,7 +94,6 @@ validate_custom_fan_modes = cv.enum(CUSTOM_FAN_MODES, upper=True)
 
 CUSTOM_PRESETS = {
     "CLEAN": Capabilities.CLEAN,
-    "FEEL": Capabilities.FEEL,
     "HEALTH": Capabilities.HEALTH,
     "ANTIFUNGUS": Capabilities.ANTIFUNGUS,
 }
@@ -156,7 +156,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_INBOUND_TEMPERATURE): sensor.sensor_schema(
                 unit_of_measurement=UNIT_CELSIUS,
                 icon=ICON_INBOUND_TEMPERATURE,
-                accuracy_decimals=1,
+                accuracy_decimals=0,
                 device_class=DEVICE_CLASS_TEMPERATURE,
                 state_class=STATE_CLASS_MEASUREMENT,
             ).extend(
@@ -175,9 +175,9 @@ CONFIG_SCHEMA = cv.All(
                     cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
                 }
             ),
-            cv.Optional(CONF_STRANGE_TEMPERATURE): sensor.sensor_schema(
+            cv.Optional(CONF_COMPRESSOR_TEMPERATURE): sensor.sensor_schema(
                 unit_of_measurement=UNIT_CELSIUS,
-                icon=ICON_STRANGE_TEMPERATURE,
+                icon=ICON_COMPRESSOR_TEMPERATURE,
                 accuracy_decimals=0,
                 device_class=DEVICE_CLASS_TEMPERATURE,
                 state_class=STATE_CLASS_MEASUREMENT,
@@ -246,10 +246,10 @@ async def to_code(config):
         sens = await sensor.new_sensor(conf)
         cg.add(var.set_inbound_temperature_sensor(sens))
 
-    if CONF_STRANGE_TEMPERATURE in config:
-        conf = config[CONF_STRANGE_TEMPERATURE]
+    if CONF_COMPRESSOR_TEMPERATURE in config:
+        conf = config[CONF_COMPRESSOR_TEMPERATURE]
         sens = await sensor.new_sensor(conf)
-        cg.add(var.set_strange_temperature_sensor(sens))
+        cg.add(var.set_compressor_temperature_sensor(sens))
 
     if CONF_DISPLAY_STATE in config:
         conf = config[CONF_DISPLAY_STATE]
@@ -280,6 +280,8 @@ async def to_code(config):
     if CONF_CUSTOM_FAN_MODES in config:
         cg.add(var.set_custom_fan_modes(config[CONF_CUSTOM_FAN_MODES]))
 
+
+
 DISPLAY_ACTION_SCHEMA = maybe_simple_id(
     {
         cv.Required(CONF_ID): cv.use_id(AirCon),
@@ -295,7 +297,6 @@ async def display_off_to_code(config, action_id, template_arg, args):
 async def display_on_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
-
 
 
 SEND_TEST_PACKET_ACTION_SCHEMA = maybe_simple_id(
@@ -331,4 +332,4 @@ async def send_packet_to_code(config, action_id, template_arg, args):
     else:
         cg.add(var.set_data_static(data))
 
-    return var
+    return var    
