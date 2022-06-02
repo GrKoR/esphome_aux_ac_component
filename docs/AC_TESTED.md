@@ -14,6 +14,7 @@
 + Royal Clima (models: CO-D 18HNI/CO-E 18HNI)
 + Samurai (models: SMA-07HRN1 ION, SMA-09HRN1 ION)
 + Subtropic (models: SUB-07HN1, SUB-12HN1)
++ Бирюса (models: B-09FIR/B-09FIQ)
 
 ## Tested and INCOMPATIBLE air conditioners ##
 ACs from the list below are **INCOMPATIBLE** with `aux_ac`.<br/>
