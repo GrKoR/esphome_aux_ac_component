@@ -147,3 +147,62 @@ switch:
       - aux_ac.display_on: aux_id
     turn_off_action:
       - aux_ac.display_off: aux_id
+
+button:
+  - platform: template
+    name: ${upper_devicename} VLouver Stop
+    icon: "mdi:circle-small"
+    on_press:
+      - aux_ac.vlouver_stop: aux_id
+    
+  - platform: template
+    name: ${upper_devicename} VLouver Swing
+    icon: "mdi:pan-vertical"
+    on_press:
+      - aux_ac.vlouver_swing: aux_id
+    
+  - platform: template
+    name: ${upper_devicename} VLouver Top
+    icon: "mdi:pan-up"
+    on_press:
+      - aux_ac.vlouver_top: aux_id
+    
+  - platform: template
+    name: ${upper_devicename} VLouver Middle Above
+    icon: "mdi:pan-top-left"
+    on_press:
+      - aux_ac.vlouver_middle_above: aux_id
+    
+  - platform: template
+    name: ${upper_devicename} VLouver Middle
+    icon: "mdi:pan-left"
+    on_press:
+      - aux_ac.vlouver_middle: aux_id
+    
+  - platform: template
+    name: ${upper_devicename} VLouver Middle Below
+    icon: "mdi:pan-bottom-left"
+    on_press:
+      - aux_ac.vlouver_middle_below: aux_id
+    
+  - platform: template
+    name: ${upper_devicename} VLouver Bottom
+    icon: "mdi:pan-down"
+    on_press:
+      - aux_ac.vlouver_bottom: aux_id
+
+
+number:
+  - platform: template
+    name: ${upper_devicename} Vertical Louver
+    id: ${devicename}_vlouver
+    icon: "mdi:circle-small"
+    mode: "slider"
+    min_value: 0
+    max_value: 6
+    step: 1
+    set_action:
+      then:
+        - lambda: !lambda |-
+            if (x == 6) x = 7;  // 6 is incorrect louver position, 7 is stopped louver
+            id(aux_id).setVLouverSequence( static_cast<esphome::aux_ac::ac_louver_V>(x) );

@@ -85,19 +85,48 @@ climate:
     uart_id: ac_uart_bus
     period: 7s
     show_action: true
-    display_inverted: false
+    display_inverted: true
     indoor_temperature:
       name: AC Indoor Temperature
       id: ac_indoor_temp
-      internal: true
+      accuracy_decimals: 1
+      internal: false
+    outdoor_temperature:
+      name: AC Outdoor Temperature
+      id: ac_outdoor_temp
+      internal: false
+    outbound_temperature:
+      name: AC Colant Outbound Temperature
+      id: ac_outbound_temp
+      internal: false
+    inbound_temperature:
+      name: AC Colant Inbound Temperature
+      id: ac_inbound_temp
+      internal: false
+    compressor_temperature:
+      name: AC Compressor Temperature
+      id: ac_strange_temp
+      internal: false
     display_state:
-      name: AC Display
-      id: ac_display
+      name: AC Display State
+      id: ac_display_state
+      internal: false
+    defrost_state:
+      name: AC Defrost State
+      id: ac_defrost_state
+      internal: false
+    invertor_power:
+      name: AC Invertor Power
+      id: ac_invertor_power
+      internal: false
+    preset_reporter:
+      name: AC Preset Reporter
+      id: ac_preset_reporter
       internal: false
     visual:
       min_temperature: 16
       max_temperature: 32
-      temperature_step: 0.5
+      temperature_step: 1
     supported_modes:
       - HEAT_COOL
       - COOL
@@ -111,7 +140,6 @@ climate:
       - SLEEP
     custom_presets:
       - CLEAN
-      - FEEL
       - HEALTH
       - ANTIFUNGUS
     supported_swing_modes:
@@ -131,20 +159,28 @@ climate:
   - COOLING: AC is cooling the air.
   The same thing will be in HEAT or COOL modes, with the only difference of the list of actions (IDLE + HEATING or IDLE + COOLING).
   - **display_inverted** (*Optional*, boolean, default ``false``): It configures display driver logic level. As it turned out in the issue [#31](https://github.com/GrKoR/esphome_aux_ac_component/issues/31), different models of conditioners manage display different way. Rovex ACs powers off display by bit `1` in command packet and power it on by bit `0`. Many other conditioners do this vice versa.
-- **indoor_temperature** (*Optional*): The information for the air temperature sensor
+- **indoor_temperature** (*Optional*): Parameters of the room air temperature sensor.
   - **name** (**Required**, string): The name for the temperature sensor.
   - **id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Set the ID of this sensor for use in lambdas.
   - **internal** (*Optional*, boolean): Mark this component as internal. Internal components will not be exposed to the frontend (like Home Assistant). As opposed to default [Sensor](https://esphome.io/components/sensor/index.html#base-sensor-configuration) behaviour this variable is **always true** except in cases where the user has set it directly.
   - All other options from [Sensor](https://esphome.io/components/sensor/index.html#base-sensor-configuration).
+- **outdoor_temperature** (*Optional*): Parameters of the outdoor temperature sensor. Thay are the same as the **indoor_temperature** (see description above).
+- **inbound_temperature** (*Optional*): Parameters of the coolant inbound temperature sensor. Thay are the same as the **indoor_temperature** (see description above).
+- **outbound_temperature** (*Optional*):  Parameters of the coolant outbound temperature sensor. Thay are the same as the **indoor_temperature** (see description above).
+- **compressor_temperature** (*Optional*):  Parameters of the compressor temperature sensor. Thay are the same as the **indoor_temperature** (see description above).
 - **display_state** (*Optional*): The information for the HVAC display state sensor (is display ON or OFF)
   - **name** (**Required**, string): The name for the display state sensor.
   - **id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Set the ID of this sensor for use in lambdas.
   - **internal** (*Optional*, boolean): Mark this component as internal. Internal components will not be exposed to the frontend (like Home Assistant). As opposed to default [Binary Sensor](https://esphome.io/components/binary_sensor/index.html#base-binary-sensor-configuration) behaviour this variable is **always true** except in cases where the user has set it directly.
   - All other options from [Binary Sensor](https://esphome.io/components/binary_sensor/index.html#base-binary-sensor-configuration).
+- **defrost_state** (*Optional*): The information for the HVAC defrost function state sensor (is it ON or OFF). All settings are the same as for the **display_state** (see description above).
+- **invertor_power** (*Optional*): The information for the invertor power sensor. All settings are the same as for the **display_state** (see description above).
+- **preset_reporter** (*Optional*): Parameters of text sensor with current preset. All settings are the same as for the **display_state** (see description above).  
+ESPHome Climate devices are not report their active presets (from **supported_presets** and **custom_presets** lists) to MQTT. In case you are using mqtt and want to receive information about active preset you should declare this sensor in your yaml.
 - **supported_modes** (*Optional*, list): List of supported modes. Possible values are: ``HEAT_COOL``, ``COOL``, ``HEAT``, ``DRY``, ``FAN_ONLY``. Please note: some manufacturers call AUTO mode instead of HEAT_COOL. Defaults to ``FAN_ONLY``.
 - **custom_fan_modes** (*Optional*, list): List of supported custom fan modes. Possible values are: ``MUTE``, ``TURBO``. No custom fan modes by default.
 - **supported_presets** (*Optional*, list): List of supported presets. Possible values are: ``SLEEP``. No presets by default.
-- **custom_presets** (*Optional*, list): List of supported custom presets. Possible values are: ``CLEAN``, ``FEEL``, ``HEALTH``, ``ANTIFUNGUS``. Please note: presets ``FEEL``, ``HEALTH`` and ``ANTIFUNGUS`` have not been implemented yet. No custom presets by default.
+- **custom_presets** (*Optional*, list): List of supported custom presets. Possible values are: ``CLEAN``, ``HEALTH``, ``ANTIFUNGUS``. No custom presets by default.
 - **supported_swing_modes** (*Optional*, list): List of supported swing modes. Possible values are: ``VERTICAL``, ``HORIZONTAL``, ``BOTH``. No swing modes by default.
 - All other options from [Climate](https://esphome.io/components/climate/index.html#base-climate-configuration).
 
@@ -168,6 +204,77 @@ on_...:
     - aux_ac.display_off: aux_id
 ```
 - **aux_id** (**Requared**, string): ID of `aux_ac` component.
+
+### ``aux_ac.vlouver_stop`` ###
+This action stops vertical swing of louvers.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.vlouver_stop: aux_id
+```
+- **aux_id** (**Requared**, string): ID of `aux_ac` component.
+
+### ``aux_ac.vlouver_swing`` ###
+This action starts vertical swing of louvers.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.vlouver_swing: aux_id
+```
+- **aux_id** (**Requared**, string): ID of `aux_ac` component.
+
+### ``aux_ac.vlouver_top`` ###
+This action moves HVAC louvers to the topmost position.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.vlouver_top: aux_id
+```
+- **aux_id** (**Requared**, string): ID of `aux_ac` component.
+
+### ``aux_ac.vlouver_middle_above`` ###
+This action moves HVAC louvers to the position one step under the topmost.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.vlouver_middle_above: aux_id
+```
+- **aux_id** (**Requared**, string): ID of `aux_ac` component.
+
+### ``aux_ac.vlouver_middle`` ###
+This action moves HVAC louvers to the middle position.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.vlouver_middle: aux_id
+```
+- **aux_id** (**Requared**, string): ID of `aux_ac` component.
+
+### ``aux_ac.vlouver_middle_below`` ###
+This action moves HVAC louvers to the position one step under the middle position.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.vlouver_middle_below: aux_id
+```
+- **aux_id** (**Requared**, string): ID of `aux_ac` component.
+
+### ``aux_ac.vlouver_bottom`` ###
+This action moves HVAC louvers to the lowest position.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.vlouver_bottom: aux_id
+```
+- **aux_id** (**Requared**, string): ID of `aux_ac` component.
+
 
 
 ## Simple example ##

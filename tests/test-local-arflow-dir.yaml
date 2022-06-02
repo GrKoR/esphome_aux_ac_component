@@ -121,39 +121,5 @@ number:
     set_action:
       then:
         - lambda: !lambda |-
-            auto icon = "";
             if (x == 6) x = 7;  // делаем так, чтобы выключение отрабатывать корректно
-            
-            switch ( static_cast<uint8_t>(x) ) {
-              case 0:     // vertical swing
-                icon = "mdi:pan-vertical";
-                break;
-              
-              case 1:     // top position
-                icon = "mdi:pan-up";
-                break;
-              
-              case 2:     // middle above position
-                icon = "mdi:pan-top-left";
-                break;
-              
-              case 3:     // middle position
-                icon = "mdi:pan-left";
-                break;
-              
-              case 4:     // middle below position
-                icon = "mdi:pan-bottom-left";
-                break;
-              
-              case 5:     // bottom position
-                icon = "mdi:pan-down";
-                break;
-            
-              case 7:     // stop vertical louver
-              default:
-                icon = "mdi:circle-small";
-                break;
-            }
-
-            id(${devicename}_vlouver).set_icon(icon);
             id(aux_id).setVLouverSequence( static_cast<esphome::aux_ac::ac_louver_V>(x) );
