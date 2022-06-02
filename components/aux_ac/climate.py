@@ -65,6 +65,13 @@ Capabilities = aux_ac_ns.namespace("Constants")
 
 AirConDisplayOffAction = aux_ac_ns.class_("AirConDisplayOffAction", automation.Action)
 AirConDisplayOnAction = aux_ac_ns.class_("AirConDisplayOnAction", automation.Action)
+AirConVLouverSwingAction = aux_ac_ns.class_("AirConVLouverSwingAction", automation.Action)
+AirConVLouverStopAction = aux_ac_ns.class_("AirConVLouverStopAction", automation.Action)
+AirConVLouverTopAction = aux_ac_ns.class_("AirConVLouverTopAction", automation.Action)
+AirConVLouverMiddleAboveAction = aux_ac_ns.class_("AirConVLouverMiddleAboveAction", automation.Action)
+AirConVLouverMiddleAction = aux_ac_ns.class_("AirConVLouverMiddleAction", automation.Action)
+AirConVLouverMiddleBelowAction = aux_ac_ns.class_("AirConVLouverMiddleBelowAction", automation.Action)
+AirConVLouverBottomAction = aux_ac_ns.class_("AirConVLouverBottomAction", automation.Action)
 AirConSendTestPacketAction = aux_ac_ns.class_("AirConSendTestPacketAction", automation.Action)
 
 ALLOWED_CLIMATE_MODES = {
@@ -121,7 +128,6 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_PERIOD, default="7s"): cv.time_period,
             cv.Optional(CONF_SHOW_ACTION, default="true"): cv.boolean,
             cv.Optional(CONF_DISPLAY_INVERTED, default="false"): cv.boolean,
-            cv.Optional(CONF_DEFROST_STATE, default="false"): cv.boolean,
             cv.Optional(CONF_INVERTOR_POWER): sensor.sensor_schema(
                 unit_of_measurement=UNIT_PERCENT,
                 icon=ICON_POWER,
@@ -188,32 +194,27 @@ CONFIG_SCHEMA = cv.All(
                     cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
                 }
             ),
-           
             cv.Optional(CONF_DISPLAY_STATE): binary_sensor.binary_sensor_schema(
-                icon=ICON_DISPLAY
+                icon=ICON_DISPLAY,
             ).extend(
                 {
-                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
                 }
             ),
-            
             cv.Optional(CONF_DEFROST_STATE): binary_sensor.binary_sensor_schema(
-                icon=ICON_DEFROST
+                icon=ICON_DEFROST,
             ).extend(
                 {
-                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
                 }
             ),
-
             cv.Optional(CONF_PRESET_REPORTER): text_sensor.text_sensor_schema(
-                icon=ICON_PRESET_REPORTER
+                icon=ICON_PRESET_REPORTER,
             ).extend(
                 {
-                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
                 }
             ),
-
-            
             cv.Optional(CONF_SUPPORTED_MODES): cv.ensure_list(validate_modes),
             cv.Optional(CONF_SUPPORTED_SWING_MODES): cv.ensure_list(validate_swing_modes),
             cv.Optional(CONF_SUPPORTED_PRESETS): cv.ensure_list(validate_presets),
@@ -265,7 +266,7 @@ async def to_code(config):
         conf = config[CONF_DISPLAY_STATE]
         sens = await binary_sensor.new_binary_sensor(conf)
         cg.add(var.set_display_sensor(sens))
-        
+
     if CONF_DEFROST_STATE in config:
         conf = config[CONF_DEFROST_STATE]
         sens = await binary_sensor.new_binary_sensor(conf)
@@ -314,12 +315,47 @@ async def display_on_to_code(config, action_id, template_arg, args):
     return cg.new_Pvariable(action_id, template_arg, paren)
 
 
-SEND_TEST_PACKET_ACTION_SCHEMA = maybe_simple_id(
+VLOUVER_ACTION_SCHEMA = maybe_simple_id(
     {
         cv.Required(CONF_ID): cv.use_id(AirCon),
-        cv.Required(CONF_DATA): cv.templatable(validate_raw_data),
     }
 )
+
+@automation.register_action("aux_ac.vlouver_stop", AirConVLouverStopAction, VLOUVER_ACTION_SCHEMA)
+async def vlouver_stop_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
+
+@automation.register_action("aux_ac.vlouver_swing", AirConVLouverSwingAction, VLOUVER_ACTION_SCHEMA)
+async def vlouver_swing_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
+
+
+@automation.register_action("aux_ac.vlouver_top", AirConVLouverTopAction, VLOUVER_ACTION_SCHEMA)
+async def vlouver_top_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
+
+@automation.register_action("aux_ac.vlouver_middle_above", AirConVLouverMiddleAboveAction, VLOUVER_ACTION_SCHEMA)
+async def vlouver_middle_above_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
+
+@automation.register_action("aux_ac.vlouver_middle", AirConVLouverMiddleAction, VLOUVER_ACTION_SCHEMA)
+async def vlouver_middle_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
+
+@automation.register_action("aux_ac.vlouver_middle_below", AirConVLouverMiddleBelowAction, VLOUVER_ACTION_SCHEMA)
+async def vlouver_middle_below_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
+
+@automation.register_action("aux_ac.vlouver_bottom", AirConVLouverBottomAction, VLOUVER_ACTION_SCHEMA)
+async def vlouver_bottom_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
 
 
 # *********************************************************************************************************
@@ -328,6 +364,13 @@ SEND_TEST_PACKET_ACTION_SCHEMA = maybe_simple_id(
 # кондиционеру всё как есть. Какой эффект получится от передачи кондиционеру рандомных байт, никто не знает.
 # Вы действуете на свой страх и риск.
 # *********************************************************************************************************
+SEND_TEST_PACKET_ACTION_SCHEMA = maybe_simple_id(
+    {
+        cv.Required(CONF_ID): cv.use_id(AirCon),
+        cv.Required(CONF_DATA): cv.templatable(validate_raw_data),
+    }
+)
+
 @automation.register_action(
     "aux_ac.send_packet",
     AirConSendTestPacketAction,

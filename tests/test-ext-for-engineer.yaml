@@ -3,8 +3,12 @@ external_components:
     components: [ aux_ac ]
     refresh: 0s
 
+substitutions:
+  devicename: test_aux_ac_ext_engeneer
+  upper_devicename: Test AUX
+  
 esphome:
-  name: test_aux_ac_ext
+  name: $devicename
   platform: ESP8266
   board: esp12e
 
@@ -69,26 +73,54 @@ sensor:
 
 climate:
   - platform: aux_ac
-    name: "AC Name"
+    name: $upper_devicename
     id: aux_id
     uart_id: ac_uart_bus
-    period: 7s            # период опроса состояния сплита, по дефолту 7 сек
-    show_action: true     # надо ли показывать текущий режим работы: при HEAT_COOL mode сплит может греть (HEAT), охлаждать (COOL) или бездействовать (IDLE)
-    display_inverted: true  # как отрабатывать вкл/выкл дисплея: у Rovex "1" выключает дисплей, у многих других "1" дисплей включает
-    indoor_temperature:   # сенсор, показывающий температуру воздуха на внутреннем блоке кондиционера; имеет все те же параметры, как и любой сенсор ESPHome
-      name: AC Indoor Temperature
-      id: ac_indoor_temp
-      internal: false    # сенсор установлен как внутренний по дефолту (не попадёт в Home Assistant)
+    period: 7s
+    show_action: true
+    display_inverted: true
+    indoor_temperature:
+      name: $upper_devicename Indoor Temperature
+      id: ${devicename}_indoor_temp
+      internal: false
     display_state:
-      name: AC Display State
-      id: ac_display_state
-      internal: false    # сенсор установлен как внутренний по дефолту (не попадёт в Home Assistant)
+      name: $upper_devicename Display State
+      id: ${devicename}_display_state
+      internal: false
+    outdoor_temperature:
+      name: $upper_devicename Outdoor Temperature
+      id: ${devicename}_outdoor_temp
+      internal: false
+    outbound_temperature:
+      name: $upper_devicename Colant Outbound Temperature
+      id: ${devicename}_outbound_temp
+      internal: false
+    inbound_temperature:
+      name: $upper_devicename Colant Inbound Temperature
+      id: ${devicename}_inbound_temp
+      internal: false
+    compressor_temperature:
+      name: $upper_devicename Compressor Temperature
+      id: ${devicename}_strange_temp
+      internal: false
+    defrost_state:
+      name: $upper_devicename Defrost State
+      id: ${devicename}_defrost_state
+      internal: false
+    invertor_power:
+      name: $upper_devicename Invertor Power
+      id: ${devicename}_invertor_power
+      internal: false
+    preset_reporter:
+      name: $upper_devicename Preset Reporter
+      id: ${devicename}_preset_reporter
+      internal: false
     visual:
       min_temperature: 16
       max_temperature: 32
       temperature_step: 0.5
     supported_modes:
-      - HEAT_COOL   # не AUTO, так как только нагревает и остужает. В доках на ESPHome говорится, что AUTO - это если у устройства есть календарь и какие-то установки по расписанию.
+      - HEAT_COOL
       - COOL
       - HEAT
       - DRY
@@ -100,7 +132,6 @@ climate:
       - SLEEP
     custom_presets:
       - CLEAN
-      - FEEL
       - HEALTH
       - ANTIFUNGUS
     supported_swing_modes:
@@ -113,7 +144,7 @@ switch:
   - platform: template
     name: AC Display
     lambda: |-
-      if (id(ac_display_state).state) {
+      if (id(${devicename}_display_state).state) {
         return true;
       } else {
         return false;

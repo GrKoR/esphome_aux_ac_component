@@ -391,7 +391,16 @@ enum ac_sleep : uint8_t { AC_SLEEP_OFF = 0x00, AC_SLEEP_ON = 0x04, AC_SLEEP_UNTO
 // Вертикальные жалюзи. В протоколе зашита возможность двигать ими по всякому, но должна быть такая возможность на уровне железа.
 // TODO: надо протестировать значения 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 для ac_louver_V
 #define AC_LOUVERV_MASK    0b00000111
-enum ac_louver_V : uint8_t { AC_LOUVERV_SWING_UPDOWN = 0x00,  AC_LOUVERV_OFF = 0x07, AC_LOUVERV_UNTOUCHED = 0xFF };
+enum ac_louver_V : uint8_t {
+    AC_LOUVERV_SWING_UPDOWN = 0x00,
+    AC_LOUVERV_SWING_TOP = 0x01,
+    AC_LOUVERV_SWING_MIDDLE_ABOVE = 0x02,
+    AC_LOUVERV_SWING_MIDDLE = 0x03,
+    AC_LOUVERV_SWING_MIDDLE_BELOW = 0x04,
+    AC_LOUVERV_SWING_BOTTOM = 0x05,
+    AC_LOUVERV_OFF = 0x07,
+    AC_LOUVERV_UNTOUCHED = 0xFF
+};
 
 // Горизонтальные жалюзи. В протоколе зашита возможность двигать ими по всякому, но должна быть такая возможность на уровне железа.
 // TODO: надо протестировать значения 0x20, 0x40, 0x60, 0x80, 0xA0, 0xC0 для ac_louver_H
@@ -2945,12 +2954,12 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
             /*************************************** set params request ***********************************************/
             if (!_addSequenceFuncStep(&AirCon::sq_requestDoCommand, cmd)) {
-                _debugMsg(F("commandSequence: getBigInfo request sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                _debugMsg(F("commandSequence: request sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                 return false;
             }
             /*************************************** set params control ***********************************************/
             if (!_addSequenceFuncStep(&AirCon::sq_controlDoCommand)) {
-                _debugMsg(F("commandSequence: getBigInfo control sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                _debugMsg(F("commandSequence: control sequence step fail."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                 return false;
             }
             /**************************************************************************************/
@@ -3069,6 +3078,37 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
             return true;
         }
+
+        // устанавливает жалюзи в нужное положение
+        bool setVLouverSequence(const ac_louver_V vLouver){
+            // нет смысла в последовательности, если нет коннекта с кондиционером
+            if (!get_has_connection()) {
+                _debugMsg(F("setVLouverSequence: no pings from HVAC. It seems like no AC connected."), ESPHOME_LOG_LEVEL_ERROR, __LINE__);
+                return false;
+            }
+            if (vLouver == AC_LOUVERV_UNTOUCHED) return false;  // выходим, чтобы не тратить время
+            
+            if ((vLouver > AC_LOUVERV_OFF) || (vLouver == 0x06)) return false;  // нет таких команд
+
+            // формируем команду
+            ac_command_t    cmd;
+            _clearCommand(&cmd);    // не забываем очищать, а то будет мусор
+            cmd.louver.louver_v = vLouver;
+            // добавляем команду в последовательность
+            if (!commandSequence(&cmd)) return false;
+
+            _debugMsg(F("setVLouverSequence: loaded (power = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, vLouver);
+            return true;
+        }
+
+        // установка жалюзи в определенные положения
+        bool setVLouverSwingSequence() { return setVLouverSequence(AC_LOUVERV_SWING_UPDOWN); }
+        bool setVLouverStopSequence() { return setVLouverSequence(AC_LOUVERV_OFF); }
+        bool setVLouverTopSequence() { return setVLouverSequence(AC_LOUVERV_SWING_TOP); }
+        bool setVLouverMiddleAboveSequence() { return setVLouverSequence(AC_LOUVERV_SWING_MIDDLE_ABOVE); }
+        bool setVLouverMiddleSequence() { return setVLouverSequence(AC_LOUVERV_SWING_MIDDLE); }
+        bool setVLouverMiddleBelowSequence() { return setVLouverSequence(AC_LOUVERV_SWING_MIDDLE_BELOW); }
+        bool setVLouverBottomSequence() { return setVLouverSequence(AC_LOUVERV_SWING_BOTTOM); }
 
         void set_period(uint32_t ms) { this->_update_period = ms; }
         uint32_t get_period() { return this->_update_period; }
