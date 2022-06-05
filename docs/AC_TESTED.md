@@ -3,6 +3,7 @@
 Кондиционеры из списка ниже протестированы и точно совместимы с `aux_ac`.
 
 + AUX (models: ASW-H09A4/LK-700R1, ASW-H09B4/LK-700R1, AMWM-xxx multisplit, AL-H48/5DR2(U)/ALMD-H48/5DR2)
++ Ballu (models: BSUI-12HN8)
 + Centek (models: CT-65Q09, CT-65Z10, CT-65A12)
 + Dimstal (model: SMND-QC-12-J-Smart ECO)
 + Energolux (models: SAS07L4-A, SAS09Z4-AI, SASxxBN1-AI)
