@@ -2494,8 +2494,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         #endif
 
                         //cmd.temp_target = 25; // зависимость от режима HEAT_COOL 
-                        cmd.temp_target_matter = true;
-                        cmd.fanTurbo = AC_FANTURBO_OFF; // зависимость от режима HEAT_COOL  
+                        //cmd.temp_target_matter = true;
+                        //cmd.fanTurbo = AC_FANTURBO_OFF; // зависимость от режима HEAT_COOL  
                         this->mode = mode;
                         break;
                     
