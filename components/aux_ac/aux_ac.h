@@ -2205,19 +2205,11 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             _debugMsg(F("Climate swing mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->swing_mode);
 
             /*************************** TEMPERATURE ***************************/
-            if(_current_ac_state.mode == AC_MODE_FAN || _current_ac_state.power == AC_POWER_OFF){
-                // в режиме вентилятора и в выключенном состоянии будем показывать текущую температуру
-                this->target_temperature = _current_ac_state.temp_ambient;
-            } else if (_current_ac_state.mode == AC_MODE_AUTO ){
-                this->target_temperature = 25;  // в AUTO зашита температура 25 градусов
-            } else {
-                this->target_temperature = _current_ac_state.temp_target;
-            }
+              this->target_temperature = _current_ac_state.temp_target;
             _debugMsg(F("Target temperature: %f"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->target_temperature);
 
             this->current_temperature = _current_ac_state.temp_ambient;
             _debugMsg(F("Room temperature: %f"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->current_temperature);
-            
 
             /*********************************************************************/
             /*************************** PUBLISH STATE ***************************/
@@ -2501,7 +2493,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             load_preset(&cmd, POS_MODE_AUTO);
                         #endif
 
-                        cmd.temp_target = 25; // зависимость от режима HEAT_COOL 
+                        //cmd.temp_target = 25; // зависимость от режима HEAT_COOL 
                         cmd.temp_target_matter = true;
                         cmd.fanTurbo = AC_FANTURBO_OFF; // зависимость от режима HEAT_COOL  
                         this->mode = mode;
