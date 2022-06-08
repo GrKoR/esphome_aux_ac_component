@@ -87,7 +87,7 @@ climate:
     uart_id: ac_uart_bus
     period: 7s
     show_action: true
-    display_inverted: true
+    display_inverted: false
     indoor_temperature:
       name: AC Indoor Temperature
       id: ac_indoor_temp
