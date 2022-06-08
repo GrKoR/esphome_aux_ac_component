@@ -95,10 +95,10 @@ enum acsm_state : uint8_t {
 // структура пакета описана тут:
 // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_structure
 #define AC_HEADER_SIZE 8
-//#define AC_MAX_BODY_SIZE 24   // TODO: нигде не используется, можно удалить
+
 // стандартно длина пакета не более 34 байт
 // но встретилось исключение Royal Clima (как минимум, модель CO-D xxHNI) - у них 35 байт
-// пожтому буффер увеличен
+// поэтому буффер увеличен
 #define AC_BUFFER_SIZE 35
 
 /**
@@ -289,7 +289,6 @@ struct packet_big_info_body_t {
 
     // байт 17 тела (байт 25 пакета)
     // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b25
-    //TODO: в описание протокола требуется пояснение от Brokly
     uint8_t zero11;         // не расшифрован, подробнее в описании.
 
     // байт 18 тела (байт 26 пакета)
@@ -298,7 +297,6 @@ struct packet_big_info_body_t {
 
     // байт 19 тела (байт 27 пакета)
     // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b27
-    //TODO: в описание протокола требуется пояснение от Brokly
     uint8_t zero13;         // не расшифрован, подробнее в описании.
 
     // байт 20 тела (байт 28 пакета)
@@ -389,7 +387,6 @@ enum ac_mode : uint8_t { AC_MODE_AUTO = 0x00, AC_MODE_COOL = 0x20, AC_MODE_DRY =
 enum ac_sleep : uint8_t { AC_SLEEP_OFF = 0x00, AC_SLEEP_ON = 0x04, AC_SLEEP_UNTOUCHED = 0xFF };
 
 // Вертикальные жалюзи. В протоколе зашита возможность двигать ими по всякому, но должна быть такая возможность на уровне железа.
-// TODO: надо протестировать значения 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 для ac_louver_V
 #define AC_LOUVERV_MASK    0b00000111
 enum ac_louver_V : uint8_t {
     AC_LOUVERV_SWING_UPDOWN = 0x00,
@@ -398,12 +395,13 @@ enum ac_louver_V : uint8_t {
     AC_LOUVERV_SWING_MIDDLE = 0x03,
     AC_LOUVERV_SWING_MIDDLE_BELOW = 0x04,
     AC_LOUVERV_SWING_BOTTOM = 0x05,
+    // 0x06 ничего не даёт, протестировано
     AC_LOUVERV_OFF = 0x07,
     AC_LOUVERV_UNTOUCHED = 0xFF
 };
 
 // Горизонтальные жалюзи. В протоколе зашита возможность двигать ими по всякому, но должна быть такая возможность на уровне железа.
-// TODO: надо протестировать значения 0x20, 0x40, 0x60, 0x80, 0xA0, 0xC0 для ac_louver_H
+// горизонтальные жалюзи выставлять в определенное положение не вышло, протестировано.
 #define AC_LOUVERH_MASK    0b11100000
 enum ac_louver_H : uint8_t { AC_LOUVERH_SWING_LEFTRIGHT = 0x00,  AC_LOUVERH_OFF = 0xE0, AC_LOUVERH_UNTOUCHED = 0xFF };
 
@@ -449,8 +447,8 @@ enum ac_mildew : uint8_t { AC_MILDEW_OFF = 0x00, AC_MILDEW_ON = 0x08, AC_MILDEW_
 */
 
 //*****************************************************************************
-// TODO: presets блок кода под сохранение пресетов. После решения - убрать
-// данные структур содержат настройку, специально вынес в макрос
+// структура для сохранения настроек, специально вынесено в макрос, чтобы использовать в нескольких местах
+// сделано Brokly для того, чтобы поведение wifi-модуля походило на ИК-пульт (для каждого режима сохранялись свои настройки температуры и прочего)
 #define AC_COMMAND_BASE     float       temp_target;\
                             ac_power    power;\
                             ac_clean    clean;\
@@ -1900,7 +1898,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             _startupSequenceComlete = false;
 
             // первоначальная инициализация
-            // TODO: вроде бы введено Brokly, но было в setup(). Надо узнать, зачем оно нам вообще?
             this->preset = climate::CLIMATE_PRESET_NONE;
             this->custom_preset = (std::string)"";
             this->mode = climate::CLIMATE_MODE_OFF;
@@ -2089,7 +2086,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
             /*************************** MUTE FAN MODE ***************************/
             // MUTE работает в режиме FAN. В режимах HEAT, COOL, HEAT_COOL не работает. DRY не проверял.
-            // TODO: проверку на несовместимые режимы пока выпилили, т.к. нет уверенности, что это поведение одинаково для всех
+            // проверку на несовместимые режимы выпилили, т.к. нет уверенности, что это поведение одинаково для всех
             switch (_current_ac_state.fanMute) {
                 case AC_FANMUTE_ON:
                     //if (_current_ac_state.mode == AC_MODE_FAN) {
@@ -2762,7 +2759,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
                     hasCommand = true;
                     this->custom_preset = custom_preset;
-                    //_debugMsg(F("ANTIFUNGUS preset has not been implemented yet."), ESPHOME_LOG_LEVEL_INFO, __LINE__);
                 }
             }
 
