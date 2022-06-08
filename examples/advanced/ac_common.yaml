@@ -69,8 +69,36 @@ climate:
       id: ${devicename}_indoor_temp
       internal: false
     display_state:
-      name: $upper_devicename Display State
+      name: ${upper_devicename} Display State
       id: ${devicename}_display_state
+      internal: false
+    outdoor_temperature:
+      name: ${upper_devicename} Outdoor Temperature
+      id: ${devicename}_outdoor_temp
+      internal: false
+    outbound_temperature:
+      name: ${upper_devicename} Colant Outbound Temperature
+      id: ${devicename}_outbound_temp
+      internal: false
+    inbound_temperature:
+      name: ${upper_devicename} Colant Inbound Temperature
+      id: ${devicename}_inbound_temp
+      internal: false
+    compressor_temperature:
+      name: ${upper_devicename} Compressor Temperature
+      id: ${devicename}_strange_temp
+      internal: false
+    defrost_state:
+      name: ${upper_devicename} Defrost State
+      id: ${devicename}_defrost_state
+      internal: false
+    invertor_power:
+      name: ${upper_devicename} Invertor Power
+      id: ${devicename}_invertor_power
+      internal: false
+    preset_reporter:
+      name: ${upper_devicename} Preset Reporter
+      id: ${devicename}_preset_reporter
       internal: false
     visual:
       min_temperature: 16
@@ -89,7 +117,6 @@ climate:
       - SLEEP
     custom_presets:
       - CLEAN
-      - FEEL
       - HEALTH
       - ANTIFUNGUS
     supported_swing_modes:
@@ -109,7 +136,7 @@ sensor:
 
 switch:
   - platform: template
-    name: $upper_devicename Display
+    name: ${upper_devicename} Display
     lambda: |-
       if (id(${devicename}_display_state).state) {
         return true;
@@ -120,3 +147,62 @@ switch:
       - aux_ac.display_on: aux_id
     turn_off_action:
       - aux_ac.display_off: aux_id
+
+button:
+  - platform: template
+    name: ${upper_devicename} VLouver Stop
+    icon: "mdi:circle-small"
+    on_press:
+      - aux_ac.vlouver_stop: aux_id
+    
+  - platform: template
+    name: ${upper_devicename} VLouver Swing
+    icon: "mdi:pan-vertical"
+    on_press:
+      - aux_ac.vlouver_swing: aux_id
+    
+  - platform: template
+    name: ${upper_devicename} VLouver Top
+    icon: "mdi:pan-up"
+    on_press:
+      - aux_ac.vlouver_top: aux_id
+    
+  - platform: template
+    name: ${upper_devicename} VLouver Middle Above
+    icon: "mdi:pan-top-left"
+    on_press:
+      - aux_ac.vlouver_middle_above: aux_id
+    
+  - platform: template
+    name: ${upper_devicename} VLouver Middle
+    icon: "mdi:pan-left"
+    on_press:
+      - aux_ac.vlouver_middle: aux_id
+    
+  - platform: template
+    name: ${upper_devicename} VLouver Middle Below
+    icon: "mdi:pan-bottom-left"
+    on_press:
+      - aux_ac.vlouver_middle_below: aux_id
+    
+  - platform: template
+    name: ${upper_devicename} VLouver Bottom
+    icon: "mdi:pan-down"
+    on_press:
+      - aux_ac.vlouver_bottom: aux_id
+
+
+number:
+  - platform: template
+    name: ${upper_devicename} Vertical Louver
+    id: ${devicename}_vlouver
+    icon: "mdi:circle-small"
+    mode: "slider"
+    min_value: 0
+    max_value: 6
+    step: 1
+    set_action:
+      then:
+        - lambda: !lambda |-
+            if (x == 6) x = 7;  // 6 is incorrect louver position, 7 is stopped louver
+            id(aux_id).setVLouverSequence( static_cast<esphome::aux_ac::ac_louver_V>(x) );

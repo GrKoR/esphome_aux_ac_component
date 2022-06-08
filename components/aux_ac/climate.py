@@ -1,7 +1,7 @@
 import logging
 import esphome.config_validation as cv
 import esphome.codegen as cg
-from esphome.components import climate, uart, sensor, binary_sensor
+from esphome.components import climate, uart, sensor, binary_sensor, text_sensor
 from esphome import automation
 from esphome.automation import maybe_simple_id
 from esphome.const import (
@@ -12,9 +12,15 @@ from esphome.const import (
     CONF_CUSTOM_PRESETS,
     CONF_INTERNAL,
     CONF_DATA,
+    CONF_SUPPORTED_MODES,
+    CONF_SUPPORTED_SWING_MODES,
+    CONF_SUPPORTED_PRESETS,
     UNIT_CELSIUS,
+    UNIT_PERCENT,
+    ICON_POWER,
     ICON_THERMOMETER,
     DEVICE_CLASS_TEMPERATURE,
+    DEVICE_CLASS_POWER_FACTOR,
     STATE_CLASS_MEASUREMENT,
 )
 from esphome.components.climate import (
@@ -27,17 +33,27 @@ _LOGGER = logging.getLogger(__name__)
 
 CODEOWNERS = ["@GrKoR"]
 DEPENDENCIES = ["climate", "uart"]
-AUTO_LOAD = ["sensor", "binary_sensor"]
+AUTO_LOAD = ["sensor", "binary_sensor", "text_sensor"]
 
-CONF_SUPPORTED_MODES = 'supported_modes'
-CONF_SUPPORTED_SWING_MODES = 'supported_swing_modes'
-CONF_SUPPORTED_PRESETS = 'supported_presets'
 CONF_SHOW_ACTION = 'show_action'
 CONF_INDOOR_TEMPERATURE = 'indoor_temperature'
+CONF_OUTDOOR_TEMPERATURE = 'outdoor_temperature'
+ICON_OUTDOOR_TEMPERATURE = 'mdi:home-thermometer-outline'
+CONF_INBOUND_TEMPERATURE = 'inbound_temperature'
+ICON_INBOUND_TEMPERATURE = 'mdi:thermometer-plus'
+CONF_OUTBOUND_TEMPERATURE = 'outbound_temperature'
+ICON_OUTBOUND_TEMPERATURE = 'mdi:thermometer-minus'
+CONF_COMPRESSOR_TEMPERATURE = 'compressor_temperature'
+ICON_COMPRESSOR_TEMPERATURE = 'mdi:thermometer-lines'
 CONF_DISPLAY_STATE = 'display_state'
-
+CONF_INVERTOR_POWER = 'invertor_power'
+CONF_DEFROST_STATE = 'defrost_state'
+ICON_DEFROST = "mdi:snowflake-melt"
 CONF_DISPLAY_INVERTED = 'display_inverted'
-ICON_DISPLAY = "mdi:numeric"
+ICON_DISPLAY = "mdi:clock-digital"
+CONF_PRESET_REPORTER = "preset_reporter"
+ICON_PRESET_REPORTER = "mdi:format-list-group"
+
 
 aux_ac_ns = cg.esphome_ns.namespace("aux_ac")
 AirCon = aux_ac_ns.class_("AirCon", climate.Climate, cg.Component)
@@ -45,6 +61,13 @@ Capabilities = aux_ac_ns.namespace("Constants")
 
 AirConDisplayOffAction = aux_ac_ns.class_("AirConDisplayOffAction", automation.Action)
 AirConDisplayOnAction = aux_ac_ns.class_("AirConDisplayOnAction", automation.Action)
+AirConVLouverSwingAction = aux_ac_ns.class_("AirConVLouverSwingAction", automation.Action)
+AirConVLouverStopAction = aux_ac_ns.class_("AirConVLouverStopAction", automation.Action)
+AirConVLouverTopAction = aux_ac_ns.class_("AirConVLouverTopAction", automation.Action)
+AirConVLouverMiddleAboveAction = aux_ac_ns.class_("AirConVLouverMiddleAboveAction", automation.Action)
+AirConVLouverMiddleAction = aux_ac_ns.class_("AirConVLouverMiddleAction", automation.Action)
+AirConVLouverMiddleBelowAction = aux_ac_ns.class_("AirConVLouverMiddleBelowAction", automation.Action)
+AirConVLouverBottomAction = aux_ac_ns.class_("AirConVLouverBottomAction", automation.Action)
 AirConSendTestPacketAction = aux_ac_ns.class_("AirConSendTestPacketAction", automation.Action)
 
 ALLOWED_CLIMATE_MODES = {
@@ -76,7 +99,6 @@ validate_custom_fan_modes = cv.enum(CUSTOM_FAN_MODES, upper=True)
 
 CUSTOM_PRESETS = {
     "CLEAN": Capabilities.CLEAN,
-    "FEEL": Capabilities.FEEL,
     "HEALTH": Capabilities.HEALTH,
     "ANTIFUNGUS": Capabilities.ANTIFUNGUS,
 }
@@ -102,6 +124,17 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_PERIOD, default="7s"): cv.time_period,
             cv.Optional(CONF_SHOW_ACTION, default="true"): cv.boolean,
             cv.Optional(CONF_DISPLAY_INVERTED, default="false"): cv.boolean,
+            cv.Optional(CONF_INVERTOR_POWER): sensor.sensor_schema(
+                unit_of_measurement=UNIT_PERCENT,
+                icon=ICON_POWER,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_POWER_FACTOR,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                }
+            ),
             cv.Optional(CONF_INDOOR_TEMPERATURE): sensor.sensor_schema(
                 unit_of_measurement=UNIT_CELSIUS,
                 icon=ICON_THERMOMETER,
@@ -113,11 +146,69 @@ CONFIG_SCHEMA = cv.All(
                     cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
                 }
             ),
-            cv.Optional(CONF_DISPLAY_STATE): binary_sensor.binary_sensor_schema(
-                icon=ICON_DISPLAY
+            cv.Optional(CONF_OUTDOOR_TEMPERATURE): sensor.sensor_schema(
+                unit_of_measurement=UNIT_CELSIUS,
+                icon=ICON_OUTDOOR_TEMPERATURE,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_TEMPERATURE,
+                state_class=STATE_CLASS_MEASUREMENT,
             ).extend(
                 {
-                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                }
+            ),
+            cv.Optional(CONF_INBOUND_TEMPERATURE): sensor.sensor_schema(
+                unit_of_measurement=UNIT_CELSIUS,
+                icon=ICON_INBOUND_TEMPERATURE,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_TEMPERATURE,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                }
+            ),
+            cv.Optional(CONF_OUTBOUND_TEMPERATURE): sensor.sensor_schema(
+                unit_of_measurement=UNIT_CELSIUS,
+                icon=ICON_OUTBOUND_TEMPERATURE,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_TEMPERATURE,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                }
+            ),
+            cv.Optional(CONF_COMPRESSOR_TEMPERATURE): sensor.sensor_schema(
+                unit_of_measurement=UNIT_CELSIUS,
+                icon=ICON_COMPRESSOR_TEMPERATURE,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_TEMPERATURE,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                }
+            ),
+            cv.Optional(CONF_DISPLAY_STATE): binary_sensor.binary_sensor_schema(
+                icon=ICON_DISPLAY,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                }
+            ),
+            cv.Optional(CONF_DEFROST_STATE): binary_sensor.binary_sensor_schema(
+                icon=ICON_DEFROST,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                }
+            ),
+            cv.Optional(CONF_PRESET_REPORTER): text_sensor.text_sensor_schema(
+                icon=ICON_PRESET_REPORTER,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
                 }
             ),
             cv.Optional(CONF_SUPPORTED_MODES): cv.ensure_list(validate_modes),
@@ -146,11 +237,46 @@ async def to_code(config):
         conf = config[CONF_INDOOR_TEMPERATURE]
         sens = await sensor.new_sensor(conf)
         cg.add(var.set_indoor_temperature_sensor(sens))
+    
+    if CONF_OUTDOOR_TEMPERATURE in config:
+        conf = config[CONF_OUTDOOR_TEMPERATURE]
+        sens = await sensor.new_sensor(conf)
+        cg.add(var.set_outdoor_temperature_sensor(sens))
+
+    if CONF_OUTBOUND_TEMPERATURE in config:
+        conf = config[CONF_OUTBOUND_TEMPERATURE]
+        sens = await sensor.new_sensor(conf)
+        cg.add(var.set_outbound_temperature_sensor(sens))
+
+    if CONF_INBOUND_TEMPERATURE in config:
+        conf = config[CONF_INBOUND_TEMPERATURE]
+        sens = await sensor.new_sensor(conf)
+        cg.add(var.set_inbound_temperature_sensor(sens))
+
+    if CONF_COMPRESSOR_TEMPERATURE in config:
+        conf = config[CONF_COMPRESSOR_TEMPERATURE]
+        sens = await sensor.new_sensor(conf)
+        cg.add(var.set_compressor_temperature_sensor(sens))
 
     if CONF_DISPLAY_STATE in config:
         conf = config[CONF_DISPLAY_STATE]
         sens = await binary_sensor.new_binary_sensor(conf)
         cg.add(var.set_display_sensor(sens))
+
+    if CONF_DEFROST_STATE in config:
+        conf = config[CONF_DEFROST_STATE]
+        sens = await binary_sensor.new_binary_sensor(conf)
+        cg.add(var.set_defrost_state(sens))
+
+    if CONF_INVERTOR_POWER in config:
+        conf = config[CONF_INVERTOR_POWER]
+        sens = await sensor.new_sensor(conf)
+        cg.add(var.set_invertor_power_sensor(sens))
+
+    if CONF_PRESET_REPORTER in config:
+        conf = config[CONF_PRESET_REPORTER]
+        sens = await text_sensor.new_text_sensor(conf)
+        cg.add(var.set_preset_reporter_sensor(sens))
 
     cg.add(var.set_period(config[CONF_PERIOD].total_milliseconds))
     cg.add(var.set_show_action(config[CONF_SHOW_ACTION]))
@@ -185,12 +311,47 @@ async def display_on_to_code(config, action_id, template_arg, args):
     return cg.new_Pvariable(action_id, template_arg, paren)
 
 
-SEND_TEST_PACKET_ACTION_SCHEMA = maybe_simple_id(
+VLOUVER_ACTION_SCHEMA = maybe_simple_id(
     {
         cv.Required(CONF_ID): cv.use_id(AirCon),
-        cv.Required(CONF_DATA): cv.templatable(validate_raw_data),
     }
 )
+
+@automation.register_action("aux_ac.vlouver_stop", AirConVLouverStopAction, VLOUVER_ACTION_SCHEMA)
+async def vlouver_stop_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
+
+@automation.register_action("aux_ac.vlouver_swing", AirConVLouverSwingAction, VLOUVER_ACTION_SCHEMA)
+async def vlouver_swing_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
+
+
+@automation.register_action("aux_ac.vlouver_top", AirConVLouverTopAction, VLOUVER_ACTION_SCHEMA)
+async def vlouver_top_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
+
+@automation.register_action("aux_ac.vlouver_middle_above", AirConVLouverMiddleAboveAction, VLOUVER_ACTION_SCHEMA)
+async def vlouver_middle_above_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
+
+@automation.register_action("aux_ac.vlouver_middle", AirConVLouverMiddleAction, VLOUVER_ACTION_SCHEMA)
+async def vlouver_middle_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
+
+@automation.register_action("aux_ac.vlouver_middle_below", AirConVLouverMiddleBelowAction, VLOUVER_ACTION_SCHEMA)
+async def vlouver_middle_below_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
+
+@automation.register_action("aux_ac.vlouver_bottom", AirConVLouverBottomAction, VLOUVER_ACTION_SCHEMA)
+async def vlouver_bottom_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
 
 
 # *********************************************************************************************************
@@ -199,6 +360,13 @@ SEND_TEST_PACKET_ACTION_SCHEMA = maybe_simple_id(
 # кондиционеру всё как есть. Какой эффект получится от передачи кондиционеру рандомных байт, никто не знает.
 # Вы действуете на свой страх и риск.
 # *********************************************************************************************************
+SEND_TEST_PACKET_ACTION_SCHEMA = maybe_simple_id(
+    {
+        cv.Required(CONF_ID): cv.use_id(AirCon),
+        cv.Required(CONF_DATA): cv.templatable(validate_raw_data),
+    }
+)
+
 @automation.register_action(
     "aux_ac.send_packet",
     AirConSendTestPacketAction,
@@ -218,4 +386,4 @@ async def send_packet_to_code(config, action_id, template_arg, args):
     else:
         cg.add(var.set_data_static(data))
 
-    return var
+    return var    

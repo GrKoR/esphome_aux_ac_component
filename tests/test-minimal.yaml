@@ -6,8 +6,12 @@ external_components:
     #components: [ aux_ac ]
     #refresh: 0s
 
+substitutions:
+  devicename: test_local_minimal
+  upper_devicename: Test AUX
+  
 esphome:
-  name: test_aux_ac_minimal
+  name: $devicename
   platform: ESP8266
   board: esp12e
 
@@ -41,4 +45,4 @@ uart:
 
 climate:
   - platform: aux_ac
-    name: "AC Name"
+    name: $upper_devicename

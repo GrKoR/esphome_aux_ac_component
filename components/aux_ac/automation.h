@@ -7,6 +7,7 @@
 namespace esphome {
 namespace aux_ac {
 
+// **************************************** DISPLAY ACTIONS ****************************************
     template <typename... Ts>
     class AirConDisplayOffAction : public Action<Ts...>
     {
@@ -31,6 +32,96 @@ namespace aux_ac {
         AirCon *ac_;
     };
 
+
+
+// **************************************** VERTICAL LOUVER ACTIONS ****************************************
+    template <typename... Ts>
+    class AirConVLouverSwingAction : public Action<Ts...>
+    {
+    public:
+        explicit AirConVLouverSwingAction(AirCon *ac) : ac_(ac) {}
+
+        void play(Ts... x) override { this->ac_->setVLouverSwingSequence(); }
+
+    protected:
+        AirCon *ac_;
+    };
+
+    template <typename... Ts>
+    class AirConVLouverStopAction : public Action<Ts...>
+    {
+    public:
+        explicit AirConVLouverStopAction(AirCon *ac) : ac_(ac) {}
+
+        void play(Ts... x) override { this->ac_->setVLouverStopSequence(); }
+
+    protected:
+        AirCon *ac_;
+    };
+
+    template <typename... Ts>
+    class AirConVLouverTopAction : public Action<Ts...>
+    {
+    public:
+        explicit AirConVLouverTopAction(AirCon *ac) : ac_(ac) {}
+
+        void play(Ts... x) override { this->ac_->setVLouverTopSequence(); }
+
+    protected:
+        AirCon *ac_;
+    };
+
+    template <typename... Ts>
+    class AirConVLouverMiddleAboveAction : public Action<Ts...>
+    {
+    public:
+        explicit AirConVLouverMiddleAboveAction(AirCon *ac) : ac_(ac) {}
+
+        void play(Ts... x) override { this->ac_->setVLouverMiddleAboveSequence(); }
+
+    protected:
+        AirCon *ac_;
+    };
+
+    template <typename... Ts>
+    class AirConVLouverMiddleAction : public Action<Ts...>
+    {
+    public:
+        explicit AirConVLouverMiddleAction(AirCon *ac) : ac_(ac) {}
+
+        void play(Ts... x) override { this->ac_->setVLouverMiddleSequence(); }
+
+    protected:
+        AirCon *ac_;
+    };
+
+    template <typename... Ts>
+    class AirConVLouverMiddleBelowAction : public Action<Ts...>
+    {
+    public:
+        explicit AirConVLouverMiddleBelowAction(AirCon *ac) : ac_(ac) {}
+
+        void play(Ts... x) override { this->ac_->setVLouverMiddleBelowSequence(); }
+
+    protected:
+        AirCon *ac_;
+    };
+
+    template <typename... Ts>
+    class AirConVLouverBottomAction : public Action<Ts...>
+    {
+    public:
+        explicit AirConVLouverBottomAction(AirCon *ac) : ac_(ac) {}
+
+        void play(Ts... x) override { this->ac_->setVLouverBottomSequence(); }
+
+    protected:
+        AirCon *ac_;
+    };
+
+
+
+// **************************************** SEND TEST PACKET ACTION ****************************************
     template <typename... Ts>
     class AirConSendTestPacketAction : public Action<Ts...>
     {

@@ -98,15 +98,44 @@ climate:
     indoor_temperature:
       name: AC Indoor Temperature
       id: ac_indoor_temp
-      internal: true
+      accuracy_decimals: 1
+      internal: false
+    outdoor_temperature:
+      name: AC Outdoor Temperature
+      id: ac_outdoor_temp
+      internal: false
+    outbound_temperature:
+      name: AC Colant Outbound Temperature
+      id: ac_outbound_temp
+      internal: false
+    inbound_temperature:
+      name: AC Colant Inbound Temperature
+      id: ac_inbound_temp
+      internal: false
+    compressor_temperature:
+      name: AC Compressor Temperature
+      id: ac_strange_temp
+      internal: false
     display_state:
-      name: AC Display
-      id: ac_display
+      name: AC Display State
+      id: ac_display_state
+      internal: false
+    defrost_state:
+      name: AC Defrost State
+      id: ac_defrost_state
+      internal: false
+    invertor_power:
+      name: AC Invertor Power
+      id: ac_invertor_power
+      internal: false
+    preset_reporter:
+      name: AC Preset Reporter
+      id: ac_preset_reporter
       internal: false
     visual:
       min_temperature: 16
       max_temperature: 32
-      temperature_step: 0.5
+      temperature_step: 1
     supported_modes:
       - HEAT_COOL
       - COOL
@@ -120,7 +149,6 @@ climate:
       - SLEEP
     custom_presets:
       - CLEAN
-      - FEEL
       - HEALTH
       - ANTIFUNGUS
     supported_swing_modes:
@@ -145,15 +173,23 @@ climate:
   - **id** (*Опциональный*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Можно указать свой ID для датчика для использования в лямбдах.
   - **internal** (*Опциональный*, логическое): Пометить данный датчик как внутренний. Внутренний датчик не будет передаваться во фронтэнд (такой как Home Assistant). В противоположность стандартному поведению [сенсоров](https://esphome.io/components/sensor/index.html#base-sensor-configuration) этот параметр для датчика в кондиционере **всегда выставлен в true** за исключением случаев, когда пользователь не установил его в `false`. То есть по умолчанию значение сенсора не будет передаваться во фронтенд даже если указано `name` для сенсора.
   - Все остальные параметры [сенсора](https://esphome.io/components/sensor/index.html#base-sensor-configuration) ESPHome.
+- **outdoor_temperature** (*Опциональный*): Параметры создаваемого датчика уличной температуры воздуха, если такой датчик нужен. Параметры аналогичны датчику внутренней температуры **indoor_temperature** (см. выше).
+- **inbound_temperature** (*Опциональный*): Параметры создаваемого датчика температуры на подаче теплоносителя, если такой датчик нужен. Параметры аналогичны датчику внутренней температуры **indoor_temperature** (см. выше).
+- **outbound_temperature** (*Опциональный*): Параметры создаваемого датчика температуры на обратке теплоносителя, если такой датчик нужен. Параметры аналогичны датчику внутренней температуры **indoor_temperature** (см. выше).
+- **compressor_temperature** (*Опциональный*): Параметры создаваемого датчика температуры компрессора, если такой датчик нужен. Параметры аналогичны датчику внутренней температуры **indoor_temperature** (см. выше).
 - **display_state** (*Опциональный*): Параметры создаваемого датчика дисплея (включен или выключен), если такой датчик нужен.
   - **name** (**Обязательный**, строка): Имя датчика дисплея.
   - **id** (*Опциональный*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Можно указать свой ID для датчика для использования в лямбдах.
   - **internal** (*Опциональный*, логическое): Пометить данный датчик как внутренний. Внутренний датчик не будет передаваться во фронтэнд (такой как Home Assistant). В противоположность стандартному поведению [бинарных сенсоров](https://esphome.io/components/binary_sensor/index.html#base-binary-sensor-configuration) этот параметр для датчика в кондиционере **всегда выставлен в true** за исключением случаев, когда пользователь не установил его в `false`. То есть по умолчанию значение сенсора не будет передаваться во фронтенд даже если указано `name` для сенсора.
   - Все остальные параметры [бинарного сенсора](https://esphome.io/components/binary_sensor/index.html#base-binary-sensor-configuration) ESPHome.
+- **defrost_state** (*Опциональный*): Параметры создаваемого датчика состояния разморозки (включена или выключена), если такой датчик нужен. Параметры аналогичны датчику дисплея **display_state**.
+- **invertor_power** (*Опциональный*): Параметры создаваемого датчика мощности инвертора, если такой датчик нужен. Параметры аналогичны датчику дисплея **display_state**.
+- **preset_reporter** (*Опциональный*): Параметры создаваемого текстового датчика текущего активного пресета. Параметры аналогичны датчику дисплея **display_state**.  
+Климатические устройства ESPHome не отправляют по MQTT активный пресет (см. **supported_presets** и **custom_presets**), в котором работает устройство. Если вы используете MQTT и хотите получать информацию о пресетах, то пропишите этот датчик в конфигурации.
 - **supported_modes** (*Опциональный*, список): Список поддерживаемых режимов работы. Возможные значения: ``HEAT_COOL``, ``COOL``, ``HEAT``, ``DRY``, ``FAN_ONLY``. Обратите внимание: некоторые производители кондиционеров указывают на пульте режим AUTO, хотя по факту этот режим не работает по расписанию и только лишь поддерживает целевую температуру. Такой режим в ESPHome называется HEAT_COOL. По умолчанию список содержит только значение ``FAN_ONLY``.
 - **custom_fan_modes** (*Опциональный*, список): Список поддерживаемых дополнительных режимов вентилятора. Возможные значения: ``MUTE``, ``TURBO``. По умолчанию никакие дополнительные режимы не установлены.
 - **supported_presets** (*Опциональный*, список): Список поддерживаемых базовых функций кондиционера. Возможные значения: ``SLEEP``. По умолчанию никакие базовые функции не установлены.
-- **custom_presets** (*Опциональный*, список): Список поддерживаемых дополнительных функций кондиционера. Возможные значения: ``CLEAN``, ``FEEL``, ``HEALTH``, ``ANTIFUNGUS``. Обратите внимание: функции ``FEEL``, ``HEALTH`` и ``ANTIFUNGUS`` пока не в компоненте реализованы. По умолчанию никакие дополнительные функции не установлены.
+- **custom_presets** (*Опциональный*, список): Список поддерживаемых дополнительных функций кондиционера. Возможные значения: ``CLEAN``, ``HEALTH``, ``ANTIFUNGUS``. По умолчанию никакие дополнительные функции не установлены.
 - **supported_swing_modes** (*Опциональный*, список): Список поддерживаемых режимов качания шторки. Возможные значения: ``VERTICAL``, ``HORIZONTAL``, ``BOTH``. По умолчанию устанавливается, что качание шторки кондиционером не поддерживается.
 - Все остальные параметры [климатического устройства](https://esphome.io/components/climate/index.html#base-climate-configuration) ESPHome.
 
@@ -178,6 +214,75 @@ on_...:
 ```
 - **aux_id** (**Обязательный**, строка): ID компонента `aux_ac`.
 
+### ``aux_ac.vlouver_stop`` ###
+Остановка вертикального движения жалюзи кондиционера. Если жалюзи качались в вертикальном направлении, то можно их остановить в нужном положении. 
+
+```yaml
+on_...:
+  then:
+    - aux_ac.vlouver_stop: aux_id
+```
+- **aux_id** (**Обязательный**, строка): ID компонента `aux_ac`.
+
+### ``aux_ac.vlouver_swing`` ###
+Включение вертикального качания жалюзи кондиционера.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.vlouver_swing: aux_id
+```
+- **aux_id** (**Обязательный**, строка): ID компонента `aux_ac`.
+
+### ``aux_ac.vlouver_top`` ###
+Установка жалюзи в самое верхнее положение.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.vlouver_top: aux_id
+```
+- **aux_id** (**Обязательный**, строка): ID компонента `aux_ac`.
+
+### ``aux_ac.vlouver_middle_above`` ###
+Установка жалюзи во второе сверху положение. Это положение между верхним и средним.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.vlouver_middle_above: aux_id
+```
+- **aux_id** (**Обязательный**, строка): ID компонента `aux_ac`.
+
+### ``aux_ac.vlouver_middle`` ###
+Установка жалюзи в среднее положение.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.vlouver_middle: aux_id
+```
+- **aux_id** (**Обязательный**, строка): ID компонента `aux_ac`.
+
+### ``aux_ac.vlouver_middle_below`` ###
+Установка жалюзи в положение ниже среднего.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.vlouver_middle_below: aux_id
+```
+- **aux_id** (**Обязательный**, строка): ID компонента `aux_ac`.
+
+### ``aux_ac.vlouver_bottom`` ###
+Установка жалюзи в самое нижнее положение.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.vlouver_bottom: aux_id
+```
+- **aux_id** (**Обязательный**, строка): ID компонента `aux_ac`.
 
 
 

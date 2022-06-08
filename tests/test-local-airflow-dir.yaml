@@ -1,0 +1,125 @@
+external_components:
+  - source:
+      type: local
+      path: ..\components
+
+substitutions:
+  devicename: test_local_airflow_dir
+  upper_devicename: Test AUX
+  
+esphome:
+  name: $devicename
+  platform: ESP8266
+  board: esp12e
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pass
+  manual_ip:
+    static_ip: !secret wifi_ip
+    gateway: !secret wifi_gateway
+    subnet: !secret wifi_subnet
+    dns1: 8.8.8.8
+    dns2: 1.1.1.1
+  reboot_timeout: 0s
+  ap:
+    ssid: $upper_devicename Fallback Hotspot
+    password: !secret wifi_ap_pass
+
+logger:
+  level: DEBUG
+  baud_rate: 0
+
+api:
+  password: !secret api_pass
+  reboot_timeout: 0s
+
+ota: 
+  password: !secret ota_pass
+
+web_server:
+  port: 80
+
+uart:
+  id: ac_uart_bus
+  tx_pin: GPIO1
+  rx_pin: GPIO3
+  baud_rate: 4800
+  data_bits: 8
+  parity: EVEN
+  stop_bits: 1
+
+  
+sensor:
+  - platform: uptime
+    name: Uptime Sensor
+
+
+climate:
+  - platform: aux_ac
+    name: $upper_devicename
+    id: aux_id
+    uart_id: ac_uart_bus
+    period: 7s
+    show_action: true
+    display_inverted: true
+
+
+button:
+  - platform: template
+    name: ${upper_devicename} VLouver Stop
+    icon: "mdi:circle-small"
+    on_press:
+      - aux_ac.vlouver_stop: aux_id
+    
+  - platform: template
+    name: ${upper_devicename} VLouver Swing
+    icon: "mdi:pan-vertical"
+    on_press:
+      - aux_ac.vlouver_swing: aux_id
+    
+  - platform: template
+    name: ${upper_devicename} VLouver Top
+    icon: "mdi:pan-up"
+    on_press:
+      - aux_ac.vlouver_top: aux_id
+    
+  - platform: template
+    name: ${upper_devicename} VLouver Middle Above
+    icon: "mdi:pan-top-left"
+    on_press:
+      - aux_ac.vlouver_middle_above: aux_id
+    
+  - platform: template
+    name: ${upper_devicename} VLouver Middle
+    icon: "mdi:pan-left"
+    on_press:
+      - aux_ac.vlouver_middle: aux_id
+    
+  - platform: template
+    name: ${upper_devicename} VLouver Middle Below
+    icon: "mdi:pan-bottom-left"
+    on_press:
+      - aux_ac.vlouver_middle_below: aux_id
+    
+  - platform: template
+    name: ${upper_devicename} VLouver Bottom
+    icon: "mdi:pan-down"
+    on_press:
+      - aux_ac.vlouver_bottom: aux_id
+
+
+number:
+  - platform: template
+    name: ${upper_devicename} Vertical Louver
+    id: ${devicename}_vlouver
+    icon: "mdi:circle-small"
+    mode: "slider"
+    min_value: 0
+    max_value: 6
+    step: 1
+    set_action:
+      then:
+        - lambda: !lambda |-
+            if (x == 6) x = 7;  // делаем так, чтобы выключение отрабатывать корректно
+            id(aux_id).setVLouverSequence( static_cast<esphome::aux_ac::ac_louver_V>(x) );
