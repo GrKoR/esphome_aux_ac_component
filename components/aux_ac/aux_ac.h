@@ -2089,7 +2089,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
             /*************************** MUTE FAN MODE ***************************/
             // MUTE работает в режиме FAN. В режимах HEAT, COOL, HEAT_COOL не работает. DRY не проверял.
-            // TODO: проверку на это несовместимые режимы пока выпилили, т.к. нет уверенности, что это поведение одинаково для всех
+            // TODO: проверку на несовместимые режимы пока выпилили, т.к. нет уверенности, что это поведение одинаково для всех
             switch (_current_ac_state.fanMute) {
                 case AC_FANMUTE_ON:
                     //if (_current_ac_state.mode == AC_MODE_FAN) {
@@ -2208,8 +2208,15 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             if(_current_ac_state.mode == AC_MODE_FAN || _current_ac_state.power == AC_POWER_OFF){
                 // в режиме вентилятора и в выключенном состоянии будем показывать текущую температуру
                 this->target_temperature = _current_ac_state.temp_ambient;
+            /*
+            * принудительная установка целевой температуры для режима AUTO (HEAT_COOL) осознанно выпилена.
+            * как выяснилось, многие сплиты умеют задавать целевую температуру в этом режиме
+            * но не все. Кто не умеет, возвращает правильную температуру после установки режима.
+            * Так что проверка в коде не требуется
+            */ /*
             } else if (_current_ac_state.mode == AC_MODE_AUTO ){
                 this->target_temperature = 25;  // в AUTO зашита температура 25 градусов
+            */
             } else {
                 this->target_temperature = _current_ac_state.temp_target;
             }
@@ -2501,9 +2508,11 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             load_preset(&cmd, POS_MODE_AUTO);
                         #endif
 
+                        /* принудительная установка температуры в этом режиме осознанно выпилена
                         cmd.temp_target = 25; // зависимость от режима HEAT_COOL 
                         cmd.temp_target_matter = true;
                         cmd.fanTurbo = AC_FANTURBO_OFF; // зависимость от режима HEAT_COOL  
+                        */
                         this->mode = mode;
                         break;
                     
