@@ -1930,6 +1930,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         void stateChanged(){
             _debugMsg(F("State changed, let's publish it."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
 
+            // TODO: сейчас экшины рассчётные и могут не отражать реального положения дел.
+            // В протоколе расшифрованы байты, позволяющие выводить реальный экшн. Требуется исправить.
             if(_is_invertor){ // анализ режима для инвертора, точнее потому что использует показания мощности инвертора
                 static uint32_t timerInv = 0;
                 if(_current_ac_state.invertor_power == 0){ // инвертор выключен
