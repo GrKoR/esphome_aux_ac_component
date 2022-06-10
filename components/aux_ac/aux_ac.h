@@ -63,7 +63,7 @@ public:
     static const uint32_t AC_STATES_REQUEST_INTERVAL;
 };
 
-const std::string Constants::AC_FIRMWARE_VERSION = "0.2.4";
+const std::string Constants::AC_FIRMWARE_VERSION = "0.2.5";
 const char *const Constants::TAG = "AirCon";
 
 // custom fan modes
@@ -2204,21 +2204,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             _debugMsg(F("Climate swing mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->swing_mode);
 
             /*************************** TEMPERATURE ***************************/
-            if(_current_ac_state.mode == AC_MODE_FAN || _current_ac_state.power == AC_POWER_OFF){
-                // в режиме вентилятора и в выключенном состоянии будем показывать текущую температуру
-                this->target_temperature = _current_ac_state.temp_ambient;
-            /*
-            * принудительная установка целевой температуры для режима AUTO (HEAT_COOL) осознанно выпилена.
-            * как выяснилось, многие сплиты умеют задавать целевую температуру в этом режиме
-            * но не все. Кто не умеет, возвращает правильную температуру после установки режима.
-            * Так что проверка в коде не требуется
-            */ /*
-            } else if (_current_ac_state.mode == AC_MODE_AUTO ){
-                this->target_temperature = 25;  // в AUTO зашита температура 25 градусов
-            */
-            } else {
-                this->target_temperature = _current_ac_state.temp_target;
-            }
+            this->target_temperature = _current_ac_state.temp_target;
             _debugMsg(F("Target temperature: %f"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->target_temperature);
 
             this->current_temperature = _current_ac_state.temp_ambient;
@@ -2507,11 +2493,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             load_preset(&cmd, POS_MODE_AUTO);
                         #endif
 
-                        /* принудительная установка температуры в этом режиме осознанно выпилена
-                        cmd.temp_target = 25; // зависимость от режима HEAT_COOL 
-                        cmd.temp_target_matter = true;
-                        cmd.fanTurbo = AC_FANTURBO_OFF; // зависимость от режима HEAT_COOL  
-                        */
                         this->mode = mode;
                         break;
                     
@@ -2524,15 +2505,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                             load_preset(&cmd, POS_MODE_FAN);
                         #endif
 
-                        cmd.temp_target = _current_ac_state.temp_ambient; // зависимость от режима FAN 
-                        cmd.temp_target_matter = true;
-                        // GK: в режиме FAN работает TURBO, так что отключать не нужно!
-                        //cmd.fanTurbo = AC_FANTURBO_OFF;  // зависимость от режима FAN                       
                         cmd.sleep = AC_SLEEP_OFF;
-                        // GK: для меня AUTO = HIGH. Скорее всего сплит сам меняет скорость. Поэтому ниже закомментировал
-                        /*  if(cmd.fanSpeed == AC_FANSPEED_AUTO || _current_ac_state.fanSpeed == AC_FANSPEED_AUTO){
-                            cmd.fanSpeed = AC_FANSPEED_LOW; // зависимость от режима FAN
-                        } */
                         this->mode = mode;
                         break;
                     
