@@ -63,7 +63,7 @@ public:
     static const uint32_t AC_STATES_REQUEST_INTERVAL;
 };
 
-const std::string Constants::AC_FIRMWARE_VERSION = "0.2.4";
+const std::string Constants::AC_FIRMWARE_VERSION = "0.2.5";
 const char *const Constants::TAG = "AirCon";
 
 // custom fan modes
