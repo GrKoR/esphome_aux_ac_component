@@ -123,6 +123,10 @@ climate:
       name: AC Preset Reporter
       id: ac_preset_reporter
       internal: false
+    vlouver_state:
+      name: AC Vertical Louvers State
+      id: ac_vlouver_state
+      internal: false
     visual:
       min_temperature: 16
       max_temperature: 32
@@ -176,7 +180,8 @@ climate:
 - **defrost_state** (*Optional*): The information for the HVAC defrost function state sensor (is it ON or OFF). All settings are the same as for the **display_state** (see description above).
 - **invertor_power** (*Optional*): The information for the invertor power sensor. All settings are the same as for the **display_state** (see description above).
 - **preset_reporter** (*Optional*): Parameters of text sensor with current preset. All settings are the same as for the **display_state** (see description above).  
-ESPHome Climate devices are not report their active presets (from **supported_presets** and **custom_presets** lists) to MQTT. In case you are using mqtt and want to receive information about active preset you should declare this sensor in your yaml.
+  ESPHome Climate devices are not report their active presets (from **supported_presets** and **custom_presets** lists) to MQTT. In case you are using mqtt and want to receive information about active preset you should declare this sensor in your yaml.
+- **vlouver_state** (*Optional*): Parameters of vertical louvers state sensor. All settings are the same as for the **display_state** (see description above). The state of the vertical louvers is encoded by the integer value (see [aux_ac.vlouver_set action](#aux_ac_._vlouver_set) below).
 - **supported_modes** (*Optional*, list): List of supported modes. Possible values are: ``HEAT_COOL``, ``COOL``, ``HEAT``, ``DRY``, ``FAN_ONLY``. Please note: some manufacturers call AUTO mode instead of HEAT_COOL. Defaults to ``FAN_ONLY``.
 - **custom_fan_modes** (*Optional*, list): List of supported custom fan modes. Possible values are: ``MUTE``, ``TURBO``. No custom fan modes by default.
 - **supported_presets** (*Optional*, list): List of supported presets. Possible values are: ``SLEEP``. No presets by default.
@@ -204,6 +209,28 @@ on_...:
     - aux_ac.display_off: aux_id
 ```
 - **aux_id** (**Requared**, string): ID of `aux_ac` component.
+
+### ``aux_ac.vlouver_set`` ###
+This action moves HVAC vertical louvers to the specified position.
+
+The position is encoded by the following values:  
+- `0`: the vertical louvers are in `SWING` mode (they are moving up and down);
+- `1`: the louvers are stopped in a user position;
+- `2`: the louvers are in the topmost position;
+- `3`: the louvers are in one step above middle position;
+- `4`: the louvers are in the middle position;
+- `5`: the louvers are in one step below middle position;
+- `6`: the louvers are in the lowest position.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.vlouver_set:
+        id: aux_id
+        position: 3 # moves the louvers to the middle position
+```
+- **aux_id** (**Requared**, string): ID of `aux_ac` component.
+- **position** (**Requared**, integer): position of the vertical louvers.
 
 ### ``aux_ac.vlouver_stop`` ###
 This action stops vertical swing of louvers.
