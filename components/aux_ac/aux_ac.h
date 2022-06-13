@@ -63,7 +63,7 @@ public:
     static const uint32_t AC_STATES_REQUEST_INTERVAL;
 };
 
-const std::string Constants::AC_FIRMWARE_VERSION = "0.2.5";
+const std::string Constants::AC_FIRMWARE_VERSION = "0.2.6";
 const char *const Constants::TAG = "AirCon";
 
 // custom fan modes
@@ -439,6 +439,18 @@ enum ac_mildew : uint8_t { AC_MILDEW_OFF = 0x00, AC_MILDEW_ON = 0x08, AC_MILDEW_
 // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b12
 // GK: define убрал, т.к. считаю, что сбрасывать счетчик не надо.
 // #define AC_MIN_COUNTER_MASK     0b00111111
+
+// положение вертикальных жалюзи для фронтенда 
+enum ac_vlouver_frontend : uint8_t {
+    AC_VLOUVER_FRONTEND_SWING = 0x00,
+    AC_VLOUVER_FRONTEND_STOP = 0x01,
+    AC_VLOUVER_FRONTEND_TOP = 0x02,
+    AC_VLOUVER_FRONTEND_MIDDLE_ABOVE = 0x03,
+    AC_VLOUVER_FRONTEND_MIDDLE = 0x04,
+    AC_VLOUVER_FRONTEND_MIDDLE_BELOW = 0x05,
+    AC_VLOUVER_FRONTEND_BOTTOM = 0x06,
+};
+
 
 /** команда для кондиционера
  * 
@@ -1788,18 +1800,15 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         }
 
         // сенсоры, отображающие параметры сплита
-        esphome::sensor::Sensor *sensor_indoor_temperature_ = nullptr;
-        esphome::sensor::Sensor *sensor_outdoor_temperature_ = nullptr;   
-        esphome::sensor::Sensor *sensor_inbound_temperature_ =nullptr;       
-        esphome::sensor::Sensor *sensor_outbound_temperature_ =nullptr;       
-        esphome::sensor::Sensor *sensor_compressor_temperature_ =nullptr;       
-        // текущая мощность компрессора      
-        esphome::sensor::Sensor *sensor_invertor_power_ = nullptr;
-        // бинарный сенсор, отображающий состояние дисплея
-        esphome::binary_sensor::BinarySensor *sensor_display_ = nullptr;
-        // бинарный сенсор состония разморозки
-        esphome::binary_sensor::BinarySensor *sensor_defrost_ = nullptr;
-        // текстовый сенсор, отображающий текущий режим работы сплита
+        esphome::sensor::Sensor *sensor_indoor_temperature_       = nullptr;
+        esphome::sensor::Sensor *sensor_outdoor_temperature_      = nullptr;   
+        esphome::sensor::Sensor *sensor_inbound_temperature_      = nullptr;       
+        esphome::sensor::Sensor *sensor_outbound_temperature_     = nullptr;       
+        esphome::sensor::Sensor *sensor_compressor_temperature_   = nullptr;       
+        esphome::sensor::Sensor *sensor_invertor_power_           = nullptr;
+        esphome::sensor::Sensor *sensor_vlouver_state_            = nullptr;
+        esphome::binary_sensor::BinarySensor *sensor_display_     = nullptr;
+        esphome::binary_sensor::BinarySensor *sensor_defrost_     = nullptr;
         esphome::text_sensor::TextSensor *sensor_preset_reporter_ = nullptr;
 
 
@@ -1913,6 +1922,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         void set_inbound_temperature_sensor(sensor::Sensor *temperature_sensor) { sensor_inbound_temperature_ = temperature_sensor; }
         void set_outbound_temperature_sensor(sensor::Sensor *temperature_sensor) { sensor_outbound_temperature_ = temperature_sensor; }
         void set_compressor_temperature_sensor(sensor::Sensor *temperature_sensor) { sensor_compressor_temperature_ = temperature_sensor; }
+        void set_vlouver_state_sensor(sensor::Sensor *vlouver_state_sensor){ sensor_vlouver_state_ = vlouver_state_sensor; }
         void set_defrost_state(binary_sensor::BinarySensor *defrost_state_sensor) { sensor_defrost_  = defrost_state_sensor; }
         void set_display_sensor(binary_sensor::BinarySensor *display_sensor) { sensor_display_ = display_sensor; }
         void set_invertor_power_sensor(sensor::Sensor *invertor_power_sensor) { sensor_invertor_power_ = invertor_power_sensor; }
@@ -2241,6 +2251,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             // флаг режима разморозки
             if (sensor_defrost_ != nullptr)
                 sensor_defrost_->publish_state(_current_ac_state.defrost);
+            // положение вертикальных жалюзи
+            if (sensor_vlouver_state_ != nullptr)
+                sensor_vlouver_state_->publish_state( (float) this->getCurrentVlouverFrontendState() );
             
             // сенсор состояния сплита
             if (sensor_preset_reporter_ != nullptr) {
@@ -2407,7 +2420,21 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                     ESP_LOGV(Constants::TAG, "%s  Force Update: YES", "  ");
                 }
             }
-            
+
+            if ((this->sensor_vlouver_state_) != nullptr) {
+                ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Vertical louvers state"), (this->sensor_vlouver_state_)->get_name().c_str());
+                ESP_LOGCONFIG(Constants::TAG, "%s  Accuracy Decimals: %d", "  ", (this->sensor_vlouver_state_)->get_accuracy_decimals());
+                if (!(this->sensor_vlouver_state_)->get_icon().empty()) {
+                    ESP_LOGCONFIG(Constants::TAG, "%s  Icon: '%s'", "  ", (this->sensor_vlouver_state_)->get_icon().c_str());
+                }
+                if (!(this->sensor_vlouver_state_)->unique_id().empty()) {
+                    ESP_LOGV(Constants::TAG, "%s  Unique ID: '%s'", "  ", (this->sensor_vlouver_state_)->unique_id().c_str());
+                }
+                if ((this->sensor_vlouver_state_)->get_force_update()) {
+                    ESP_LOGV(Constants::TAG, "%s  Force Update: YES", "  ");
+                }
+            }
+
             if ((this->sensor_defrost_) != nullptr) {
                 ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Defrost status"), (this->sensor_defrost_)->get_name().c_str());
                 if (!(this->sensor_defrost_)->get_device_class().empty()) {
@@ -3059,7 +3086,72 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             return true;
         }
 
-        // устанавливает жалюзи в нужное положение
+        // конвертирует состояние жалюзи из кодов сплита в коды для фронтенда
+        ac_vlouver_frontend AUXvlouverToVlouverFrontend(const ac_louver_V vLouver){
+            switch (vLouver) {
+                case AC_LOUVERV_SWING_UPDOWN:
+                    return AC_VLOUVER_FRONTEND_SWING;
+                
+                case AC_LOUVERV_OFF:
+                    return AC_VLOUVER_FRONTEND_STOP;
+                
+                case AC_LOUVERV_SWING_TOP:
+                    return AC_VLOUVER_FRONTEND_TOP;
+                
+                case AC_LOUVERV_SWING_MIDDLE_ABOVE:
+                    return AC_VLOUVER_FRONTEND_MIDDLE_ABOVE;
+                
+                case AC_LOUVERV_SWING_MIDDLE:
+                    return AC_VLOUVER_FRONTEND_MIDDLE;
+                
+                case AC_LOUVERV_SWING_MIDDLE_BELOW:
+                    return AC_VLOUVER_FRONTEND_MIDDLE_BELOW;
+                
+                case AC_LOUVERV_SWING_BOTTOM:
+                    return AC_VLOUVER_FRONTEND_BOTTOM;
+                
+                default:
+                    _debugMsg(F("AUXvlouverToVlouverFrontend: unknown vertical louver state = %u"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__, _current_ac_state.louver.louver_v);
+                    return AC_VLOUVER_FRONTEND_STOP;  // 
+            }
+        }
+
+        // возвращает текущее положение шторок в кодах для фронтенда
+        ac_vlouver_frontend getCurrentVlouverFrontendState(){
+            return AUXvlouverToVlouverFrontend(_current_ac_state.louver.louver_v);
+        }
+
+        // конвертирует состояние жалюзи из кодов для фронтенда в коды сплита
+        ac_louver_V vlouverFrontendToAUXvlouver(const ac_vlouver_frontend vLouver){
+            switch (vLouver) {
+                case AC_VLOUVER_FRONTEND_SWING:
+                    return AC_LOUVERV_SWING_UPDOWN;
+                
+                case AC_VLOUVER_FRONTEND_STOP:
+                    return AC_LOUVERV_OFF;
+                
+                case AC_VLOUVER_FRONTEND_TOP:
+                    return AC_LOUVERV_SWING_TOP;
+                
+                case AC_VLOUVER_FRONTEND_MIDDLE_ABOVE:
+                    return AC_LOUVERV_SWING_MIDDLE_ABOVE;
+                
+                case AC_VLOUVER_FRONTEND_MIDDLE:
+                    return AC_LOUVERV_SWING_MIDDLE;
+                
+                case AC_VLOUVER_FRONTEND_MIDDLE_BELOW:
+                    return AC_LOUVERV_SWING_MIDDLE_BELOW;
+                
+                case AC_VLOUVER_FRONTEND_BOTTOM:
+                    return AC_LOUVERV_SWING_BOTTOM;
+                
+                default:
+                    _debugMsg(F("vlouverFrontendToAUXvlouver: unknown vertical louver state = %u"), ESPHOME_LOG_LEVEL_DEBUG, __LINE__, _current_ac_state.louver.louver_v);
+                    return AC_LOUVERV_OFF;  // 
+            }
+        }
+
+        // устанавливает жалюзи в нужное положение по коду сплита
         bool setVLouverSequence(const ac_louver_V vLouver){
             // нет смысла в последовательности, если нет коннекта с кондиционером
             if (!get_has_connection()) {
@@ -3079,6 +3171,11 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
             _debugMsg(F("setVLouverSequence: loaded (power = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, vLouver);
             return true;
+        }
+
+        // устанавливает жалюзи в нужное положение по коду для фронтенда
+        bool setVLouverFrontendSequence(const ac_vlouver_frontend vLouver){
+            return setVLouverSequence(vlouverFrontendToAUXvlouver(vLouver));
         }
 
         // установка жалюзи в определенные положения

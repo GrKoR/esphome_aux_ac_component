@@ -119,6 +119,22 @@ namespace aux_ac {
         AirCon *ac_;
     };
 
+    template<typename... Ts>
+    class AirConVLouverSetAction : public Action<Ts...>
+    {
+    public:
+        AirConVLouverSetAction(AirCon *ac) : ac_(ac) {}
+        TEMPLATABLE_VALUE(uint8_t, value);
+
+        void play(Ts... x) {
+            vlpos_ = this->value_.value(x...);
+            this->ac_->setVLouverFrontendSequence( (ac_vlouver_frontend)vlpos_);
+        }
+
+    protected:
+        AirCon *ac_;
+        uint8_t vlpos_;
+    };
 
 
 // **************************************** SEND TEST PACKET ACTION ****************************************

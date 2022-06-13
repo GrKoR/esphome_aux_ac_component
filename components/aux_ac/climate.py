@@ -22,6 +22,7 @@ from esphome.const import (
     DEVICE_CLASS_TEMPERATURE,
     DEVICE_CLASS_POWER_FACTOR,
     STATE_CLASS_MEASUREMENT,
+    CONF_POSITION,
 )
 from esphome.components.climate import (
     ClimateMode,
@@ -53,14 +54,22 @@ CONF_DISPLAY_INVERTED = 'display_inverted'
 ICON_DISPLAY = "mdi:clock-digital"
 CONF_PRESET_REPORTER = "preset_reporter"
 ICON_PRESET_REPORTER = "mdi:format-list-group"
+CONF_VLOUVER_STATE = "vlouver_state"
+ICON_VLOUVER_STATE = "mdi:compare-vertical"
 
 
 aux_ac_ns = cg.esphome_ns.namespace("aux_ac")
 AirCon = aux_ac_ns.class_("AirCon", climate.Climate, cg.Component)
 Capabilities = aux_ac_ns.namespace("Constants")
 
+# Display actions
 AirConDisplayOffAction = aux_ac_ns.class_("AirConDisplayOffAction", automation.Action)
 AirConDisplayOnAction = aux_ac_ns.class_("AirConDisplayOnAction", automation.Action)
+
+# test packet
+AirConSendTestPacketAction = aux_ac_ns.class_("AirConSendTestPacketAction", automation.Action)
+
+# vertical louvers actions
 AirConVLouverSwingAction = aux_ac_ns.class_("AirConVLouverSwingAction", automation.Action)
 AirConVLouverStopAction = aux_ac_ns.class_("AirConVLouverStopAction", automation.Action)
 AirConVLouverTopAction = aux_ac_ns.class_("AirConVLouverTopAction", automation.Action)
@@ -68,7 +77,8 @@ AirConVLouverMiddleAboveAction = aux_ac_ns.class_("AirConVLouverMiddleAboveActio
 AirConVLouverMiddleAction = aux_ac_ns.class_("AirConVLouverMiddleAction", automation.Action)
 AirConVLouverMiddleBelowAction = aux_ac_ns.class_("AirConVLouverMiddleBelowAction", automation.Action)
 AirConVLouverBottomAction = aux_ac_ns.class_("AirConVLouverBottomAction", automation.Action)
-AirConSendTestPacketAction = aux_ac_ns.class_("AirConSendTestPacketAction", automation.Action)
+
+AirConVLouverSetAction = aux_ac_ns.class_("AirConVLouverSetAction", automation.Action)
 
 ALLOWED_CLIMATE_MODES = {
     "HEAT_COOL": ClimateMode.CLIMATE_MODE_HEAT_COOL,
@@ -190,6 +200,14 @@ CONFIG_SCHEMA = cv.All(
                     cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
                 }
             ),
+            cv.Optional(CONF_VLOUVER_STATE): sensor.sensor_schema(
+                icon=ICON_VLOUVER_STATE,
+                accuracy_decimals=0,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                }
+            ),
             cv.Optional(CONF_DISPLAY_STATE): binary_sensor.binary_sensor_schema(
                 icon=ICON_DISPLAY,
             ).extend(
@@ -257,6 +275,11 @@ async def to_code(config):
         conf = config[CONF_COMPRESSOR_TEMPERATURE]
         sens = await sensor.new_sensor(conf)
         cg.add(var.set_compressor_temperature_sensor(sens))
+    
+    if CONF_VLOUVER_STATE in config:
+        conf = config[CONF_VLOUVER_STATE]
+        sens = await sensor.new_sensor(conf)
+        cg.add(var.set_vlouver_state_sensor(sens))
 
     if CONF_DISPLAY_STATE in config:
         conf = config[CONF_DISPLAY_STATE]
@@ -353,6 +376,21 @@ async def vlouver_bottom_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
 
+VLOUVER_SET_ACTION_SCHEMA = cv.Schema(
+    {
+        cv.Required(CONF_ID): cv.use_id(AirCon),
+        cv.Required(CONF_POSITION): cv.templatable(cv.int_range(0, 6)),
+    }
+)
+
+@automation.register_action("aux_ac.vlouver_set", AirConVLouverSetAction, VLOUVER_SET_ACTION_SCHEMA)
+async def vlouver_set_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(action_id, template_arg, paren)
+    template_ = await cg.templatable(config[CONF_POSITION], args, int)
+    cg.add(var.set_value(template_))
+    return var
+
 
 # *********************************************************************************************************
 # ВАЖНО! Только для инженеров!
@@ -367,11 +405,7 @@ SEND_TEST_PACKET_ACTION_SCHEMA = maybe_simple_id(
     }
 )
 
-@automation.register_action(
-    "aux_ac.send_packet",
-    AirConSendTestPacketAction,
-    SEND_TEST_PACKET_ACTION_SCHEMA
-)
+@automation.register_action( "aux_ac.send_packet", AirConSendTestPacketAction, SEND_TEST_PACKET_ACTION_SCHEMA )
 async def send_packet_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, paren)
