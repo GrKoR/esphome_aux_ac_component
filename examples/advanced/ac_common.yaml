@@ -100,6 +100,10 @@ climate:
       name: ${upper_devicename} Preset Reporter
       id: ${devicename}_preset_reporter
       internal: false
+    vlouver_state:
+      name: ${upper_devicename} VLouvers State
+      id: ${devicename}_vlouver_state
+      internal: false
     visual:
       min_temperature: 16
       max_temperature: 32
@@ -194,15 +198,18 @@ button:
 
 number:
   - platform: template
-    name: ${upper_devicename} Vertical Louver
+    name: ${upper_devicename} Vertical Louvers
     id: ${devicename}_vlouver
     icon: "mdi:circle-small"
     mode: "slider"
     min_value: 0
     max_value: 6
     step: 1
+    update_interval: 2s
+    lambda: |-
+      return id(${devicename}_vlouver_state).state;
     set_action:
       then:
-        - lambda: !lambda |-
-            if (x == 6) x = 7;  // 6 is incorrect louver position, 7 is stopped louver
-            id(aux_id).setVLouverSequence( static_cast<esphome::aux_ac::ac_louver_V>(x) );
+        - aux_ac.vlouver_set:
+            id: aux_id
+            position: !lambda "return x;"
