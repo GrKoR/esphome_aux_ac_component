@@ -32,6 +32,7 @@
 namespace esphome {
 namespace aux_ac {
 
+static const char *const TAG = "AirCon";
 
 using climate::ClimatePreset;
 using climate::ClimateTraits;
@@ -44,7 +45,6 @@ class Constants {
 public:
     static const std::string AC_FIRMWARE_VERSION;
 
-    static const char *const TAG;
     static const std::string MUTE;
     static const std::string TURBO;
     static const std::string CLEAN;
@@ -64,7 +64,6 @@ public:
 };
 
 const std::string Constants::AC_FIRMWARE_VERSION = "0.2.6";
-const char *const Constants::TAG = "AirCon";
 
 // custom fan modes
 const std::string Constants::MUTE = "mute";
@@ -1319,7 +1318,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
             va_list vl;
             va_start(vl, line);
-            esp_log_vprintf_(dbgLevel, Constants::TAG, line, msg.c_str(), vl);
+            esp_log_vprintf_(dbgLevel, TAG, line, msg.c_str(), vl);
             va_end(vl);
         }
 
@@ -2296,171 +2295,28 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
         // вывод в дебаг текущей конфигурации компонента
         void dump_config() {
-            ESP_LOGCONFIG(Constants::TAG, "AUX HVAC:");
-            ESP_LOGCONFIG(Constants::TAG, "  [x] Firmware version: %s", Constants::AC_FIRMWARE_VERSION.c_str());
-            ESP_LOGCONFIG(Constants::TAG, "  [x] Period: %dms", this->get_period());
-            ESP_LOGCONFIG(Constants::TAG, "  [x] Show action: %s", TRUEFALSE(this->get_show_action()));
-            ESP_LOGCONFIG(Constants::TAG, "  [x] Display inverted: %s", TRUEFALSE(this->get_display_inverted()));
+            ESP_LOGCONFIG(TAG, "AUX HVAC:");
+            ESP_LOGCONFIG(TAG, "  [x] Firmware version: %s", Constants::AC_FIRMWARE_VERSION.c_str());
+            ESP_LOGCONFIG(TAG, "  [x] Period: %dms", this->get_period());
+            ESP_LOGCONFIG(TAG, "  [x] Show action: %s", TRUEFALSE(this->get_show_action()));
+            ESP_LOGCONFIG(TAG, "  [x] Display inverted: %s", TRUEFALSE(this->get_display_inverted()));
 
             #if defined(PRESETS_SAVING)
-                ESP_LOGCONFIG(Constants::TAG, "  [x] Save settings %s",  TRUEFALSE(this->get_store_settings()));
+                ESP_LOGCONFIG(TAG, "  [x] Save settings %s",  TRUEFALSE(this->get_store_settings()));
             #endif
 
-            ESP_LOGCONFIG(Constants::TAG, "  [?] Is invertor %s", millis() > _update_period + 1000 ? YESNO(_is_invertor): "pending...");
-            if ((this->sensor_indoor_temperature_) != nullptr) {
-                ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Indoor Temperature"), (this->sensor_indoor_temperature_)->get_name().c_str());
-                if (!(this->sensor_indoor_temperature_)->get_device_class().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Device Class: '%s'", "  ", (this->sensor_indoor_temperature_)->get_device_class().c_str());
-                }
-                ESP_LOGCONFIG(Constants::TAG, "%s  State Class: '%s'", "  ", state_class_to_string((this->sensor_indoor_temperature_)->get_state_class()).c_str());
-                ESP_LOGCONFIG(Constants::TAG, "%s  Unit of Measurement: '%s'", "  ", (this->sensor_indoor_temperature_)->get_unit_of_measurement().c_str());
-                ESP_LOGCONFIG(Constants::TAG, "%s  Accuracy Decimals: %d", "  ", (this->sensor_indoor_temperature_)->get_accuracy_decimals());
-                if (!(this->sensor_indoor_temperature_)->get_icon().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Icon: '%s'", "  ", (this->sensor_indoor_temperature_)->get_icon().c_str());
-                }
-                if (!(this->sensor_indoor_temperature_)->unique_id().empty()) {
-                    ESP_LOGV(Constants::TAG, "%s  Unique ID: '%s'", "  ", (this->sensor_indoor_temperature_)->unique_id().c_str());
-                }
-                if ((this->sensor_indoor_temperature_)->get_force_update()) {
-                    ESP_LOGV(Constants::TAG, "%s  Force Update: YES", "  ");
-                }
-            }
+            ESP_LOGCONFIG(TAG, "  [?] Is invertor %s", millis() > _update_period + 1000 ? YESNO(_is_invertor): "pending...");
 
-            if ((this->sensor_outdoor_temperature_) != nullptr) {
-                ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Outdoor Temperature"), (this->sensor_outdoor_temperature_)->get_name().c_str());
-                if (!(this->sensor_outdoor_temperature_)->get_device_class().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Device Class: '%s'", "  ", (this->sensor_outdoor_temperature_)->get_device_class().c_str());
-                }
-                ESP_LOGCONFIG(Constants::TAG, "%s  State Class: '%s'", "  ", state_class_to_string((this->sensor_outdoor_temperature_)->get_state_class()).c_str());
-                ESP_LOGCONFIG(Constants::TAG, "%s  Unit of Measurement: '%s'", "  ", (this->sensor_outdoor_temperature_)->get_unit_of_measurement().c_str());
-                ESP_LOGCONFIG(Constants::TAG, "%s  Accuracy Decimals: %d", "  ", (this->sensor_outdoor_temperature_)->get_accuracy_decimals());
-                if (!(this->sensor_outdoor_temperature_)->get_icon().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Icon: '%s'", "  ", (this->sensor_outdoor_temperature_)->get_icon().c_str());
-                }
-                if (!(this->sensor_outdoor_temperature_)->unique_id().empty()) {
-                    ESP_LOGV(Constants::TAG, "%s  Unique ID: '%s'", "  ", (this->sensor_outdoor_temperature_)->unique_id().c_str());
-                }
-                if ((this->sensor_outdoor_temperature_)->get_force_update()) {
-                    ESP_LOGV(Constants::TAG, "%s  Force Update: YES", "  ");
-                }
-            }
-
-            if ((this->sensor_inbound_temperature_) != nullptr) {
-                ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Inbound Temperature"), (this->sensor_inbound_temperature_)->get_name().c_str());
-                if (!(this->sensor_inbound_temperature_)->get_device_class().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Device Class: '%s'", "  ", (this->sensor_inbound_temperature_)->get_device_class().c_str());
-                }
-                ESP_LOGCONFIG(Constants::TAG, "%s  State Class: '%s'", "  ", state_class_to_string((this->sensor_inbound_temperature_)->get_state_class()).c_str());
-                ESP_LOGCONFIG(Constants::TAG, "%s  Unit of Measurement: '%s'", "  ", (this->sensor_inbound_temperature_)->get_unit_of_measurement().c_str());
-                ESP_LOGCONFIG(Constants::TAG, "%s  Accuracy Decimals: %d", "  ", (this->sensor_inbound_temperature_)->get_accuracy_decimals());
-                if (!(this->sensor_inbound_temperature_)->get_icon().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Icon: '%s'", "  ", (this->sensor_inbound_temperature_)->get_icon().c_str());
-                }
-                if (!(this->sensor_inbound_temperature_)->unique_id().empty()) {
-                    ESP_LOGV(Constants::TAG, "%s  Unique ID: '%s'", "  ", (this->sensor_inbound_temperature_)->unique_id().c_str());
-                }
-                if ((this->sensor_inbound_temperature_)->get_force_update()) {
-                    ESP_LOGV(Constants::TAG, "%s  Force Update: YES", "  ");
-                }
-            }
-
-            if ((this->sensor_outbound_temperature_) != nullptr) {
-                ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Outbound Temperature"), (this->sensor_outbound_temperature_)->get_name().c_str());
-                if (!(this->sensor_outbound_temperature_)->get_device_class().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Device Class: '%s'", "  ", (this->sensor_outbound_temperature_)->get_device_class().c_str());
-                }
-                ESP_LOGCONFIG(Constants::TAG, "%s  State Class: '%s'", "  ", state_class_to_string((this->sensor_outbound_temperature_)->get_state_class()).c_str());
-                ESP_LOGCONFIG(Constants::TAG, "%s  Unit of Measurement: '%s'", "  ", (this->sensor_outbound_temperature_)->get_unit_of_measurement().c_str());
-                ESP_LOGCONFIG(Constants::TAG, "%s  Accuracy Decimals: %d", "  ", (this->sensor_outbound_temperature_)->get_accuracy_decimals());
-                if (!(this->sensor_outbound_temperature_)->get_icon().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Icon: '%s'", "  ", (this->sensor_outbound_temperature_)->get_icon().c_str());
-                }
-                if (!(this->sensor_outbound_temperature_)->unique_id().empty()) {
-                    ESP_LOGV(Constants::TAG, "%s  Unique ID: '%s'", "  ", (this->sensor_outbound_temperature_)->unique_id().c_str());
-                }
-                if ((this->sensor_outbound_temperature_)->get_force_update()) {
-                    ESP_LOGV(Constants::TAG, "%s  Force Update: YES", "  ");
-                }
-            }
-
-            if ((this->sensor_compressor_temperature_) != nullptr) {
-                ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Compressor Temperature"), (this->sensor_compressor_temperature_)->get_name().c_str());
-                if (!(this->sensor_compressor_temperature_)->get_device_class().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Device Class: '%s'", "  ", (this->sensor_compressor_temperature_)->get_device_class().c_str());
-                }
-                ESP_LOGCONFIG(Constants::TAG, "%s  State Class: '%s'", "  ", state_class_to_string((this->sensor_compressor_temperature_)->get_state_class()).c_str());
-                ESP_LOGCONFIG(Constants::TAG, "%s  Unit of Measurement: '%s'", "  ", (this->sensor_compressor_temperature_)->get_unit_of_measurement().c_str());
-                ESP_LOGCONFIG(Constants::TAG, "%s  Accuracy Decimals: %d", "  ", (this->sensor_compressor_temperature_)->get_accuracy_decimals());
-                if (!(this->sensor_compressor_temperature_)->get_icon().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Icon: '%s'", "  ", (this->sensor_compressor_temperature_)->get_icon().c_str());
-                }
-                if (!(this->sensor_compressor_temperature_)->unique_id().empty()) {
-                    ESP_LOGV(Constants::TAG, "%s  Unique ID: '%s'", "  ", (this->sensor_compressor_temperature_)->unique_id().c_str());
-                }
-                if ((this->sensor_compressor_temperature_)->get_force_update()) {
-                    ESP_LOGV(Constants::TAG, "%s  Force Update: YES", "  ");
-                }
-            }
- 
-            if ((this->sensor_invertor_power_) != nullptr) {
-                ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Inverter Power"), (this->sensor_invertor_power_)->get_name().c_str());
-                if (!(this->sensor_invertor_power_)->get_device_class().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Device Class: '%s'", "  ", (this->sensor_invertor_power_)->get_device_class().c_str());
-                }
-                ESP_LOGCONFIG(Constants::TAG, "%s  State Class: '%s'", "  ", state_class_to_string((this->sensor_invertor_power_)->get_state_class()).c_str());
-                ESP_LOGCONFIG(Constants::TAG, "%s  Unit of Measurement: '%s'", "  ", (this->sensor_invertor_power_)->get_unit_of_measurement().c_str());
-                ESP_LOGCONFIG(Constants::TAG, "%s  Accuracy Decimals: %d", "  ", (this->sensor_invertor_power_)->get_accuracy_decimals());
-                if (!(this->sensor_invertor_power_)->get_icon().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Icon: '%s'", "  ", (this->sensor_invertor_power_)->get_icon().c_str());
-                }
-                if (!(this->sensor_invertor_power_)->unique_id().empty()) {
-                    ESP_LOGV(Constants::TAG, "%s  Unique ID: '%s'", "  ", (this->sensor_invertor_power_)->unique_id().c_str());
-                }
-                if ((this->sensor_invertor_power_)->get_force_update()) {
-                    ESP_LOGV(Constants::TAG, "%s  Force Update: YES", "  ");
-                }
-            }
-
-            if ((this->sensor_vlouver_state_) != nullptr) {
-                ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Vertical louvers state"), (this->sensor_vlouver_state_)->get_name().c_str());
-                ESP_LOGCONFIG(Constants::TAG, "%s  Accuracy Decimals: %d", "  ", (this->sensor_vlouver_state_)->get_accuracy_decimals());
-                if (!(this->sensor_vlouver_state_)->get_icon().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Icon: '%s'", "  ", (this->sensor_vlouver_state_)->get_icon().c_str());
-                }
-                if (!(this->sensor_vlouver_state_)->unique_id().empty()) {
-                    ESP_LOGV(Constants::TAG, "%s  Unique ID: '%s'", "  ", (this->sensor_vlouver_state_)->unique_id().c_str());
-                }
-                if ((this->sensor_vlouver_state_)->get_force_update()) {
-                    ESP_LOGV(Constants::TAG, "%s  Force Update: YES", "  ");
-                }
-            }
-
-            if ((this->sensor_defrost_) != nullptr) {
-                ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Defrost status"), (this->sensor_defrost_)->get_name().c_str());
-                if (!(this->sensor_defrost_)->get_device_class().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Device Class: '%s'", "  ", (this->sensor_defrost_)->get_device_class().c_str());
-                }
-                if (!(this->sensor_defrost_)->get_icon().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Icon: '%s'", "  ", (this->sensor_defrost_)->get_icon().c_str());
-                }
-                if (!(this->sensor_defrost_)->get_object_id().empty()) {
-                    ESP_LOGV(Constants::TAG, "%s  Object ID: '%s'", "  ", (this->sensor_defrost_)->get_object_id().c_str());
-                }
-            }
-
-            if ((this->sensor_display_) != nullptr) {
-                ESP_LOGCONFIG(Constants::TAG, "%s%s '%s'", "  ", LOG_STR_LITERAL("Display"), (this->sensor_display_)->get_name().c_str());
-                if (!(this->sensor_display_)->get_device_class().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Device Class: '%s'", "  ", (this->sensor_display_)->get_device_class().c_str());
-                }
-                if (!(this->sensor_display_)->get_icon().empty()) {
-                    ESP_LOGCONFIG(Constants::TAG, "%s  Icon: '%s'", "  ", (this->sensor_display_)->get_icon().c_str());
-                }
-                if (!(this->sensor_display_)->get_object_id().empty()) {
-                    ESP_LOGV(Constants::TAG, "%s  Object ID: '%s'", "  ", (this->sensor_display_)->get_object_id().c_str());
-                }
-            }
-            this->dump_traits_(Constants::TAG);
+            LOG_SENSOR("  ", "Indoor Temperature", this->sensor_indoor_temperature_);
+            LOG_SENSOR("  ", "Outdoor Temperature", this->sensor_outdoor_temperature_);
+            LOG_SENSOR("  ", "Inbound Temperature", this->sensor_inbound_temperature_);
+            LOG_SENSOR("  ", "Outbound Temperature", this->sensor_outbound_temperature_);
+            LOG_SENSOR("  ", "Compressor Temperature", this->sensor_compressor_temperature_);
+            LOG_SENSOR("  ", "Inverter Power", this->sensor_invertor_power_);
+            LOG_BINARY_SENSOR("  ", "Defrost Status", this->sensor_defrost_);
+            LOG_BINARY_SENSOR("  ", "Display", this->sensor_display_);
+            LOG_TEXT_SENSOR("  ", "Preset Reporter", this->sensor_preset_reporter_);
+            this->dump_traits_(TAG);
 
         }
 
