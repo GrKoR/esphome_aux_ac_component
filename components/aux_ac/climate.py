@@ -36,21 +36,21 @@ CODEOWNERS = ["@GrKoR"]
 DEPENDENCIES = ["climate", "uart"]
 AUTO_LOAD = ["sensor", "binary_sensor", "text_sensor"]
 
-CONF_SHOW_ACTION = 'show_action'
-CONF_INDOOR_TEMPERATURE = 'indoor_temperature'
-CONF_OUTDOOR_TEMPERATURE = 'outdoor_temperature'
-ICON_OUTDOOR_TEMPERATURE = 'mdi:home-thermometer-outline'
-CONF_INBOUND_TEMPERATURE = 'inbound_temperature'
-ICON_INBOUND_TEMPERATURE = 'mdi:thermometer-plus'
-CONF_OUTBOUND_TEMPERATURE = 'outbound_temperature'
-ICON_OUTBOUND_TEMPERATURE = 'mdi:thermometer-minus'
-CONF_COMPRESSOR_TEMPERATURE = 'compressor_temperature'
-ICON_COMPRESSOR_TEMPERATURE = 'mdi:thermometer-lines'
-CONF_DISPLAY_STATE = 'display_state'
-CONF_INVERTOR_POWER = 'invertor_power'
-CONF_DEFROST_STATE = 'defrost_state'
+CONF_SHOW_ACTION = "show_action"
+CONF_INDOOR_TEMPERATURE = "indoor_temperature"
+CONF_OUTDOOR_TEMPERATURE = "outdoor_temperature"
+ICON_OUTDOOR_TEMPERATURE = "mdi:home-thermometer-outline"
+CONF_INBOUND_TEMPERATURE = "inbound_temperature"
+ICON_INBOUND_TEMPERATURE = "mdi:thermometer-plus"
+CONF_OUTBOUND_TEMPERATURE = "outbound_temperature"
+ICON_OUTBOUND_TEMPERATURE = "mdi:thermometer-minus"
+CONF_COMPRESSOR_TEMPERATURE = "compressor_temperature"
+ICON_COMPRESSOR_TEMPERATURE = "mdi:thermometer-lines"
+CONF_DISPLAY_STATE = "display_state"
+CONF_INVERTOR_POWER = "invertor_power"
+CONF_DEFROST_STATE = "defrost_state"
 ICON_DEFROST = "mdi:snowflake-melt"
-CONF_DISPLAY_INVERTED = 'display_inverted'
+CONF_DISPLAY_INVERTED = "display_inverted"
 ICON_DISPLAY = "mdi:clock-digital"
 CONF_PRESET_REPORTER = "preset_reporter"
 ICON_PRESET_REPORTER = "mdi:format-list-group"
@@ -67,16 +67,28 @@ AirConDisplayOffAction = aux_ac_ns.class_("AirConDisplayOffAction", automation.A
 AirConDisplayOnAction = aux_ac_ns.class_("AirConDisplayOnAction", automation.Action)
 
 # test packet
-AirConSendTestPacketAction = aux_ac_ns.class_("AirConSendTestPacketAction", automation.Action)
+AirConSendTestPacketAction = aux_ac_ns.class_(
+    "AirConSendTestPacketAction", automation.Action
+)
 
 # vertical louvers actions
-AirConVLouverSwingAction = aux_ac_ns.class_("AirConVLouverSwingAction", automation.Action)
+AirConVLouverSwingAction = aux_ac_ns.class_(
+    "AirConVLouverSwingAction", automation.Action
+)
 AirConVLouverStopAction = aux_ac_ns.class_("AirConVLouverStopAction", automation.Action)
 AirConVLouverTopAction = aux_ac_ns.class_("AirConVLouverTopAction", automation.Action)
-AirConVLouverMiddleAboveAction = aux_ac_ns.class_("AirConVLouverMiddleAboveAction", automation.Action)
-AirConVLouverMiddleAction = aux_ac_ns.class_("AirConVLouverMiddleAction", automation.Action)
-AirConVLouverMiddleBelowAction = aux_ac_ns.class_("AirConVLouverMiddleBelowAction", automation.Action)
-AirConVLouverBottomAction = aux_ac_ns.class_("AirConVLouverBottomAction", automation.Action)
+AirConVLouverMiddleAboveAction = aux_ac_ns.class_(
+    "AirConVLouverMiddleAboveAction", automation.Action
+)
+AirConVLouverMiddleAction = aux_ac_ns.class_(
+    "AirConVLouverMiddleAction", automation.Action
+)
+AirConVLouverMiddleBelowAction = aux_ac_ns.class_(
+    "AirConVLouverMiddleBelowAction", automation.Action
+)
+AirConVLouverBottomAction = aux_ac_ns.class_(
+    "AirConVLouverBottomAction", automation.Action
+)
 
 AirConVLouverSetAction = aux_ac_ns.class_("AirConVLouverSetAction", automation.Action)
 
@@ -118,14 +130,13 @@ validate_custom_presets = cv.enum(CUSTOM_PRESETS, upper=True)
 def validate_raw_data(value):
     if isinstance(value, list):
         return cv.Schema([cv.hex_uint8_t])(value)
-    raise cv.Invalid(
-        "data must be a list of bytes"
-    )
+    raise cv.Invalid("data must be a list of bytes")
 
 
 def output_info(config):
     """_LOGGER.info(config)"""
     return config
+
 
 CONFIG_SCHEMA = cv.All(
     climate.CLIMATE_SCHEMA.extend(
@@ -230,16 +241,21 @@ CONFIG_SCHEMA = cv.All(
                 }
             ),
             cv.Optional(CONF_SUPPORTED_MODES): cv.ensure_list(validate_modes),
-            cv.Optional(CONF_SUPPORTED_SWING_MODES): cv.ensure_list(validate_swing_modes),
+            cv.Optional(CONF_SUPPORTED_SWING_MODES): cv.ensure_list(
+                validate_swing_modes
+            ),
             cv.Optional(CONF_SUPPORTED_PRESETS): cv.ensure_list(validate_presets),
             cv.Optional(CONF_CUSTOM_PRESETS): cv.ensure_list(validate_custom_presets),
-            cv.Optional(CONF_CUSTOM_FAN_MODES): cv.ensure_list(validate_custom_fan_modes),
+            cv.Optional(CONF_CUSTOM_FAN_MODES): cv.ensure_list(
+                validate_custom_fan_modes
+            ),
         }
     )
     .extend(uart.UART_DEVICE_SCHEMA)
     .extend(cv.COMPONENT_SCHEMA),
-    output_info
+    output_info,
 )
+
 
 async def to_code(config):
     """_LOGGER.info("--------------")"""
@@ -247,7 +263,7 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await climate.register_climate(var, config)
-    
+
     parent = await cg.get_variable(config[CONF_UART_ID])
     cg.add(var.initAC(parent))
 
@@ -255,7 +271,7 @@ async def to_code(config):
         conf = config[CONF_INDOOR_TEMPERATURE]
         sens = await sensor.new_sensor(conf)
         cg.add(var.set_indoor_temperature_sensor(sens))
-    
+
     if CONF_OUTDOOR_TEMPERATURE in config:
         conf = config[CONF_OUTDOOR_TEMPERATURE]
         sens = await sensor.new_sensor(conf)
@@ -275,7 +291,7 @@ async def to_code(config):
         conf = config[CONF_COMPRESSOR_TEMPERATURE]
         sens = await sensor.new_sensor(conf)
         cg.add(var.set_compressor_temperature_sensor(sens))
-    
+
     if CONF_VLOUVER_STATE in config:
         conf = config[CONF_VLOUVER_STATE]
         sens = await sensor.new_sensor(conf)
@@ -316,19 +332,24 @@ async def to_code(config):
         cg.add(var.set_custom_fan_modes(config[CONF_CUSTOM_FAN_MODES]))
 
 
-
 DISPLAY_ACTION_SCHEMA = maybe_simple_id(
     {
         cv.Required(CONF_ID): cv.use_id(AirCon),
     }
 )
 
-@automation.register_action("aux_ac.display_off", AirConDisplayOffAction, DISPLAY_ACTION_SCHEMA)
+
+@automation.register_action(
+    "aux_ac.display_off", AirConDisplayOffAction, DISPLAY_ACTION_SCHEMA
+)
 async def display_off_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
 
-@automation.register_action("aux_ac.display_on", AirConDisplayOnAction, DISPLAY_ACTION_SCHEMA)
+
+@automation.register_action(
+    "aux_ac.display_on", AirConDisplayOnAction, DISPLAY_ACTION_SCHEMA
+)
 async def display_on_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
@@ -340,41 +361,62 @@ VLOUVER_ACTION_SCHEMA = maybe_simple_id(
     }
 )
 
-@automation.register_action("aux_ac.vlouver_stop", AirConVLouverStopAction, VLOUVER_ACTION_SCHEMA)
+
+@automation.register_action(
+    "aux_ac.vlouver_stop", AirConVLouverStopAction, VLOUVER_ACTION_SCHEMA
+)
 async def vlouver_stop_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
 
-@automation.register_action("aux_ac.vlouver_swing", AirConVLouverSwingAction, VLOUVER_ACTION_SCHEMA)
+
+@automation.register_action(
+    "aux_ac.vlouver_swing", AirConVLouverSwingAction, VLOUVER_ACTION_SCHEMA
+)
 async def vlouver_swing_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
 
 
-@automation.register_action("aux_ac.vlouver_top", AirConVLouverTopAction, VLOUVER_ACTION_SCHEMA)
+@automation.register_action(
+    "aux_ac.vlouver_top", AirConVLouverTopAction, VLOUVER_ACTION_SCHEMA
+)
 async def vlouver_top_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
 
-@automation.register_action("aux_ac.vlouver_middle_above", AirConVLouverMiddleAboveAction, VLOUVER_ACTION_SCHEMA)
+
+@automation.register_action(
+    "aux_ac.vlouver_middle_above", AirConVLouverMiddleAboveAction, VLOUVER_ACTION_SCHEMA
+)
 async def vlouver_middle_above_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
 
-@automation.register_action("aux_ac.vlouver_middle", AirConVLouverMiddleAction, VLOUVER_ACTION_SCHEMA)
+
+@automation.register_action(
+    "aux_ac.vlouver_middle", AirConVLouverMiddleAction, VLOUVER_ACTION_SCHEMA
+)
 async def vlouver_middle_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
 
-@automation.register_action("aux_ac.vlouver_middle_below", AirConVLouverMiddleBelowAction, VLOUVER_ACTION_SCHEMA)
+
+@automation.register_action(
+    "aux_ac.vlouver_middle_below", AirConVLouverMiddleBelowAction, VLOUVER_ACTION_SCHEMA
+)
 async def vlouver_middle_below_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
 
-@automation.register_action("aux_ac.vlouver_bottom", AirConVLouverBottomAction, VLOUVER_ACTION_SCHEMA)
+
+@automation.register_action(
+    "aux_ac.vlouver_bottom", AirConVLouverBottomAction, VLOUVER_ACTION_SCHEMA
+)
 async def vlouver_bottom_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
+
 
 VLOUVER_SET_ACTION_SCHEMA = cv.Schema(
     {
@@ -383,7 +425,10 @@ VLOUVER_SET_ACTION_SCHEMA = cv.Schema(
     }
 )
 
-@automation.register_action("aux_ac.vlouver_set", AirConVLouverSetAction, VLOUVER_SET_ACTION_SCHEMA)
+
+@automation.register_action(
+    "aux_ac.vlouver_set", AirConVLouverSetAction, VLOUVER_SET_ACTION_SCHEMA
+)
 async def vlouver_set_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, paren)
@@ -405,7 +450,10 @@ SEND_TEST_PACKET_ACTION_SCHEMA = maybe_simple_id(
     }
 )
 
-@automation.register_action( "aux_ac.send_packet", AirConSendTestPacketAction, SEND_TEST_PACKET_ACTION_SCHEMA )
+
+@automation.register_action(
+    "aux_ac.send_packet", AirConSendTestPacketAction, SEND_TEST_PACKET_ACTION_SCHEMA
+)
 async def send_packet_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, paren)
@@ -420,4 +468,4 @@ async def send_packet_to_code(config, action_id, template_arg, args):
     else:
         cg.add(var.set_data_static(data))
 
-    return var    
+    return var
