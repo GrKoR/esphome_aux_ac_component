@@ -62,7 +62,7 @@ class Constants {
     static const uint32_t AC_STATES_REQUEST_INTERVAL;
 };
 
-const std::string Constants::AC_FIRMWARE_VERSION = "0.2.6";
+const std::string Constants::AC_FIRMWARE_VERSION = "0.2.7";
 
 // custom fan modes
 const std::string Constants::MUTE = "mute";
@@ -415,9 +415,12 @@ enum ac_louver_V : uint8_t {
 // Горизонтальные жалюзи. В протоколе зашита возможность двигать ими по всякому, но должна быть такая возможность на уровне железа.
 // горизонтальные жалюзи выставлять в определенное положение не вышло, протестировано.
 #define AC_LOUVERH_MASK 0b11100000
-enum ac_louver_H : uint8_t { AC_LOUVERH_SWING_LEFTRIGHT = 0x00,
-                             AC_LOUVERH_OFF = 0xE0,
-                             AC_LOUVERH_UNTOUCHED = 0xFF };
+enum ac_louver_H : uint8_t {
+    AC_LOUVERH_SWING_LEFTRIGHT = 0x00,
+    AC_LOUVERH_OFF_AUX = 0x20,          // 0b00100000
+    AC_LOUVERH_OFF_ALTERNATIVE = 0xE0,  // 0b11100000 - по коду везде кроме проверок использую его, так как у него все три бита в 1
+    AC_LOUVERH_UNTOUCHED = 0xFF
+};
 
 struct ac_louver {
     ac_louver_H louver_h;
@@ -546,6 +549,16 @@ struct ac_command_t {
 };
 
 typedef ac_command_t ac_state_t;  // текущее состояние параметров кондея можно хранить в таком же формате, как и комманды
+
+// Структура для хранения последних полученных от сплита информационных пакетов в сыром виде
+// Нужно до тех пор, пока весь функционал не разберем в структуру статуса.
+// Используем для проверки реакции сплита на команды (так отлавливаем разные версии протокола общения wifi-модуля с кондиционером)
+// Каждый пакет имеет поле msec. Если оно равно нулю, значит пакеты еще не принимались. По этому же полю можно смотреть, как давно
+// принималась информация от кондиционера, делать вывод об отвале и рапортовать об ошибке.
+struct ac_last_raw_data {
+    packet_t last_small_info_packet;
+    packet_t last_big_info_packet;
+};
 
 //****************************************************************************************************************************************************
 //************************************************ КОНЕЦ ПАРАМЕТРОВ РАБОТЫ КОНДИЦИОНЕРА **************************************************************
@@ -696,6 +709,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
     // пакет для тестирования всякой фигни
     packet_t _outTestPacket;
+
+    // сырые данные последних полученных большого и маленького информационных пакетов
+    ac_last_raw_data _last_raw_data;
 
     // последовательность пакетов текущий шаг в последовательности
     sequence_item_t _sequence[AC_SEQUENCE_MAX_LEN];
@@ -891,6 +907,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         cmd->temp_outbound = 0;
         cmd->temp_compressor = 0;
         cmd->realFanSpeed = AC_REAL_FAN_UNTOUCHED;
+        cmd->invertor_power = 0;
+        cmd->defrost = false;
     };
 
     // очистка буфера размером AC_BUFFER_SIZE
@@ -982,7 +1000,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             // но потом понял, что у нас пакеты уходят не только когда надо отвечать, но и мы можем быть инициаторами
             // поэтому вызов отправки тут пригодится
             if (_outPacket.msec > 0) _setStateMachineState(ACSM_SENDING_PACKET);
-            // иначе просто выходим
+            // больше дел нет - выходим
             return;
         };
 
@@ -1143,8 +1161,16 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             }
 
             case AC_PTYPE_INFO: {  // информационный пакет
-                // смотрим тип поступившего пакета по второму байту тела
                 _debugMsg(F("Parser: status packet received"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
+                // смотрим тип поступившего пакета по второму байту тела
+                // но вначале проверяем, что такое тело вообще есть
+                if ((_inPacket.body == nullptr) || (_inPacket.bytesLoaded < AC_HEADER_SIZE + 4) || (_inPacket.header->body_length < 2)) {
+                    _debugMsg(F("Parser: packet type=0x07 without body. Error!"), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                    _clearInPacket();
+                    _setStateMachineState(ACSM_IDLE);
+                    break;
+                }
+                // теперь можно проверять второй байт тела пакета
                 switch (_inPacket.body[1]) {
                     case AC_CMD_STATUS_SMALL: {  // маленький пакет статуса кондиционера
                         _debugMsg(F("Parser: status packet type = small"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
@@ -1554,7 +1580,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         pack->header->start_byte = AC_PACKET_START_BYTE;
         pack->header->wifi = AC_PACKET_ANSWER;  // для исходящего пакета ставим признак ответа
         pack->header->packet_type = AC_PTYPE_CMD;
-        pack->header->body_length = 15;  // тело команды 15 байт, как у Small status
+        pack->header->body_length = 0x0F;  // тело команды 15 (0x0F) байт, как у Small status
         pack->body = &(pack->data[AC_HEADER_SIZE]);
         pack->body[0] = AC_CMD_SET_PARAMS;  // устанавливаем параметры
         pack->body[1] = 0x01;               // он всегда 0x01
@@ -1616,6 +1642,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         if (cmd->power != AC_POWER_UNTOUCHED) {
             pack->body[10] = (pack->body[10] & ~AC_POWER_MASK) | cmd->power;
         }
+
+        // просушка
         if (cmd->clean != AC_CLEAN_UNTOUCHED) {
             pack->body[10] = (pack->body[10] & ~AC_CLEAN_MASK) | cmd->clean;
         }
@@ -1682,8 +1710,13 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         relevant = (relevant && (_inPacket.body[0] == 0x01));
         relevant = (relevant && (_inPacket.body[1] == AC_CMD_STATUS_SMALL));
 
-        // если пакет подходит, значит можно переходить к следующему шагу
+        // если пакет подходит...
         if (relevant) {
+            // ...значит можно переходить к следующему шагу
+            // так как пакет корректный, то его можно скопировать в последние полученные пакеты
+            _copyPacket(&_last_raw_data.last_small_info_packet, &_inPacket);
+
+            // отчитываемся в лог и переходим к следующему шагу
             _debugMsg(F("Sequence [step %u]: correct small status packet received"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _sequence_current_step);
             _sequence_current_step++;
         } else {
@@ -1734,8 +1767,13 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         relevant = (relevant && (_inPacket.body[0] == 0x01));
         relevant = (relevant && (_inPacket.body[1] == AC_CMD_STATUS_BIG));
 
-        // если пакет подходит, значит можно переходить к следующему шагу
+        // если пакет подходит...
         if (relevant) {
+            // ...значит можно переходить к следующему шагу
+            // так как пакет корректный, то его можно скопировать в последние полученные пакеты
+            _copyPacket(&_last_raw_data.last_big_info_packet, &_inPacket);
+
+            // отчитываемся в лог и переходим к следующему шагу
             _debugMsg(F("Sequence [step %u]: correct big status packet received"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _sequence_current_step);
             _sequence_current_step++;
         } else {
@@ -1912,6 +1950,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         _clearInPacket();
         _clearOutPacket();
         _clearPacket(&_outTestPacket);
+        _clearPacket(&_last_raw_data.last_big_info_packet);
+        _clearPacket(&_last_raw_data.last_small_info_packet);
 
         _setStateMachineState(ACSM_IDLE);
         _ac_serial = parent;
@@ -1961,9 +2001,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
     void stateChanged() {
         _debugMsg(F("State changed, let's publish it."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
 
-        // TODO: сейчас экшины рассчётные и могут не отражать реального положения дел.
-        // В протоколе расшифрованы байты, позволяющие выводить реальный экшн. Требуется исправить.
-        if (_is_invertor) {  // анализ режима для инвертора, точнее потому что использует показания мощности инвертора
+        // сейчас экшины рассчётные и могут не отражать реального положения дел, но других вариантов не придумалось
+        if (_is_invertor) {
+            // анализ режима для инвертора точнее потому, что использует показания мощности инвертора
             static uint32_t timerInv = 0;
             if (_current_ac_state.invertor_power == 0) {  // инвертор выключен
                 timerInv = millis();
@@ -2010,7 +2050,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                     this->action = climate::CLIMATE_ACTION_FAN;  // другие режимы - вентиляция
                 }
             }
-        } else {
+        } else {  // if(_is_invertor)
+            // для on-off сплита рассчет экшена упрощен
             if (_current_ac_state.realFanSpeed == AC_REAL_FAN_OFF &&
                 _current_ac_state.power == AC_POWER_OFF) {
                 this->action = climate::CLIMATE_ACTION_OFF;  // значит кондей не работает
@@ -2018,7 +2059,6 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 int16_t delta_temp = _current_ac_state.temp_ambient - _current_ac_state.temp_inbound;  // разность температуры между комнатной и входящей
                 if (delta_temp > 0 && delta_temp < 2 &&
                     (_current_ac_state.realFanSpeed == AC_REAL_FAN_OFF ||
-                     _current_ac_state.realFanSpeed == AC_REAL_FAN_MUTE ||
                      _current_ac_state.realFanSpeed == AC_REAL_FAN_MUTE)) {
                     this->action = climate::CLIMATE_ACTION_DRYING;  // ОСУШЕНИЕ
                 } else if (_current_ac_state.realFanSpeed != AC_REAL_FAN_OFF &&
@@ -2214,7 +2254,15 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         if (_current_ac_state.power == AC_POWER_ON) {
             if (_current_ac_state.louver.louver_h == AC_LOUVERH_SWING_LEFTRIGHT && _current_ac_state.louver.louver_v == AC_LOUVERV_OFF) {
                 this->swing_mode = climate::CLIMATE_SWING_HORIZONTAL;
-            } else if (_current_ac_state.louver.louver_h == AC_LOUVERH_OFF && _current_ac_state.louver.louver_v == AC_LOUVERV_SWING_UPDOWN) {
+            } else if (_current_ac_state.louver.louver_h == AC_LOUVERH_OFF_AUX && _current_ac_state.louver.louver_v == AC_LOUVERV_SWING_UPDOWN) {
+                // TODO: КОСТЫЛЬ!
+                this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
+            } else if (_current_ac_state.louver.louver_h == AC_LOUVERH_OFF_ALTERNATIVE && _current_ac_state.louver.louver_v == AC_LOUVERV_SWING_UPDOWN) {
+                // TODO: КОСТЫЛЬ!
+                //       временно сделал так. Сделать нормально - это надо подумать.
+                //       На AUX и многих других марках выключенный режим горизонтальных жалюзи равен 0x20, а на ROVEX и Royal Clima 0xE0
+                //       Из-за этого происходил сброс на OFF во фронтенде Home Assistant. Пришлось городить это.
+                //       Надо как-то изящнее решить эту историю
                 this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
             } else if (_current_ac_state.louver.louver_h == AC_LOUVERH_SWING_LEFTRIGHT && _current_ac_state.louver.louver_v == AC_LOUVERV_SWING_UPDOWN) {
                 this->swing_mode = climate::CLIMATE_SWING_BOTH;
@@ -2623,7 +2671,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 // But the ROVEX IR-remote does not provide this features. Therefore this features haven't been tested.
                 // May be suitable for other models of AUX-based ACs.
                 case climate::CLIMATE_SWING_OFF:
-                    cmd.louver.louver_h = AC_LOUVERH_OFF;
+                    cmd.louver.louver_h = AC_LOUVERH_OFF_ALTERNATIVE;
                     cmd.louver.louver_v = AC_LOUVERV_OFF;
                     hasCommand = true;
                     this->swing_mode = swingmode;
@@ -2637,7 +2685,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                     break;
 
                 case climate::CLIMATE_SWING_VERTICAL:
-                    cmd.louver.louver_h = AC_LOUVERH_OFF;
+                    cmd.louver.louver_h = AC_LOUVERH_OFF_ALTERNATIVE;
                     cmd.louver.louver_v = AC_LOUVERV_SWING_UPDOWN;
                     hasCommand = true;
                     this->swing_mode = swingmode;
