@@ -21,4 +21,5 @@
 ACs from the list below are **INCOMPATIBLE** with `aux_ac`.<br/>
 Кондиционеры из списка ниже протестированы и оказались **НЕСОВМЕСТИМЫ** с компонентом `aux_ac`.
 
-+ Kentatsu KSGMA26HFAN1 was tested and **isn't supported**
++ Kentatsu (models: KSGMA26HFAN1)
++ Royal Clima (models: RCI-PF40HN)
