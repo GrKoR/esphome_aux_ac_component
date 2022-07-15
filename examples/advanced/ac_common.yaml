@@ -47,6 +47,7 @@ web_server:
 # UART0 configuration for AUX air conditioner communication
 uart:
   id: ac_uart_bus
+  # ATTENTION! Use GPIO4 (D2) and GPIO5 (D1) as the TX and RX for NodeMCU-like boards!
   tx_pin: GPIO1
   rx_pin: GPIO3
   baud_rate: 4800
