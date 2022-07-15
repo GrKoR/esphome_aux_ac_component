@@ -49,6 +49,8 @@ external_components:
 ```yaml
 uart:
   id: ac_uart_bus
+  # ATTENTION! For TX and RX use GPIO4 (D2) and GPIO5 (D1) for NodeMCU-like boards!
+  # See docs for details: https://github.com/GrKoR/esphome_aux_ac_component/blob/master/docs/HARDWARE-EN.md
   tx_pin: GPIO1
   rx_pin: GPIO3
   baud_rate: 4800
