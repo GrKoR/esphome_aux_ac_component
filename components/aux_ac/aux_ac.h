@@ -2327,27 +2327,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
         // состояние дисплея
         if (sensor_display_ != nullptr) {
-            switch (_current_ac_state.display) {
-                case AC_DISPLAY_ON:
-                    if (this->get_display_inverted()) {
-                        sensor_display_->publish_state(false);
-                    } else {
-                        sensor_display_->publish_state(true);
-                    }
-                    break;
-
-                case AC_DISPLAY_OFF:
-                    if (this->get_display_inverted()) {
-                        sensor_display_->publish_state(true);
-                    } else {
-                        sensor_display_->publish_state(false);
-                    }
-                    break;
-
-                default:
-                    // могут быть и другие состояния, поэтому так
-                    break;
-            }
+            sensor_display_->publish_state( (_current_ac_state.display == AC_DISPLAY_ON) ^ this->get_display_inverted() );
         }
     }
 
