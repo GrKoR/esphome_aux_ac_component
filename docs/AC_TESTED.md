@@ -6,6 +6,7 @@
 + Ballu (models: BSUI-12HN8, BLC_CF/in-60HN1)
 + Centek (models: CT-65Q09, CT-65Z10, CT-65Z18, CT-65A12)
 + Dimstal (model: SMND-QC-12-J-Smart ECO)
++ Elgin (models: HWFI09B2IA/ HWFE09B2NA)
 + Energolux (models: SAS07L4-A, SAS07M2-AI, SAS09Z4-AI, SASxxBN1-AI)
 + Hyundai (models: H-AR16-07H, H-AR21-07H, H-AR21-09H)
 + Idea (models: ISR-12HR-SA7-DN1 ION)
