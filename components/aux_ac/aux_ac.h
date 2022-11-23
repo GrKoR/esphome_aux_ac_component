@@ -1294,7 +1294,10 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         _current_ac_state.invertor_power = stateFloat;
 
                         // режим разморозки
-                        bool temp = (big_info_body->needDefrost && big_info_body->defrostMode);
+                        //bool temp = (big_info_body->needDefrost && big_info_body->defrostMode);
+                        // TODO: need additional info for bit big_info_body->needDefrost
+                        // Some HVACs use it but others don't (they use bit 3 instead of bit 4 (needDefrost))
+                        bool temp = big_info_body->defrostMode;
                         stateChangedFlag = stateChangedFlag || (_current_ac_state.defrost != temp);
                         _current_ac_state.defrost = temp;
 
