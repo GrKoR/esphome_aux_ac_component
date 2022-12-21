@@ -1,41 +1,52 @@
 # ESPHome AUX air conditioner custom component (aux_ac) #
-For communication about this project [join telegram chat](https://t.me/aux_ac). 
+For communication about this project [please join this telegram chat](https://t.me/aux_ac). 
  
 For issues or feature requests, please go to [the issue section](https://github.com/GrKoR/esphome_aux_ac_component/issues). It will be perfect if you attach log to your issue. Log you can collect with [this python script](https://github.com/GrKoR/ac_python_logger). It helps you to save all data frames from the UART bus to a csv-file. This log combined with the detailed situation description will significantly speed up bug correction.
  
  
 ## DISCLAIMER ##
-1. All data of this project (software, firmware, schemes, 3d-models etc.) are provided **'AS IS'**. Everything you do with your devices you are doing at your own risk. If you don't strongly understand what you are doing, just buy wifi-module from your air conditioner manufacturer.
-2. I am not a programmer. So source code is certainly not optimal and badly decorated (but there are alot of comments in it; sorry, a significant part of it is in Russian). Also code may be written unsafe. I tried to test all parts of the code but I'm sure I missed a lot of things. So treat it with suspicion, expect a trick from it, and if you discover something wrong write an issue here.
-3. Russian and English readmes are substantially identical in meaning. But in case of differences the [Russian](https://github.com/GrKoR/esphome_aux_ac_component#readme) version is more significant.
+1. All data of this project (software, firmware, schemes, 3d-models etc.) are provided **'AS IS'**. Everything you do with your devices, you are doing at your own risk. If you don't strongly understand what you are doing, just buy wifi-module from your air conditioner manufacturer.
+2. I am not a programmer. So source code is certainly not optimal and badly decorated (but there are a lot of comments in it; sorry, a significant part of it is in Russian). Also, code may be written unsafe. I tried to test all parts of the code, but I'm sure I missed a lot of things. So treat it with suspicion, expect a trick from it, and if you discover something wrong write an issue here.
+3. Russian and English readme files are substantially identical in meaning. But in case of differences, the [Russian](https://github.com/GrKoR/esphome_aux_ac_component#readme) version is more significant.
  
 ## Short description ##
 This custom component allows you to control your air conditioner through wifi if it is made in the AUX factory.<br />
-Component tested with ESPHome 1.15.3 and Rovex ALS1 air conditioner. It looks like many other air conditioners can be controlled by `aux_ac` but this possibility isn't tested. See list of testetd ACs below for more details.
+Component tested with ESPHome 1.18.0 and Rovex ALS1 air conditioner. It looks like many other air conditioners can be controlled by `aux_ac`, but this possibility isn't tested. See list of tested ACs below for more details.
  
  
 ## Supported air conditioners ##
 AUX is one of the OEM air conditioner manufacturers. AUX produce ACs for many brands.
-There is following list of AUX-based air conditioner in the internet: AUX, Abion, AC ELECTRIC, Almacom, Ballu , Centek, Climer, DAX, Energolux, ERISSON, Green Energy, Hyundai, IGC, Kentatsu (некоторые серии), Klimaire, KOMANCHI, LANZKRAFT, LEBERG, LGen, Monroe, Neoclima, NEOLINE, One Air, Pioneer (до 2016 года), Roda, Rovex, Royal Clima, SAKATA, Samurai, SATURN, Scarlett, SmartWay, Soling, Subtropic, SUBTROPIC, Supra, Timberk, Vertex, Zanussi. There are doubts about its completeness and reliability, but nothing better could be found.
+There is the following list of AUX-based air conditioner on the internet: AUX, Abion, AC ELECTRIC, Almacom, Ballu, Centek, Climer, DAX, Energolux, ERISSON, Green Energy, Hyundai, IGC, Kentatsu (some series only), Klimaire, KOMANCHI, LANZKRAFT, LEBERG, LGen, Monroe, Neoclima, NEOLINE, One Air, Pioneer (until 2016), Roda, Rovex, Royal Clima, SAKATA, Samurai, SATURN, Scarlett, SmartWay, Soling, Subtropic, SUBTROPIC, Supra, Timberk, Vertex, Zanussi. There are doubts about its completeness and reliability, but nothing better could be found.
 
 ### List of compatible ACs (tested) ###
-[The list of tested ACs](docs/AC_TESTED.md) is placed in a separate file and includes tested by the author or by users ACs. This list is permanently updated mainly based on feedback from users in [Telegram chat](https://t.me/aux_ac).<br />
+[The list of tested ACs](docs/AC_TESTED.md) is placed in a separate file and includes tested by the author or by users ACs. This list is permanently updated, mainly based on feedback from users in [Telegram chat](https://t.me/aux_ac).<br />
 
+If your AC is not in the list
+If your AC is listed above you should take a closer look at aux_ac.
+If the User Manual of your HVAC describes connection to wifi with mobile app ACFreedom it seems you may go deeper with aux_ac. But try all soft and hardware for your own risk. You must clearly understand what you are doing.
+If you are unsure it is better to wait while other users will test your model of AC (but it may never). Or please go to telegram-chat with your questions. Maybe you will get help there.
 
+If you have tested your air conditioner and aux_ac works with it please let me know about it. I'll add this info to the list of tested ACs above. The best way to report about your test results is write a message in the telegram or in the issue section.
+
+How to use it
+For correct component operation you need hardware and firmware. The hardware description is located in separate file.
+
+Firmware: Integration aux_ac to your configuration
+You need ESPHome v.1.18.0 or above. External_components have appeared in this version. But it is better to use ESPHome v.1.20.4 or above cause there was alot of external_components errors corrected before this version.
 ### If your AC is not in the list ###
-If your AC is listed above you should take a closer look at `aux_ac`.<br />
+If your AC is listed above, you should take a closer look at `aux_ac`.<br />
 If the User Manual of your HVAC describes connection to wifi with mobile app ACFreedom it seems you may go deeper with `aux_ac`. But try all soft and hardware for your own risk. You must clearly understand what you are doing.<br />
-If you are unsure it is better to wait while other users will test your model of AC (but it may never). Or please [go to telegram-chat](https://t.me/aux_ac) with your questions. Maybe you will get help there.
+If you are unsure, it is better to wait while other users will test your model of AC (but it may never). Or please [go to telegram-chat](https://t.me/aux_ac) with your questions. Maybe you will get help there.
 
-If you have tested your air conditioner and `aux_ac` works with it please let me know about it. I'll add this info to the list of tested ACs above.
-The best way to report about your test results is write a message in the [telegram](https://t.me/aux_ac) or [in the issue section](https://github.com/GrKoR/esphome_aux_ac_component/issues).
+If you have tested your air conditioner and `aux_ac` works with it, please let me know about it. I'll add this info to the list of tested ACs above.
+The best way to report about your test results is writing a message in the [telegram](https://t.me/aux_ac) or [in the issue section](https://github.com/GrKoR/esphome_aux_ac_component/issues).
 
 
 ## How to use it ##
-For correct component operation you need hardware and firmware. The hardware description is located [in separate file](docs/HARDWARE-EN.md).
+For correct component operation, you need hardware and firmware. The hardware description is located [in a separate file](docs/HARDWARE-EN.md).
 
 ### Firmware: Integration aux_ac to your configuration ###
-You need [ESPHome](https://esphome.io) v.1.18.0 or above. `External_components` have appeared in this version. But it is better to use ESPHome v.1.20.4 or above cause there was alot of `external_components` errors corrected before this version.
+You need [ESPHome](https://esphome.io) v.1.18.0 or above. `External_components` have appeared in this version. But it is better to use ESPHome v.1.20.4 or above, cause there were a lot of `external_components` errors corrected before this version.
 
 ## Installing ##
 1. Declare external component. Read [the manual](https://esphome.io/components/external_components.html?highlight=external) for details.
@@ -63,7 +74,7 @@ uart:
 logger:
     baud_rate: 0
 ```
-If for some reason you need the logger output to the UART, you can switch it to another UART. ESP8266 has two hardware UARTs: UART0 and UART1. Only UART0 suits for `aux_ac` cause only it has both TX and RX. UART1 has TX only and it can be used by logger for output:
+If for some reason you need the logger output to the UART, you can switch it to another UART. ESP8266 has two hardware UARTs: UART0 and UART1. Only UART0 suits for `aux_ac` cause only it has both TX and RX. UART1 has TX only, and it can be used by logger for output:
 ```yaml
 logger:
     level: DEBUG
@@ -159,31 +170,31 @@ climate:
 - **id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Manually specify the ID used for code generation. At least one of `id` or `name` is required!
 - **uart_id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Manually specify the ID of the [UART Bus](https://esphome.io/components/uart.html) if you want to use multiple UART buses.
 - **period** (*Optional*, [time](https://esphome.io/guides/configuration-types.html#config-time), default ``7s``): Period between status requests to the AC. `Aux_ac` will receive the new air conditioner status only after a regular request, even if you change the settings of AC using IR-remote.
-- **show_action** (*Optional*, boolean, default ``true``): Whether to show current action of the device (experimental). For example in the HEAT-COOL mode AC hardware may be in one of the following actions:
+- **show_action** (*Optional*, boolean, default ``true``): Whether to show current action of the device (experimental). For example, in the HEAT-COOL mode, AC hardware may be in one of the following actions:
   - HEATING: AC is heating the air in the room;
-  - IDLE: AC is working in the FAN mode cause the target temperature is reached;
+  - IDLE: AC is working in the FAN mode, cause the target temperature is reached;
   - COOLING: AC is cooling the air.
   The same thing will be in HEAT or COOL modes, with the only difference of the list of actions (IDLE + HEATING or IDLE + COOLING).
   - **display_inverted** (*Optional*, boolean, default ``false``): It configures display driver logic level. As it turned out in the issue [#31](https://github.com/GrKoR/esphome_aux_ac_component/issues/31), different models of conditioners manage display different way. Rovex ACs powers off display by bit `1` in command packet and power it on by bit `0`. Many other conditioners do this vice versa.
 - **indoor_temperature** (*Optional*): Parameters of the room air temperature sensor.
   - **name** (**Required**, string): The name for the temperature sensor.
   - **id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Set the ID of this sensor for use in lambdas.
-  - **internal** (*Optional*, boolean): Mark this component as internal. Internal components will not be exposed to the frontend (like Home Assistant). As opposed to default [Sensor](https://esphome.io/components/sensor/index.html#base-sensor-configuration) behaviour this variable is **always true** except in cases where the user has set it directly.
+  - **internal** (*Optional*, boolean): Mark this component as internal. Internal components will not be exposed to the frontend (like Home Assistant). As opposed to default [Sensor](https://esphome.io/components/sensor/index.html#base-sensor-configuration) behaviour, this variable is **always true** except in cases where the user has set it directly.
   - All other options from [Sensor](https://esphome.io/components/sensor/index.html#base-sensor-configuration).
-- **outdoor_temperature** (*Optional*): Parameters of the outdoor temperature sensor. Thay are the same as the **indoor_temperature** (see description above).  
-**Attention!** When the air conditioner is turned off, the outdoor temperature is updated rarely (every 6-7 hours). This isn't a bug of the component, but a feature of the air conditioner hardware. The only way to get changes more often is to create a template sensor, the temperature of which can be changed manually. When the air conditioner is working, the value of this sensor can be copied from the **outdoor_temperature**. When the air conditioner is turned off, the temperature value should be is recalculated according to the dynamics of the **outbound_temperature** sensor (it changes frequently and shows values close to the air temperature when the air conditioner is turned off). You can't direct copy the value of **outbound_temperature** to the template sensor in AC off mode cause these temperatures are not identical.
-- **inbound_temperature** (*Optional*): Parameters of the coolant inbound temperature sensor. Thay are the same as the **indoor_temperature** (see description above).
-- **outbound_temperature** (*Optional*):  Parameters of the coolant outbound temperature sensor. Thay are the same as the **indoor_temperature** (see description above).
-- **compressor_temperature** (*Optional*):  Parameters of the compressor temperature sensor. Thay are the same as the **indoor_temperature** (see description above).
+- **outdoor_temperature** (*Optional*): Parameters of the outdoor temperature sensor. They are the same as the **indoor_temperature** (see description above).  
+**Attention!** When the air conditioner is turned off, the outdoor temperature is updated rarely (every 6-7 hours). This isn't a bug of the component, but a feature of the air conditioner hardware. The only way to get changes more often is to create a template sensor, the temperature of which can be changed manually. When the air conditioner is working, the value of this sensor can be copied from the **outdoor_temperature**. When the air conditioner is turned off, the temperature value should be is recalculated according to the dynamics of the **outbound_temperature** sensor (it changes frequently and shows values close to the air temperature when the air conditioner is turned off). You can't direct copy the value of **outbound_temperature** to the template sensor in AC off mode, because these temperatures are not identical.
+- **inbound_temperature** (*Optional*): Parameters of the coolant inbound temperature sensor. They are the same as the **indoor_temperature** (see description above).
+- **outbound_temperature** (*Optional*):  Parameters of the coolant outbound temperature sensor. They are the same as the **indoor_temperature** (see description above).
+- **compressor_temperature** (*Optional*):  Parameters of the compressor temperature sensor. They are the same as the **indoor_temperature** (see description above).
 - **display_state** (*Optional*): The information for the HVAC display state sensor (is display ON or OFF)
   - **name** (**Required**, string): The name for the display state sensor.
   - **id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Set the ID of this sensor for use in lambdas.
-  - **internal** (*Optional*, boolean): Mark this component as internal. Internal components will not be exposed to the frontend (like Home Assistant). As opposed to default [Binary Sensor](https://esphome.io/components/binary_sensor/index.html#base-binary-sensor-configuration) behaviour this variable is **always true** except in cases where the user has set it directly.
+  - **internal** (*Optional*, boolean): Mark this component as internal. Internal components will not be exposed to the frontend (like Home Assistant). As opposed to default [Binary Sensor](https://esphome.io/components/binary_sensor/index.html#base-binary-sensor-configuration) behavior, this variable is **always true** except in cases where the user has set it directly.
   - All other options from [Binary Sensor](https://esphome.io/components/binary_sensor/index.html#base-binary-sensor-configuration).
 - **defrost_state** (*Optional*): The information for the HVAC defrost function state sensor (is it ON or OFF). All settings are the same as for the **display_state** (see description above).
-- **invertor_power** (*Optional*): The information for the invertor power sensor. All settings are the same as for the **display_state** (see description above).
+- **invertor_power** (*Optional*): The information for the inverter power sensor. (Yes, I know about a mistake in the name of this parameter... I'll correct it... Sometimes :) ) All settings are the same as for the **display_state** (see description above).
 - **preset_reporter** (*Optional*): Parameters of text sensor with current preset. All settings are the same as for the **display_state** (see description above).  
-  ESPHome Climate devices are not report their active presets (from **supported_presets** and **custom_presets** lists) to MQTT. In case you are using mqtt and want to receive information about active preset you should declare this sensor in your yaml.
+  ESPHome Climate devices are not reporting their active presets (from **supported_presets** and **custom_presets** lists) to MQTT. This behavior has been noticed at least in version 1.20.0. In case you are using MQTT and want to receive information about active preset, you should declare this sensor in your yaml.
 - **vlouver_state** (*Optional*): Parameters of vertical louvers state sensor. All settings are the same as for the **display_state** (see description above). The state of the vertical louvers is encoded by the integer value (see [aux_ac.vlouver_set action](#aux_ac_._vlouver_set) below).
 - **supported_modes** (*Optional*, list): List of supported modes. Possible values are: ``HEAT_COOL``, ``COOL``, ``HEAT``, ``DRY``, ``FAN_ONLY``. Please note: some manufacturers call AUTO mode instead of HEAT_COOL. Defaults to ``FAN_ONLY``.
 - **custom_fan_modes** (*Optional*, list): List of supported custom fan modes. Possible values are: ``MUTE``, ``TURBO``. No custom fan modes by default.
@@ -232,8 +243,8 @@ on_...:
         id: aux_id
         position: 3 # moves the louvers to the middle position
 ```
-- **aux_id** (**Requared**, string): ID of `aux_ac` component.
-- **position** (**Requared**, integer): position of the vertical louvers.
+- **aux_id** (**Required**, string): ID of `aux_ac` component.
+- **position** (**Required**, integer): position of the vertical louvers.
 
 ### ``aux_ac.vlouver_stop`` ###
 This action stops vertical swing of louvers.
@@ -243,17 +254,17 @@ on_...:
   then:
     - aux_ac.vlouver_stop: aux_id
 ```
-- **aux_id** (**Requared**, string): ID of `aux_ac` component.
+- **aux_id** (**Required**, string): ID of `aux_ac` component.
 
 ### ``aux_ac.vlouver_swing`` ###
-This action starts vertical swing of louvers.
+This action starts the vertical swing of louvers.
 
 ```yaml
 on_...:
   then:
     - aux_ac.vlouver_swing: aux_id
 ```
-- **aux_id** (**Requared**, string): ID of `aux_ac` component.
+- **aux_id** (**Required**, string): ID of `aux_ac` component.
 
 ### ``aux_ac.vlouver_top`` ###
 This action moves HVAC louvers to the topmost position.
@@ -263,7 +274,7 @@ on_...:
   then:
     - aux_ac.vlouver_top: aux_id
 ```
-- **aux_id** (**Requared**, string): ID of `aux_ac` component.
+- **aux_id** (**Required**, string): ID of `aux_ac` component.
 
 ### ``aux_ac.vlouver_middle_above`` ###
 This action moves HVAC louvers to the position one step under the topmost.
@@ -273,7 +284,7 @@ on_...:
   then:
     - aux_ac.vlouver_middle_above: aux_id
 ```
-- **aux_id** (**Requared**, string): ID of `aux_ac` component.
+- **aux_id** (**Required**, string): ID of `aux_ac` component.
 
 ### ``aux_ac.vlouver_middle`` ###
 This action moves HVAC louvers to the middle position.
@@ -283,7 +294,7 @@ on_...:
   then:
     - aux_ac.vlouver_middle: aux_id
 ```
-- **aux_id** (**Requared**, string): ID of `aux_ac` component.
+- **aux_id** (**Required**, string): ID of `aux_ac` component.
 
 ### ``aux_ac.vlouver_middle_below`` ###
 This action moves HVAC louvers to the position one step under the middle position.
@@ -293,7 +304,7 @@ on_...:
   then:
     - aux_ac.vlouver_middle_below: aux_id
 ```
-- **aux_id** (**Requared**, string): ID of `aux_ac` component.
+- **aux_id** (**Required**, string): ID of `aux_ac` component.
 
 ### ``aux_ac.vlouver_bottom`` ###
 This action moves HVAC louvers to the lowest position.
@@ -303,14 +314,14 @@ on_...:
   then:
     - aux_ac.vlouver_bottom: aux_id
 ```
-- **aux_id** (**Requared**, string): ID of `aux_ac` component.
+- **aux_id** (**Required**, string): ID of `aux_ac` component.
 
 
 
 ## Simple example ##
 The source code of this example is located in the [aux_ac_simple.yaml](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/examples/simple/aux_ac_simple.yaml) file.
 
-All settings in it is trivial. Just copy file to your local folder, specify your wifi settings and compile YAML with ESPHome.
+All settings in it is trivial. Just copy the file to your local folder, specify your wifi settings and compile YAML with ESPHome.
 
 
 ## Advanced example ##
@@ -318,7 +329,7 @@ All sources are located [in advanced example folder](https://github.com/GrKoR/es
 
 This time we'll configure two relative identical air conditioners with `aux_ac` custom component.<br />
 Let's imagine we have ACs in a kitchen and in a living room. All ACs are the same brand and can be controlled by `aux_ac`.<br />  
-Cause we are lazy we'll define all common configuration parts for two air conditioners in one `ac_common.yaml` file.<br />
+Because we are lazy, we'll define all common configuration parts for two air conditioners in one `ac_common.yaml` file.<br />
 All specific parts of configuration are located in the `ac_kitchen.yaml` and `ac_livingroom.yaml`. Here we set `devicename` and `upper_devicename` for correct sensors and component naming. And here we specify the correct IP-address of the device from `secrets.yaml`.<br />
 **Don't forget** to specify `wifi_ip_kitchen`, `wifi_ota_ip_kitchen`, `wifi_ip_livingroom` and `wifi_ota_ip_livingroom` in the `secrets.yaml` along with the other sensitive information, such as passwords, tokens etc.
 
