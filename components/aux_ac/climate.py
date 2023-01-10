@@ -5,16 +5,17 @@ from esphome.components import climate, uart, sensor, binary_sensor, text_sensor
 from esphome import automation
 from esphome.automation import maybe_simple_id
 from esphome.const import (
-    CONF_ID,
-    CONF_UART_ID,
-    CONF_PERIOD,
     CONF_CUSTOM_FAN_MODES,
     CONF_CUSTOM_PRESETS,
-    CONF_INTERNAL,
     CONF_DATA,
+    CONF_ID,
+    CONF_INTERNAL,
+    CONF_PERIOD,
+    CONF_POSITION,
     CONF_SUPPORTED_MODES,
     CONF_SUPPORTED_SWING_MODES,
     CONF_SUPPORTED_PRESETS,
+    CONF_UART_ID,
     UNIT_CELSIUS,
     UNIT_PERCENT,
     ICON_POWER,
@@ -22,7 +23,6 @@ from esphome.const import (
     DEVICE_CLASS_TEMPERATURE,
     DEVICE_CLASS_POWER_FACTOR,
     STATE_CLASS_MEASUREMENT,
-    CONF_POSITION,
 )
 from esphome.components.climate import (
     ClimateMode,
@@ -37,25 +37,40 @@ DEPENDENCIES = ["climate", "uart"]
 AUTO_LOAD = ["sensor", "binary_sensor", "text_sensor"]
 
 CONF_SHOW_ACTION = "show_action"
+
 CONF_INDOOR_TEMPERATURE = "indoor_temperature"
 CONF_OUTDOOR_TEMPERATURE = "outdoor_temperature"
 ICON_OUTDOOR_TEMPERATURE = "mdi:home-thermometer-outline"
+
 CONF_INBOUND_TEMPERATURE = "inbound_temperature"
 ICON_INBOUND_TEMPERATURE = "mdi:thermometer-plus"
+
 CONF_OUTBOUND_TEMPERATURE = "outbound_temperature"
 ICON_OUTBOUND_TEMPERATURE = "mdi:thermometer-minus"
+
 CONF_COMPRESSOR_TEMPERATURE = "compressor_temperature"
 ICON_COMPRESSOR_TEMPERATURE = "mdi:thermometer-lines"
+
 CONF_DISPLAY_STATE = "display_state"
 CONF_INVERTOR_POWER = "invertor_power"
+
 CONF_DEFROST_STATE = "defrost_state"
 ICON_DEFROST = "mdi:snowflake-melt"
+
 CONF_DISPLAY_INVERTED = "display_inverted"
 ICON_DISPLAY = "mdi:clock-digital"
+
 CONF_PRESET_REPORTER = "preset_reporter"
 ICON_PRESET_REPORTER = "mdi:format-list-group"
+
 CONF_VLOUVER_STATE = "vlouver_state"
 ICON_VLOUVER_STATE = "mdi:compare-vertical"
+
+CONF_LIMIT = "limit"
+CONF_INVERTER_POWER_LIMIT_VALUE = "inverter_power_limit_value"
+ICON_INVERTER_POWER_LIMIT_VALUE = "mdi:meter-electric-outline"
+CONF_INVERTER_POWER_LIMIT_STATE = "inverter_power_limit_state"
+ICON_INVERTER_POWER_LIMIT_STATE = "mdi:meter-electric-outline"
 
 
 aux_ac_ns = cg.esphome_ns.namespace("aux_ac")
@@ -89,8 +104,18 @@ AirConVLouverMiddleBelowAction = aux_ac_ns.class_(
 AirConVLouverBottomAction = aux_ac_ns.class_(
     "AirConVLouverBottomAction", automation.Action
 )
+AirConVLouverSetAction = aux_ac_ns.class_(
+    "AirConVLouverSetAction", automation.Action
+)
 
-AirConVLouverSetAction = aux_ac_ns.class_("AirConVLouverSetAction", automation.Action)
+# power limitation actions
+AirConPowerLimitationOffAction = aux_ac_ns.class_(
+    "AirConPowerLimitationOffAction", automation.Action
+)
+AirConPowerLimitationOnAction = aux_ac_ns.class_(
+    "AirConPowerLimitationOnAction", automation.Action
+)
+
 
 ALLOWED_CLIMATE_MODES = {
     "HEAT_COOL": ClimateMode.CLIMATE_MODE_HEAT_COOL,
@@ -240,6 +265,24 @@ CONFIG_SCHEMA = cv.All(
                     cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
                 }
             ),
+            cv.Optional(CONF_INVERTER_POWER_LIMIT_VALUE): sensor.sensor_schema(
+                unit_of_measurement=UNIT_PERCENT,
+                icon=ICON_INVERTER_POWER_LIMIT_VALUE,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_POWER_FACTOR,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                }
+            ),
+            cv.Optional(CONF_INVERTER_POWER_LIMIT_STATE): binary_sensor.binary_sensor_schema(
+                icon=ICON_INVERTER_POWER_LIMIT_STATE,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                }
+            ),
             cv.Optional(CONF_SUPPORTED_MODES): cv.ensure_list(validate_modes),
             cv.Optional(CONF_SUPPORTED_SWING_MODES): cv.ensure_list(
                 validate_swing_modes
@@ -316,6 +359,16 @@ async def to_code(config):
         conf = config[CONF_PRESET_REPORTER]
         sens = await text_sensor.new_text_sensor(conf)
         cg.add(var.set_preset_reporter_sensor(sens))
+    
+    if CONF_INVERTER_POWER_LIMIT_VALUE in config:
+        conf = config[CONF_INVERTER_POWER_LIMIT_VALUE]
+        sens = await sensor.new_sensor(conf)
+        cg.add(var.set_invertor_power_limit_value_sensor(sens))
+
+    if CONF_INVERTER_POWER_LIMIT_STATE in config:
+        conf = config[CONF_INVERTER_POWER_LIMIT_STATE]
+        sens = await binary_sensor.new_binary_sensor(conf)
+        cg.add(var.set_invertor_power_limit_state_sensor(sens))
 
     cg.add(var.set_period(config[CONF_PERIOD].total_milliseconds))
     cg.add(var.set_show_action(config[CONF_SHOW_ACTION]))
@@ -332,12 +385,12 @@ async def to_code(config):
         cg.add(var.set_custom_fan_modes(config[CONF_CUSTOM_FAN_MODES]))
 
 
+
 DISPLAY_ACTION_SCHEMA = maybe_simple_id(
     {
         cv.Required(CONF_ID): cv.use_id(AirCon),
     }
 )
-
 
 @automation.register_action(
     "aux_ac.display_off", AirConDisplayOffAction, DISPLAY_ACTION_SCHEMA
@@ -345,7 +398,6 @@ DISPLAY_ACTION_SCHEMA = maybe_simple_id(
 async def display_off_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
-
 
 @automation.register_action(
     "aux_ac.display_on", AirConDisplayOnAction, DISPLAY_ACTION_SCHEMA
@@ -355,12 +407,12 @@ async def display_on_to_code(config, action_id, template_arg, args):
     return cg.new_Pvariable(action_id, template_arg, paren)
 
 
+
 VLOUVER_ACTION_SCHEMA = maybe_simple_id(
     {
         cv.Required(CONF_ID): cv.use_id(AirCon),
     }
 )
-
 
 @automation.register_action(
     "aux_ac.vlouver_stop", AirConVLouverStopAction, VLOUVER_ACTION_SCHEMA
@@ -369,14 +421,12 @@ async def vlouver_stop_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
 
-
 @automation.register_action(
     "aux_ac.vlouver_swing", AirConVLouverSwingAction, VLOUVER_ACTION_SCHEMA
 )
 async def vlouver_swing_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
-
 
 @automation.register_action(
     "aux_ac.vlouver_top", AirConVLouverTopAction, VLOUVER_ACTION_SCHEMA
@@ -385,14 +435,12 @@ async def vlouver_top_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
 
-
 @automation.register_action(
     "aux_ac.vlouver_middle_above", AirConVLouverMiddleAboveAction, VLOUVER_ACTION_SCHEMA
 )
 async def vlouver_middle_above_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
-
 
 @automation.register_action(
     "aux_ac.vlouver_middle", AirConVLouverMiddleAction, VLOUVER_ACTION_SCHEMA
@@ -401,14 +449,12 @@ async def vlouver_middle_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
 
-
 @automation.register_action(
     "aux_ac.vlouver_middle_below", AirConVLouverMiddleBelowAction, VLOUVER_ACTION_SCHEMA
 )
 async def vlouver_middle_below_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
-
 
 @automation.register_action(
     "aux_ac.vlouver_bottom", AirConVLouverBottomAction, VLOUVER_ACTION_SCHEMA
@@ -418,13 +464,13 @@ async def vlouver_bottom_to_code(config, action_id, template_arg, args):
     return cg.new_Pvariable(action_id, template_arg, paren)
 
 
+
 VLOUVER_SET_ACTION_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_ID): cv.use_id(AirCon),
         cv.Required(CONF_POSITION): cv.templatable(cv.int_range(0, 6)),
     }
 )
-
 
 @automation.register_action(
     "aux_ac.vlouver_set", AirConVLouverSetAction, VLOUVER_SET_ACTION_SCHEMA
@@ -435,6 +481,43 @@ async def vlouver_set_to_code(config, action_id, template_arg, args):
     template_ = await cg.templatable(config[CONF_POSITION], args, int)
     cg.add(var.set_value(template_))
     return var
+
+
+
+POWER_LIMITATION_OFF_ACTION_SCHEMA = maybe_simple_id(
+    {
+        cv.Required(CONF_ID): cv.use_id(AirCon),
+    }
+)
+
+@automation.register_action(
+    "aux_ac.power_limit_off", AirConPowerLimitationOffAction, POWER_LIMITATION_OFF_ACTION_SCHEMA
+)
+async def power_limit_off_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
+
+
+
+POWER_LIMITATION_ON_ACTION_SCHEMA = cv.Schema(
+    {
+        cv.Required(CONF_ID): cv.use_id(AirCon),
+        cv.Optional(CONF_LIMIT, default=Capabilities.AC_MIN_INVERTER_POWER_LIMIT): cv.templatable(
+            cv.int_range(30, 100)
+        ),
+    }
+)
+
+@automation.register_action(
+    "aux_ac.power_limit_on", AirConPowerLimitationOnAction, POWER_LIMITATION_ON_ACTION_SCHEMA
+)
+async def power_limit_on_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(action_id, template_arg, paren)
+    template_ = await cg.templatable(config[CONF_LIMIT], args, int)
+    cg.add(var.set_value(template_))
+    return var
+
 
 
 # *********************************************************************************************************

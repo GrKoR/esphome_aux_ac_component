@@ -154,5 +154,33 @@ class AirConSendTestPacketAction : public Action<Ts...> {
     std::vector<uint8_t> data_static_{};
 };
 
+// **************************************** POWER LIMITATION ACTIONS ****************************************
+template <typename... Ts>
+class AirConPowerLimitationOffAction : public Action<Ts...> {
+   public:
+    explicit AirConPowerLimitationOffAction(AirCon *ac) : ac_(ac) {}
+
+    void play(Ts... x) override { this->ac_->powerLimitationOffSequence(); }
+
+   protected:
+    AirCon *ac_;
+};
+
+template <typename... Ts>
+class AirConPowerLimitationOnAction : public Action<Ts...> {
+   public:
+    AirConPowerLimitationOnAction(AirCon *ac) : ac_(ac) {}
+    TEMPLATABLE_VALUE(uint8_t, value);
+
+    void play(Ts... x) {
+        this->pwr_lim_ = this->value_.value(x...);
+        this->ac_->powerLimitationOnSequence(this->pwr_lim_);
+    }
+
+   protected:
+    AirCon *ac_;
+    uint8_t pwr_lim_;
+};
+
 }  // namespace aux_ac
 }  // namespace esphome
