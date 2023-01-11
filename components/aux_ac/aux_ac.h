@@ -66,7 +66,7 @@ class Constants {
     static const uint32_t AC_STATES_REQUEST_INTERVAL;
 };
 
-const std::string Constants::AC_FIRMWARE_VERSION = "0.2.9-dev.3";
+const std::string Constants::AC_FIRMWARE_VERSION = "0.2.9-dev.3+";
 
 // custom fan modes
 const std::string Constants::MUTE = "mute";
