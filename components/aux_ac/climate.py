@@ -52,7 +52,8 @@ CONF_COMPRESSOR_TEMPERATURE = "compressor_temperature"
 ICON_COMPRESSOR_TEMPERATURE = "mdi:thermometer-lines"
 
 CONF_DISPLAY_STATE = "display_state"
-CONF_INVERTOR_POWER = "invertor_power"
+CONF_INVERTER_POWER = "inverter_power"
+CONF_INVERTER_POWER_DEPRICATED = "invertor_power"
 
 CONF_DEFROST_STATE = "defrost_state"
 ICON_DEFROST = "mdi:snowflake-melt"
@@ -170,7 +171,11 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_PERIOD, default="7s"): cv.time_period,
             cv.Optional(CONF_SHOW_ACTION, default="true"): cv.boolean,
             cv.Optional(CONF_DISPLAY_INVERTED, default="false"): cv.boolean,
-            cv.Optional(CONF_INVERTOR_POWER): sensor.sensor_schema(
+            
+            cv.Optional(CONF_INVERTER_POWER_DEPRICATED): cv.invalid(
+                "The name of sensor was changed in v.0.2.9 from 'invertor_power' to 'inverter_power'. Update your config please."
+            ),
+            cv.Optional(CONF_INVERTER_POWER): sensor.sensor_schema(
                 unit_of_measurement=UNIT_PERCENT,
                 icon=ICON_POWER,
                 accuracy_decimals=0,
@@ -181,6 +186,7 @@ CONFIG_SCHEMA = cv.All(
                     cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
                 }
             ),
+
             cv.Optional(CONF_INDOOR_TEMPERATURE): sensor.sensor_schema(
                 unit_of_measurement=UNIT_CELSIUS,
                 icon=ICON_THERMOMETER,
@@ -350,10 +356,10 @@ async def to_code(config):
         sens = await binary_sensor.new_binary_sensor(conf)
         cg.add(var.set_defrost_state(sens))
 
-    if CONF_INVERTOR_POWER in config:
-        conf = config[CONF_INVERTOR_POWER]
+    if CONF_INVERTER_POWER in config:
+        conf = config[CONF_INVERTER_POWER]
         sens = await sensor.new_sensor(conf)
-        cg.add(var.set_invertor_power_sensor(sens))
+        cg.add(var.set_inverter_power_sensor(sens))
 
     if CONF_PRESET_REPORTER in config:
         conf = config[CONF_PRESET_REPORTER]
@@ -363,12 +369,12 @@ async def to_code(config):
     if CONF_INVERTER_POWER_LIMIT_VALUE in config:
         conf = config[CONF_INVERTER_POWER_LIMIT_VALUE]
         sens = await sensor.new_sensor(conf)
-        cg.add(var.set_invertor_power_limit_value_sensor(sens))
+        cg.add(var.set_inverter_power_limit_value_sensor(sens))
 
     if CONF_INVERTER_POWER_LIMIT_STATE in config:
         conf = config[CONF_INVERTER_POWER_LIMIT_STATE]
         sens = await binary_sensor.new_binary_sensor(conf)
-        cg.add(var.set_invertor_power_limit_state_sensor(sens))
+        cg.add(var.set_inverter_power_limit_state_sensor(sens))
 
     cg.add(var.set_period(config[CONF_PERIOD].total_milliseconds))
     cg.add(var.set_show_action(config[CONF_SHOW_ACTION]))

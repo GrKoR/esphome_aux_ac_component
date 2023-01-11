@@ -89,8 +89,8 @@ climate:
       name: $upper_devicename Defrost State
       id: ${devicename}_defrost_state
       internal: false
-    invertor_power:
-      name: $upper_devicename Invertor Power
+    inverter_power:
+      name: $upper_devicename Inverter Power
       id: ${devicename}_invertor_power
       internal: false
     preset_reporter:

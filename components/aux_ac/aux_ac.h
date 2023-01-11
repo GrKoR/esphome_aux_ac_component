@@ -66,7 +66,7 @@ class Constants {
     static const uint32_t AC_STATES_REQUEST_INTERVAL;
 };
 
-const std::string Constants::AC_FIRMWARE_VERSION = "0.2.9-dev.2";
+const std::string Constants::AC_FIRMWARE_VERSION = "0.2.9-dev.3";
 
 // custom fan modes
 const std::string Constants::MUTE = "mute";
@@ -193,9 +193,9 @@ struct packet_big_info_body_t {
     // байт 2 тела (байт 10 пакета)
     // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b10
     uint8_t reserv20 : 2;
-    bool is_invertor_periodic : 1;  // флаг периодического пакета инверторного кондиционера
+    bool is_inverter_periodic : 1;  // флаг периодического пакета инверторного кондиционера
     uint8_t reserv23 : 2;
-    bool is_invertor : 1;  // флаг инвертора
+    bool is_inverter : 1;  // флаг инвертора
     uint8_t reserv26 : 2;
 
     // байт 3 тела (байт 11 пакета)
@@ -288,7 +288,7 @@ struct packet_big_info_body_t {
 
     // байт 16 тела (байт 24 пакета)
     // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b24
-    uint8_t invertor_power;  // мощность инвертора (от 0 до 100) в %
+    uint8_t inverter_power;  // мощность инвертора (от 0 до 100) в %
 
     // байт 17 тела (байт 25 пакета)
     // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b25
@@ -585,7 +585,7 @@ struct ac_command_t {
     int8_t temp_outbound;     // температура исходящая
     int8_t temp_compressor;   // температура компрессора
     ac_realFan realFanSpeed;  // текущая скорость вентилятора
-    uint8_t invertor_power;   // мощность инвертора
+    uint8_t inverter_power;   // мощность инвертора
     bool defrost;             // режим разморозки внешнего блока (накопление тепла + прогрев испарителя)
     bool inverter_power_limitation_enable;      // ограничение мощности инвертора
     uint8_t inverter_power_limitation_value;    // значение ограничения мощности инвертора
@@ -705,7 +705,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
     // будет работать, но будет ниже, переменная устанавливается при первом получении большого пакета;
     // если эта переменная установлена, то режим работы не инверторного кондиционера будет распознаваться
     // как "в простое" (IDLE)
-    bool _is_invertor = false;
+    bool _is_inverter = false;
 
     // поддерживаемые кондиционером опции
     std::set<ClimateMode> _supported_modes{};
@@ -957,9 +957,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         cmd->temp_outbound = 0;
         cmd->temp_compressor = 0;
         cmd->realFanSpeed = AC_REAL_FAN_UNTOUCHED;
-        cmd->invertor_power = 0;
+        cmd->inverter_power = 0;
         cmd->defrost = false;
-        cmd->inverter_power_limitation_enable =false;
+        cmd->inverter_power_limitation_enable = false;
         cmd->inverter_power_limitation_value = AC_INVERTER_POWER_LIMITATION_VALUE_UNTOUCHED;
     };
 
@@ -1317,7 +1317,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         big_info_body = (packet_big_info_body_t *)(_inPacket.body);
 
                         // тип кондея (инвертор или старт стоп)
-                        _is_invertor = big_info_body->is_invertor;
+                        _is_inverter = big_info_body->is_inverter;
                         
                         // температура воздуха в помещении по версии сплит-системы
                         stateFloat = big_info_body->ambient_temperature_int - 0x20 + (float)(big_info_body->ambient_temperature_frac & 0x0f) / 10.0;
@@ -1351,9 +1351,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         _current_ac_state.realFanSpeed = (ac_realFan)stateFloat;
 
                         // мощность инвертора
-                        stateFloat = big_info_body->invertor_power;
-                        stateChangedFlag = stateChangedFlag || (_current_ac_state.invertor_power != stateFloat);
-                        _current_ac_state.invertor_power = stateFloat;
+                        stateFloat = big_info_body->inverter_power;
+                        stateChangedFlag = stateChangedFlag || (_current_ac_state.inverter_power != stateFloat);
+                        _current_ac_state.inverter_power = stateFloat;
 
                         // режим разморозки
                         //bool temp = (big_info_body->needDefrost && big_info_body->defrostMode);
@@ -1667,8 +1667,12 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         }
 
         // ограничение мощности инвертора
+        if (cmd->inverter_power_limitation_enable) {
+            pack->body[13] = (pack->body[13] & ~AC_INVERTER_POWER_LIMITATION_ENABLE_MASK) | 1;
+        } else {
+            pack->body[13] = (pack->body[13] & ~AC_INVERTER_POWER_LIMITATION_ENABLE_MASK) | 0;
+        }
         if (cmd->inverter_power_limitation_value != AC_INVERTER_POWER_LIMITATION_VALUE_UNTOUCHED) {
-            pack->body[13] = (pack->body[13] & ~AC_INVERTER_POWER_LIMITATION_ENABLE_MASK) | cmd->inverter_power_limitation_enable;
             cmd->inverter_power_limitation_value = _power_limitation_value_normalise(cmd->inverter_power_limitation_value);
             pack->body[13] = (pack->body[13] & ~AC_INVERTER_POWER_LIMITATION_VALUE_MASK) | cmd->inverter_power_limitation_value;
         }
@@ -1938,13 +1942,13 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
     esphome::sensor::Sensor *sensor_inbound_temperature_ = nullptr;
     esphome::sensor::Sensor *sensor_outbound_temperature_ = nullptr;
     esphome::sensor::Sensor *sensor_compressor_temperature_ = nullptr;
-    esphome::sensor::Sensor *sensor_invertor_power_ = nullptr;
+    esphome::sensor::Sensor *sensor_inverter_power_ = nullptr;
     esphome::sensor::Sensor *sensor_vlouver_state_ = nullptr;
     esphome::binary_sensor::BinarySensor *sensor_display_ = nullptr;
     esphome::binary_sensor::BinarySensor *sensor_defrost_ = nullptr;
     esphome::text_sensor::TextSensor *sensor_preset_reporter_ = nullptr;
-    esphome::sensor::Sensor *sensor_invertor_power_limit_value_ = nullptr;
-    esphome::binary_sensor::BinarySensor *sensor_invertor_power_limit_state_ = nullptr;
+    esphome::sensor::Sensor *sensor_inverter_power_limit_value_ = nullptr;
+    esphome::binary_sensor::BinarySensor *sensor_inverter_power_limit_state_ = nullptr;
 
     // загружает на выполнение последовательность команд на включение/выключение табло с температурой
     bool _displaySequence(ac_display dsp = AC_DISPLAY_ON) {
@@ -2060,10 +2064,10 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
     void set_vlouver_state_sensor(sensor::Sensor *vlouver_state_sensor) { sensor_vlouver_state_ = vlouver_state_sensor; }
     void set_defrost_state(binary_sensor::BinarySensor *defrost_state_sensor) { sensor_defrost_ = defrost_state_sensor; }
     void set_display_sensor(binary_sensor::BinarySensor *display_sensor) { sensor_display_ = display_sensor; }
-    void set_invertor_power_sensor(sensor::Sensor *invertor_power_sensor) { sensor_invertor_power_ = invertor_power_sensor; }
+    void set_inverter_power_sensor(sensor::Sensor *inverter_power_sensor) { sensor_inverter_power_ = inverter_power_sensor; }
     void set_preset_reporter_sensor(text_sensor::TextSensor *preset_reporter_sensor) { sensor_preset_reporter_ = preset_reporter_sensor; }
-    void set_invertor_power_limit_value_sensor(sensor::Sensor *invertor_power_limit_value_sensor) { sensor_invertor_power_limit_value_ = invertor_power_limit_value_sensor; }
-    void set_invertor_power_limit_state_sensor(binary_sensor::BinarySensor *invertor_power_limit_state_sensor) { sensor_invertor_power_limit_state_ = invertor_power_limit_state_sensor; }
+    void set_inverter_power_limit_value_sensor(sensor::Sensor *inverter_power_limit_value_sensor) { sensor_inverter_power_limit_value_ = inverter_power_limit_value_sensor; }
+    void set_inverter_power_limit_state_sensor(binary_sensor::BinarySensor *inverter_power_limit_state_sensor) { sensor_inverter_power_limit_state_ = inverter_power_limit_state_sensor; }
 
     bool get_hw_initialized() { return _hw_initialized; };
     bool get_has_connection() { return _has_connection; };
@@ -2079,10 +2083,10 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
         // экшины кондиционера (информация для пользователя, что кондиционер сейчас делает)
         // сейчас экшины рассчётные и могут не отражать реального положения дел, но других вариантов не придумалось
-        if (_is_invertor) {
+        if (_is_inverter) {
             // анализ режима для инвертора точнее потому, что использует показания мощности инвертора
             static uint32_t timerInv = 0;
-            if (_current_ac_state.invertor_power == 0) {  // инвертор выключен
+            if (_current_ac_state.inverter_power == 0) {  // инвертор выключен
                 timerInv = millis();
                 if (_current_ac_state.realFanSpeed == AC_REAL_FAN_OFF &&
                     _current_ac_state.power == AC_POWER_OFF) {   // внутренний кулер остановлен, кондей выключен
@@ -2127,7 +2131,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                     this->action = climate::CLIMATE_ACTION_FAN;  // другие режимы - вентиляция
                 }
             }
-        } else {  // if(_is_invertor)
+        } else {  // if(_is_inverter)
             // для on-off сплита рассчет экшена упрощен
             if (_current_ac_state.realFanSpeed == AC_REAL_FAN_OFF &&
                 _current_ac_state.power == AC_POWER_OFF) {
@@ -2380,8 +2384,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         if (sensor_compressor_temperature_ != nullptr)
             sensor_compressor_temperature_->publish_state(_current_ac_state.temp_compressor);
         // мощность инвертора
-        if (sensor_invertor_power_ != nullptr)
-            sensor_invertor_power_->publish_state(_current_ac_state.invertor_power);
+        if (sensor_inverter_power_ != nullptr)
+            sensor_inverter_power_->publish_state(_current_ac_state.inverter_power);
         // флаг режима разморозки
         if (sensor_defrost_ != nullptr)
             sensor_defrost_->publish_state(_current_ac_state.defrost);
@@ -2389,11 +2393,11 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         if (sensor_vlouver_state_ != nullptr)
             sensor_vlouver_state_->publish_state((float)this->getCurrentVlouverFrontendState());
         // флаг включенного ограничения мощности инвертора
-        if (sensor_invertor_power_limit_state_ != nullptr)
-            sensor_invertor_power_limit_state_->publish_state(_current_ac_state.inverter_power_limitation_enable);
+        if (sensor_inverter_power_limit_state_ != nullptr)
+            sensor_inverter_power_limit_state_->publish_state(_current_ac_state.inverter_power_limitation_enable);
         // значение ограничения мощности инвертора
-        if (sensor_invertor_power_limit_value_ != nullptr)
-            sensor_invertor_power_limit_value_->publish_state(_current_ac_state.inverter_power_limitation_value);
+        if (sensor_inverter_power_limit_value_ != nullptr)
+            sensor_inverter_power_limit_value_->publish_state(_current_ac_state.inverter_power_limitation_value);
 
         // сенсор состояния сплита
         if (sensor_preset_reporter_ != nullptr) {
@@ -2426,19 +2430,19 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         ESP_LOGCONFIG(TAG, "  [x] Save settings %s", TRUEFALSE(this->get_store_settings()));
 #endif
 
-        ESP_LOGCONFIG(TAG, "  [?] Is invertor %s", millis() > _update_period + 1000 ? YESNO(_is_invertor) : "pending...");
+        ESP_LOGCONFIG(TAG, "  [?] Is inverter %s", millis() > _update_period + 1000 ? YESNO(_is_inverter) : "pending...");
 
         LOG_SENSOR("  ", "Indoor Temperature", this->sensor_indoor_temperature_);
         LOG_SENSOR("  ", "Outdoor Temperature", this->sensor_outdoor_temperature_);
         LOG_SENSOR("  ", "Inbound Temperature", this->sensor_inbound_temperature_);
         LOG_SENSOR("  ", "Outbound Temperature", this->sensor_outbound_temperature_);
         LOG_SENSOR("  ", "Compressor Temperature", this->sensor_compressor_temperature_);
-        LOG_SENSOR("  ", "Inverter Power", this->sensor_invertor_power_);
+        LOG_SENSOR("  ", "Inverter Power", this->sensor_inverter_power_);
         LOG_BINARY_SENSOR("  ", "Defrost Status", this->sensor_defrost_);
         LOG_BINARY_SENSOR("  ", "Display", this->sensor_display_);
         LOG_TEXT_SENSOR("  ", "Preset Reporter", this->sensor_preset_reporter_);
-        LOG_SENSOR("  ", "Inverter Power Limit Value", this->sensor_invertor_power_limit_value_);
-        LOG_BINARY_SENSOR("  ", "Inverter Power Limit State", this->sensor_invertor_power_limit_state_);
+        LOG_SENSOR("  ", "Inverter Power Limit Value", this->sensor_inverter_power_limit_value_);
+        LOG_BINARY_SENSOR("  ", "Inverter Power Limit State", this->sensor_inverter_power_limit_state_);
         this->dump_traits_(TAG);
     }
 
@@ -3055,7 +3059,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             return false;
         }
 
-        if (!this->_is_invertor) return false;  // если кондиционер не инверторный, то выходим
+        if (!this->_is_inverter) return false;  // если кондиционер не инверторный, то выходим
 
         // формируем команду
         ac_command_t cmd;
@@ -3077,7 +3081,10 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             return false;
         }
 
-        if (!this->_is_invertor) return false;  // если кондиционер не инверторный, то выходим
+        if (!this->_is_inverter) {   // если кондиционер не инверторный, то выходим
+            _debugMsg(F("powerLimitationOnSequence: unsupported for noninverter AC."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+            return false;
+        }
 
         power_limit = this->_power_limitation_value_normalise(power_limit);
 
