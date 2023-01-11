@@ -66,7 +66,7 @@ class Constants {
     static const uint32_t AC_STATES_REQUEST_INTERVAL;
 };
 
-const std::string Constants::AC_FIRMWARE_VERSION = "0.2.9-dev";
+const std::string Constants::AC_FIRMWARE_VERSION = "0.2.9-dev.2";
 
 // custom fan modes
 const std::string Constants::MUTE = "mute";
@@ -365,8 +365,8 @@ struct packet_small_info_body_t {
     uint8_t display_and_mildew;
 
     // байт 21 пакета: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b21
-    bool inverter_power_limitation_enable : 1;
     uint8_t inverter_power_limitation_value : 7;
+    bool inverter_power_limitation_enable : 1;
 
     // байт 22 пакета: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b22
     uint8_t target_temp_frac2;
@@ -514,6 +514,7 @@ enum ac_mildew : uint8_t { AC_MILDEW_OFF = 0x00,
 // маски ограничения мощности для инверторного кондиционера
 #define AC_INVERTER_POWER_LIMITATION_ENABLE_MASK 0b10000000
 #define AC_INVERTER_POWER_LIMITATION_VALUE_MASK  0b01111111
+#define AC_INVERTER_POWER_LIMITATION_VALUE_UNTOUCHED  0xFF
 
 // положение вертикальных жалюзи для фронтенда
 enum ac_vlouver_frontend : uint8_t {
@@ -959,7 +960,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         cmd->invertor_power = 0;
         cmd->defrost = false;
         cmd->inverter_power_limitation_enable =false;
-        cmd->inverter_power_limitation_value = 0;
+        cmd->inverter_power_limitation_value = AC_INVERTER_POWER_LIMITATION_VALUE_UNTOUCHED;
     };
 
     // очистка буфера размером AC_BUFFER_SIZE
@@ -1344,7 +1345,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         stateChangedFlag = stateChangedFlag || (_current_ac_state.temp_compressor != stateFloat);
                         _current_ac_state.temp_compressor = stateFloat;
 
-                        // реальная скорость проперлера
+                        // реальная скорость пропеллера
                         stateFloat = big_info_body->realFanSpeed;
                         stateChangedFlag = stateChangedFlag || (_current_ac_state.realFanSpeed != (ac_realFan)stateFloat);
                         _current_ac_state.realFanSpeed = (ac_realFan)stateFloat;
@@ -1666,9 +1667,11 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         }
 
         // ограничение мощности инвертора
-        pack->body[13] = (pack->body[13] & ~AC_INVERTER_POWER_LIMITATION_ENABLE_MASK) | cmd->inverter_power_limitation_enable;
-        cmd->inverter_power_limitation_value = _power_limitation_value_normalise(cmd->inverter_power_limitation_value);
-        pack->body[13] = (pack->body[13] & ~AC_INVERTER_POWER_LIMITATION_VALUE_MASK) | cmd->inverter_power_limitation_value;
+        if (cmd->inverter_power_limitation_value != AC_INVERTER_POWER_LIMITATION_VALUE_UNTOUCHED) {
+            pack->body[13] = (pack->body[13] & ~AC_INVERTER_POWER_LIMITATION_ENABLE_MASK) | cmd->inverter_power_limitation_enable;
+            cmd->inverter_power_limitation_value = _power_limitation_value_normalise(cmd->inverter_power_limitation_value);
+            pack->body[13] = (pack->body[13] & ~AC_INVERTER_POWER_LIMITATION_VALUE_MASK) | cmd->inverter_power_limitation_value;
+        }
 
         //  обнулить счетчик минут с последней команды
         // GK: считаю, что так делать не надо. Штатный wifi-модуль не сбрасывает счетчик минут.
@@ -2074,6 +2077,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
     void stateChanged() {
         _debugMsg(F("State changed, let's publish it."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
 
+        // экшины кондиционера (информация для пользователя, что кондиционер сейчас делает)
         // сейчас экшины рассчётные и могут не отражать реального положения дел, но других вариантов не придумалось
         if (_is_invertor) {
             // анализ режима для инвертора точнее потому, что использует показания мощности инвертора
@@ -2433,6 +2437,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         LOG_BINARY_SENSOR("  ", "Defrost Status", this->sensor_defrost_);
         LOG_BINARY_SENSOR("  ", "Display", this->sensor_display_);
         LOG_TEXT_SENSOR("  ", "Preset Reporter", this->sensor_preset_reporter_);
+        LOG_SENSOR("  ", "Inverter Power Limit Value", this->sensor_invertor_power_limit_value_);
+        LOG_BINARY_SENSOR("  ", "Inverter Power Limit State", this->sensor_invertor_power_limit_state_);
         this->dump_traits_(TAG);
     }
 
@@ -3054,8 +3060,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         // формируем команду
         ac_command_t cmd;
         _clearCommand(&cmd);  // не забываем очищать, а то будет мусор
-        cmd.inverter_power_limitation_value = this->_current_ac_state.inverter_power_limitation_value;
         cmd.inverter_power_limitation_enable = false;
+        cmd.inverter_power_limitation_value = this->_current_ac_state.inverter_power_limitation_value;
         // добавляем команду в последовательность
         if (!commandSequence(&cmd)) return false;
 
