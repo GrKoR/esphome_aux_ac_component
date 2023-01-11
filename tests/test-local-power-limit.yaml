@@ -4,7 +4,7 @@ external_components:
       path: ../components
 
 substitutions:
-  devicename: test_local_airflow_dir
+  devicename: test_local_power_limitations
   upper_devicename: Test AUX
   
 esphome:
