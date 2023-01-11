@@ -1668,7 +1668,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
         // ограничение мощности инвертора
         if (cmd->inverter_power_limitation_enable) {
-            pack->body[13] = (pack->body[13] & ~AC_INVERTER_POWER_LIMITATION_ENABLE_MASK) | 1;
+            pack->body[13] = (pack->body[13] & ~AC_INVERTER_POWER_LIMITATION_ENABLE_MASK) | (1 << 7);
         } else {
             pack->body[13] = (pack->body[13] & ~AC_INVERTER_POWER_LIMITATION_ENABLE_MASK) | 0;
         }
