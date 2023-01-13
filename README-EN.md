@@ -128,9 +128,17 @@ climate:
       name: AC Defrost State
       id: ac_defrost_state
       internal: false
-    invertor_power:
-      name: AC Invertor Power
-      id: ac_invertor_power
+    inverter_power:
+      name: AC Inverter Power
+      id: ac_inverter_power
+      internal: false
+    inverter_power_limit_value:
+      name: AC Inverter Power Limit Value
+      id: ac_inverter_power_limit_value
+      internal: false
+    inverter_power_limit_state:
+      name: AC Inverter Power Limit State
+      id: ac_inverter_power_limit_state
       internal: false
     preset_reporter:
       name: AC Preset Reporter
@@ -166,42 +174,71 @@ climate:
 ```
 
 ## Configuration variables: ##
+
 - **name** (**Required**, string): The name of the climate device. At least one of `id` or `name` is required!
+
 - **id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Manually specify the ID used for code generation. At least one of `id` or `name` is required!
+
 - **uart_id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Manually specify the ID of the [UART Bus](https://esphome.io/components/uart.html) if you want to use multiple UART buses.
+
 - **period** (*Optional*, [time](https://esphome.io/guides/configuration-types.html#config-time), default ``7s``): Period between status requests to the AC. `Aux_ac` will receive the new air conditioner status only after a regular request, even if you change the settings of AC using IR-remote.
+
 - **show_action** (*Optional*, boolean, default ``true``): Whether to show current action of the device (experimental). For example, in the HEAT-COOL mode, AC hardware may be in one of the following actions:
   - HEATING: AC is heating the air in the room;
   - IDLE: AC is working in the FAN mode, cause the target temperature is reached;
   - COOLING: AC is cooling the air.
   The same thing will be in HEAT or COOL modes, with the only difference of the list of actions (IDLE + HEATING or IDLE + COOLING).
+
   - **display_inverted** (*Optional*, boolean, default ``false``): It configures display driver logic level. As it turned out in the issue [#31](https://github.com/GrKoR/esphome_aux_ac_component/issues/31), different models of conditioners manage display different way. Rovex ACs powers off display by bit `1` in command packet and power it on by bit `0`. Many other conditioners do this vice versa.
+
 - **indoor_temperature** (*Optional*): Parameters of the room air temperature sensor.
   - **name** (**Required**, string): The name for the temperature sensor.
   - **id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Set the ID of this sensor for use in lambdas.
   - **internal** (*Optional*, boolean): Mark this component as internal. Internal components will not be exposed to the frontend (like Home Assistant). As opposed to default [Sensor](https://esphome.io/components/sensor/index.html#base-sensor-configuration) behaviour, this variable is **always true** except in cases where the user has set it directly.
   - All other options from [Sensor](https://esphome.io/components/sensor/index.html#base-sensor-configuration).
+
 - **outdoor_temperature** (*Optional*): Parameters of the outdoor temperature sensor. They are the same as the **indoor_temperature** (see description above).  
-**Attention!** When the air conditioner is turned off, the outdoor temperature is updated rarely (every 6-7 hours). This isn't a bug of the component, but a feature of the air conditioner hardware. The only way to get changes more often is to create a template sensor, the temperature of which can be changed manually. When the air conditioner is working, the value of this sensor can be copied from the **outdoor_temperature**. When the air conditioner is turned off, the temperature value should be is recalculated according to the dynamics of the **outbound_temperature** sensor (it changes frequently and shows values close to the air temperature when the air conditioner is turned off). You can't direct copy the value of **outbound_temperature** to the template sensor in AC off mode, because these temperatures are not identical.
+  > **Attention!** When the air conditioner is turned off, the outdoor temperature is updated rarely (every 6-7 hours). This isn't a bug of the component, but a feature of the air conditioner hardware. The only way to get changes more often is to create a template sensor, the temperature of which can be changed manually. When the air conditioner is working, the value of this sensor can be copied from the **outdoor_temperature**. When the air conditioner is turned off, the temperature value should be recalculated according to the dynamics of the **outbound_temperature** sensor (it changes frequently and shows values close to the air temperature when the air conditioner is turned off). You can't copy the value of **outbound_temperature** without changes to the template sensor in AC off mode, because these temperatures are not identical.
+
 - **inbound_temperature** (*Optional*): Parameters of the coolant inbound temperature sensor. They are the same as the **indoor_temperature** (see description above).
+
 - **outbound_temperature** (*Optional*):  Parameters of the coolant outbound temperature sensor. They are the same as the **indoor_temperature** (see description above).
+
 - **compressor_temperature** (*Optional*):  Parameters of the compressor temperature sensor. They are the same as the **indoor_temperature** (see description above).
+
 - **display_state** (*Optional*): The information for the HVAC display state sensor (is display ON or OFF)
   - **name** (**Required**, string): The name for the display state sensor.
   - **id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Set the ID of this sensor for use in lambdas.
   - **internal** (*Optional*, boolean): Mark this component as internal. Internal components will not be exposed to the frontend (like Home Assistant). As opposed to default [Binary Sensor](https://esphome.io/components/binary_sensor/index.html#base-binary-sensor-configuration) behavior, this variable is **always true** except in cases where the user has set it directly.
   - All other options from [Binary Sensor](https://esphome.io/components/binary_sensor/index.html#base-binary-sensor-configuration).
+
 - **defrost_state** (*Optional*): The information for the HVAC defrost function state sensor (is it ON or OFF). All settings are the same as for the **display_state** (see description above).
-- **invertor_power** (*Optional*): The information for the inverter power sensor. (Yes, I know about a mistake in the name of this parameter... I'll correct it... Sometimes :) ) All settings are the same as for the **display_state** (see description above).
+
+- **inverter_power** (*Optional*): The information for the inverter power sensor. All settings are the same as for the **indoor_temperature** (see description above).
+  > **ATTENTION!** The parameter name was changed in v.0.2.9 due to incorrect spelling.
+
+- **inverter_power_limit_state** (*Optional*): Configuration of the power limit state sensor. It displays the state of the power limitation function for the inverter HVAC (is it ON or OFF). All settings are the same as for the **display_state** (see description above).
+
+- **inverter_power_limit_value** (*Optional*): Configuration of the power limit value sensor. All settings are the same as for the **indoor_temperature** (see description above).  
+It reports the current value of the power limitation function for the inverter HVAC. This sensor represents the value only after the HVAC confirms the power limitation. The value is always in the range from 30 to 100%. This is the hardware limitation.
+
 - **preset_reporter** (*Optional*): Parameters of text sensor with current preset. All settings are the same as for the **display_state** (see description above).  
   ESPHome Climate devices are not reporting their active presets (from **supported_presets** and **custom_presets** lists) to MQTT. This behavior has been noticed at least in version 1.20.0. In case you are using MQTT and want to receive information about active preset, you should declare this sensor in your yaml.
+
 - **vlouver_state** (*Optional*): Parameters of vertical louvers state sensor. All settings are the same as for the **display_state** (see description above). The state of the vertical louvers is encoded by the integer value (see [aux_ac.vlouver_set action](#aux_ac_._vlouver_set) below).
+
 - **supported_modes** (*Optional*, list): List of supported modes. Possible values are: ``HEAT_COOL``, ``COOL``, ``HEAT``, ``DRY``, ``FAN_ONLY``. Please note: some manufacturers call AUTO mode instead of HEAT_COOL. Defaults to ``FAN_ONLY``.
+
 - **custom_fan_modes** (*Optional*, list): List of supported custom fan modes. Possible values are: ``MUTE``, ``TURBO``. No custom fan modes by default.
+
 - **supported_presets** (*Optional*, list): List of supported presets. Possible values are: ``SLEEP``. No presets by default.
+
 - **custom_presets** (*Optional*, list): List of supported custom presets. Possible values are: ``CLEAN``, ``HEALTH``, ``ANTIFUNGUS``. No custom presets by default.
+
 - **supported_swing_modes** (*Optional*, list): List of supported swing modes. Possible values are: ``VERTICAL``, ``HORIZONTAL``, ``BOTH``. No swing modes by default.
+
 - All other options from [Climate](https://esphome.io/components/climate/index.html#base-climate-configuration).
+
 
 ## Actions: ##
 ### ``aux_ac.display_on`` ###
@@ -315,6 +352,32 @@ on_...:
     - aux_ac.vlouver_bottom: aux_id
 ```
 - **aux_id** (**Required**, string): ID of `aux_ac` component.
+
+### ``aux_ac.aux_ac.power_limit_off`` ###
+This action disables inverter HVAC power limitation.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.power_limit_off: aux_id
+```
+- **aux_id** (**Required**, string): ID of `aux_ac` component.
+
+### ``aux_ac.power_limit_on`` ###
+This action enables inverter HVAC power limitation and sets this limit value.
+
+```yaml
+on_...:
+  then:
+    - aux_ac.power_limit_on:
+        id: aux_id
+        limit: 46   # limits the maximum power of the inverter HVAC at 46%
+```
+- **aux_id** (**Required**, string): ID of `aux_ac` component.
+- **limit** (**Optional**, integer): the maximum power of the inverter HVAC. If the power limitation is enabled, the inverter HVAC will limits its power.  
+ > **Notice**, that power limitation will affect the efficiency of your HVAC. For example, a low power limit may block the possibility of the conditioner to reach user-specified room temperature, because HVAC will not have enough power for it. Keep this in mind when you are using this function.
+  
+ Due to hardware limitation this value should be in the range from `30%` to `100%`. The default value for `limit` is `30%` (it will be used if `limit` is omitted in configuration).
 
 
 
