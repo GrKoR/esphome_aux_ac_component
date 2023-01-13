@@ -61,6 +61,7 @@ climate:
     period: 7s
     show_action: true
     display_inverted: true
+    timeout: 150
     indoor_temperature:
       name: $upper_devicename Indoor Temperature
       id: ${devicename}_indoor_temp
@@ -144,8 +145,7 @@ button:
       - aux_ac.power_limit_on:
           id: aux_id
           limit: 50
-
-
+          
 number:
   - platform: template
     name: ${upper_devicename} IPower Limit Value

@@ -64,9 +64,15 @@ class Constants {
     // изменение параметров с пульта не сообщается в UART, поэтому надо запрашивать состояние, чтобы быть в курсе
     // значение в миллисекундах
     static const uint32_t AC_STATES_REQUEST_INTERVAL;
+
+    // границы допустимого диапазона таймаута загрузки пакета
+    // таймаут загрузки - через такое количиство миллисекунд конечный автомат перейдет из
+    // состояния ACSM_RECEIVING_PACKET в ACSM_IDLE, если пакет не будет загружен
+    static const uint32_t AC_PACKET_TIMEOUT_MAX;
+    static const uint32_t AC_PACKET_TIMEOUT_MIN;
 };
 
-const std::string Constants::AC_FIRMWARE_VERSION = "0.2.9-dev.3+";
+const std::string Constants::AC_FIRMWARE_VERSION = "0.2.9-dev.4";
 
 // custom fan modes
 const std::string Constants::MUTE = "mute";
@@ -84,6 +90,19 @@ const float Constants::AC_TEMPERATURE_STEP = 0.5;
 const uint8_t Constants::AC_MIN_INVERTER_POWER_LIMIT = 30;  // 30%
 const uint8_t Constants::AC_MAX_INVERTER_POWER_LIMIT = 100; // 100%
 const uint32_t Constants::AC_STATES_REQUEST_INTERVAL = 7000;
+// таймаут загрузки пакета
+// По расчетам выходит:
+//      - получение и обработка посимвольно не должна длиться дольше 600 мсек.
+//      - получение и обработка пакетов целиком не должна длиться дольше 150 мсек.
+// Мы будем обрабатывать пакетами, поэтому 150.
+// Растягивать приём пакетов очередью команд нельзя, так как кондиционер иногда посылает
+// информационные пакеты без запроса. Такие пакеты будут рушить последовательность команд,
+// команды будут теряться. От такой коллизии мы не защищены в любом случае. Но чем меньше таймаут,
+// тем меньше шансов на коллизию.
+// Из этих соображений выбраны границы диапазона (_MIN и _MAX значения).
+const uint32_t Constants::AC_PACKET_TIMEOUT_MAX = 600;
+const uint32_t Constants::AC_PACKET_TIMEOUT_MIN = 150;
+
 
 class AirCon;
 
@@ -103,17 +122,6 @@ enum acsm_state : uint8_t {
 // но встретилось исключение Royal Clima (как минимум, модель CO-D xxHNI) - у них 35 байт
 // поэтому буффер увеличен
 #define AC_BUFFER_SIZE 35
-
-/**
- * таймаут загрузки пакета
- *
- * через такое количиство миллисекунд конечный автомат перейдет из состояния ACSM_RECEIVING_PACKET в ACSM_IDLE, если пакет не будет загружен
- * По расчетам выходит:
- *      - получение и обработка посимвольно не должна длиться дольше 600 мсек.
- *      - получение и обработка пакетов целиком не должна длиться дольше 150 мсек.
- * Мы будем обрабатывать пакетами.
- **/
-#define AC_PACKET_TIMEOUT 150
 
 // типы пакетов
 // https://github.com/GrKoR/AUX_HVAC_Protocol#packet_types
@@ -753,6 +761,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
     // пакет для тестирования всякой фигни
     packet_t _outTestPacket;
 
+    // таймаут загрузки пакета, по дефолту минимальный
+    uint32_t _packet_timeout = Constants::AC_PACKET_TIMEOUT_MIN;
+
     // сырые данные последних полученных большого и маленького информационных пакетов
     ac_last_raw_data _last_raw_data;
 
@@ -1127,7 +1138,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         }
 
         // если пакет не загружен, а время вышло, то надо вернуться в IDLE
-        if (millis() - _inPacket.msec >= AC_PACKET_TIMEOUT) {
+        if (millis() - _inPacket.msec >= this->_packet_timeout) {
             _debugMsg(F("Receiver: packet timed out!"), ESPHOME_LOG_LEVEL_WARN, __LINE__);
             _debugPrintPacket(&_inPacket, ESPHOME_LOG_LEVEL_WARN, __LINE__);
             _clearInPacket();
@@ -2031,6 +2042,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         _ac_serial = parent;
         _hw_initialized = (_ac_serial != nullptr);
         _has_connection = false;
+        _packet_timeout = Constants::AC_PACKET_TIMEOUT_MIN;
 
         // заполняем структуру состояния начальными значениями
         _clearCommand((ac_command_t *)&_current_ac_state);
@@ -2421,6 +2433,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         ESP_LOGCONFIG(TAG, "  [x] Period: %dms", this->get_period());
         ESP_LOGCONFIG(TAG, "  [x] Show action: %s", TRUEFALSE(this->get_show_action()));
         ESP_LOGCONFIG(TAG, "  [x] Display inverted: %s", TRUEFALSE(this->get_display_inverted()));
+        ESP_LOGCONFIG(TAG, "  [x] Packet timeout: %dms", this->get_packet_timeout());
 
 #if defined(PRESETS_SAVING)
         ESP_LOGCONFIG(TAG, "  [x] Save settings %s", TRUEFALSE(this->get_store_settings()));
@@ -2428,17 +2441,18 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
         ESP_LOGCONFIG(TAG, "  [?] Is inverter %s", millis() > _update_period + 1000 ? YESNO(_is_inverter) : "pending...");
 
+        LOG_SENSOR("  ", "Inverter Power", this->sensor_inverter_power_);
+        LOG_SENSOR("  ", "Inverter Power Limit Value", this->sensor_inverter_power_limit_value_);
+        LOG_BINARY_SENSOR("  ", "Inverter Power Limit State", this->sensor_inverter_power_limit_state_);
+
         LOG_SENSOR("  ", "Indoor Temperature", this->sensor_indoor_temperature_);
         LOG_SENSOR("  ", "Outdoor Temperature", this->sensor_outdoor_temperature_);
         LOG_SENSOR("  ", "Inbound Temperature", this->sensor_inbound_temperature_);
         LOG_SENSOR("  ", "Outbound Temperature", this->sensor_outbound_temperature_);
         LOG_SENSOR("  ", "Compressor Temperature", this->sensor_compressor_temperature_);
-        LOG_SENSOR("  ", "Inverter Power", this->sensor_inverter_power_);
         LOG_BINARY_SENSOR("  ", "Defrost Status", this->sensor_defrost_);
         LOG_BINARY_SENSOR("  ", "Display", this->sensor_display_);
         LOG_TEXT_SENSOR("  ", "Preset Reporter", this->sensor_preset_reporter_);
-        LOG_SENSOR("  ", "Inverter Power Limit Value", this->sensor_inverter_power_limit_value_);
-        LOG_BINARY_SENSOR("  ", "Inverter Power Limit State", this->sensor_inverter_power_limit_state_);
         this->dump_traits_(TAG);
     }
 
@@ -3206,6 +3220,13 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
     void set_display_inverted(bool display_inverted) { this->_display_inverted = display_inverted; }
     bool get_display_inverted() { return this->_display_inverted; }
+
+    void set_packet_timeout(uint32_t ms) {
+        if (ms < Constants::AC_PACKET_TIMEOUT_MIN) ms = Constants::AC_PACKET_TIMEOUT_MIN;
+        if (ms > Constants::AC_PACKET_TIMEOUT_MAX) ms = Constants::AC_PACKET_TIMEOUT_MIN;
+        this->_packet_timeout = ms;
+    }
+    uint32_t get_packet_timeout() { return this->_packet_timeout; }
 
     // возможно функции get и не нужны, но вроде как должны быть
     void set_supported_modes(const std::set<ClimateMode> &modes) { this->_supported_modes = modes; }

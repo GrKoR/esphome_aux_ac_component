@@ -99,6 +99,7 @@ climate:
     period: 7s
     show_action: true
     display_inverted: false
+    timeout: 150
     indoor_temperature:
       name: AC Indoor Temperature
       id: ac_indoor_temp
@@ -190,6 +191,11 @@ climate:
   The same thing will be in HEAT or COOL modes, with the only difference of the list of actions (IDLE + HEATING or IDLE + COOLING).
 
   - **display_inverted** (*Optional*, boolean, default ``false``): It configures display driver logic level. As it turned out in the issue [#31](https://github.com/GrKoR/esphome_aux_ac_component/issues/31), different models of conditioners manage display different way. Rovex ACs powers off display by bit `1` in command packet and power it on by bit `0`. Many other conditioners do this vice versa.
+
+- **timeout** (*Optional*, unsigned integer, default ``150``): Packet timeout for `aux_ac` data receiver.  
+  In the most common use of `aux_ac`, it isn't necessary to change this value. This keyword is optional, so you may omit it.  
+  The only situation when you can play with timeout is heavily loaded ESP. When you are using your ESP for many hard tasks, it is possible that `aux_ac` does not have enough time to receive AC responses. In this case, you can slightly raise the timeout value. But the best solution would be to remove some of the tasks from the ESP.  
+  The timeout is limited to a range from `150` to `600` milliseconds. Other values are possible only with source code modification. But I don't recommend that.
 
 - **indoor_temperature** (*Optional*): Parameters of the room air temperature sensor.
   - **name** (**Required**, string): The name for the temperature sensor.

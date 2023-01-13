@@ -15,6 +15,7 @@ from esphome.const import (
     CONF_SUPPORTED_MODES,
     CONF_SUPPORTED_SWING_MODES,
     CONF_SUPPORTED_PRESETS,
+    CONF_TIMEOUT,
     CONF_UART_ID,
     UNIT_CELSIUS,
     UNIT_PERCENT,
@@ -82,7 +83,7 @@ Capabilities = aux_ac_ns.namespace("Constants")
 AirConDisplayOffAction = aux_ac_ns.class_("AirConDisplayOffAction", automation.Action)
 AirConDisplayOnAction = aux_ac_ns.class_("AirConDisplayOnAction", automation.Action)
 
-# test packet
+# test packet action
 AirConSendTestPacketAction = aux_ac_ns.class_(
     "AirConSendTestPacketAction", automation.Action
 )
@@ -116,6 +117,26 @@ AirConPowerLimitationOffAction = aux_ac_ns.class_(
 AirConPowerLimitationOnAction = aux_ac_ns.class_(
     "AirConPowerLimitationOnAction", automation.Action
 )
+
+
+AC_PACKET_TIMEOUT_MIN = 150
+AC_PACKET_TIMEOUT_MAX = 600
+def validate_packet_timeout(value):
+    minV = AC_PACKET_TIMEOUT_MIN
+    maxV = AC_PACKET_TIMEOUT_MAX
+    if value in range(minV, maxV+1):
+        return cv.Schema(cv.uint32_t)(value)
+    raise cv.Invalid(f"Timeout should be in range: {minV}..{maxV}.")
+
+
+AC_POWER_LIMIT_MIN = 30
+AC_POWER_LIMIT_MAX = 100
+def validate_power_limit_range(value):
+    minV = AC_POWER_LIMIT_MIN
+    maxV = AC_POWER_LIMIT_MAX
+    if value in range(minV, maxV+1):
+        return cv.Schema(cv.uint32_t)(value)
+    raise cv.Invalid(f"Power limit should be in range: {minV}..{maxV}")
 
 
 ALLOWED_CLIMATE_MODES = {
@@ -160,7 +181,7 @@ def validate_raw_data(value):
 
 
 def output_info(config):
-    """_LOGGER.info(config)"""
+    """_LOGGER.info(config.items())"""
     return config
 
 
@@ -171,6 +192,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_PERIOD, default="7s"): cv.time_period,
             cv.Optional(CONF_SHOW_ACTION, default="true"): cv.boolean,
             cv.Optional(CONF_DISPLAY_INVERTED, default="false"): cv.boolean,
+            cv.Optional(CONF_TIMEOUT, default=AC_PACKET_TIMEOUT_MIN): validate_packet_timeout,
             
             cv.Optional(CONF_INVERTER_POWER_DEPRICATED): cv.invalid(
                 "The name of sensor was changed in v.0.2.9 from 'invertor_power' to 'inverter_power'. Update your config please."
@@ -307,8 +329,6 @@ CONFIG_SCHEMA = cv.All(
 
 
 async def to_code(config):
-    """_LOGGER.info("--------------")"""
-    """_LOGGER.info(config)"""
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await climate.register_climate(var, config)
@@ -379,6 +399,7 @@ async def to_code(config):
     cg.add(var.set_period(config[CONF_PERIOD].total_milliseconds))
     cg.add(var.set_show_action(config[CONF_SHOW_ACTION]))
     cg.add(var.set_display_inverted(config[CONF_DISPLAY_INVERTED]))
+    cg.add(var.set_packet_timeout(config[CONF_TIMEOUT]))
     if CONF_SUPPORTED_MODES in config:
         cg.add(var.set_supported_modes(config[CONF_SUPPORTED_MODES]))
     if CONF_SUPPORTED_SWING_MODES in config:
@@ -508,9 +529,7 @@ async def power_limit_off_to_code(config, action_id, template_arg, args):
 POWER_LIMITATION_ON_ACTION_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_ID): cv.use_id(AirCon),
-        cv.Optional(CONF_LIMIT, default=Capabilities.AC_MIN_INVERTER_POWER_LIMIT): cv.templatable(
-            cv.int_range(30, 100)
-        ),
+        cv.Optional(CONF_LIMIT, default=AC_POWER_LIMIT_MIN): validate_power_limit_range,
     }
 )
 
