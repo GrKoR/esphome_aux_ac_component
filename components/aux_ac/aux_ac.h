@@ -44,37 +44,37 @@ using climate::ClimateTraits;
 // v.0.2.9: замена директиве HOLMS
 #ifdef HOLMS
 #undef HOLMS
-#warning "HOLMS was deprecated in v.0.2.9. Use AC_PACKET_LOGGER_x instead (see below)."
+#warning "HOLMS was deprecated in v.0.2.9. Use HOLMES_x instead (see below)."
 #endif
 
-// Директива AC_PACKET_LOGGER_WORKS позволяет включить (true) или выключить (false) вывод пакетов в лог
+// Директива HOLMES_WORKS позволяет включить (true) или выключить (false) вывод пакетов в лог
 // Причём отключение вывода пакетов не затронет вывод остальных данных
-#define AC_PACKET_LOGGER_WORKS true
+#define HOLMES_WORKS true
 
-// Директива AC_PACKET_LOGGER_BYTE_FORMAT задаёт формат вывод каждого байта пакета в лог в формате sprintf.
+// Директива HOLMES_BYTE_FORMAT задаёт формат вывод каждого байта пакета в лог в формате sprintf.
 // Для вывода в шестнадцатиричном виде с двумя знаками, задайте "%02X".
 // Для вывода в десятичном виде с тремя знаками, задайте "%03d".
-#define AC_PACKET_LOGGER_BYTE_FORMAT "%02X"
+#define HOLMES_BYTE_FORMAT "%02X"
 
-// Директива AC_PACKET_LOGGER_FILTER_LEN обеспечивает фильтрацию вывода пакетов в лог.
-// Все корректные пакеты, длина тела которых короче AC_PACKET_LOGGER_FILTER_LEN, будут проигнорированы.
-// Все корректные пакеты, длина тела которых AC_PACKET_LOGGER_FILTER_LEN и более, попадут в лог.
+// Директива HOLMES_FILTER_LEN обеспечивает фильтрацию вывода пакетов в лог.
+// Все корректные пакеты, длина тела которых короче HOLMES_FILTER_LEN, будут проигнорированы.
+// Все корректные пакеты, длина тела которых HOLMES_FILTER_LEN и более, попадут в лог.
 // Все данные, не являющиеся корректными пакетами, попадут в лог в любом случае. Это нужно для целей отладки.
 // В протоколе встречаются пакеты с телом следующей длины: 0, 1, 2, 4, 8, 15, 23
-#define AC_PACKET_LOGGER_FILTER_LEN 0
+#define HOLMES_FILTER_LEN 0
 
-// Директива AC_PACKET_LOGGER_DELIMITER позволяет задать разделитель байт пакета при выводе в лог
+// Директива HOLMES_DELIMITER позволяет задать разделитель байт при выводе в лог
 // Для "классического" вывода задайте " "
 // Для вывода "под Excel" задайте ";"
-#define AC_PACKET_LOGGER_DELIMITER " "
+#define HOLMES_DELIMITER " "
 
-// Директивы AC_PACKET_LOGGER_x_BRACKET_OPEN и AC_PACKET_LOGGER_x_BRACKET_CLOSE задают открывающую и
+// Директивы HOLMES_x_BRACKET_OPEN и HOLMES_x_BRACKET_CLOSE задают открывающую и
 // закрывающую скобки для заголовка и CRC.
 // Если вместо скобок указать "", то в логе скобок не будет.
-#define AC_PACKET_LOGGER_HEADER_BRACKET_OPEN "["
-#define AC_PACKET_LOGGER_HEADER_BRACKET_CLOSE "]"
-#define AC_PACKET_LOGGER_CRC_BRACKET_OPEN "["
-#define AC_PACKET_LOGGER_CRC_BRACKET_CLOSE "]"
+#define HOLMES_HEADER_BRACKET_OPEN "["
+#define HOLMES_HEADER_BRACKET_CLOSE "]"
+#define HOLMES_CRC_BRACKET_OPEN "["
+#define HOLMES_CRC_BRACKET_CLOSE "]"
 
 //****************************************************************************************************************************************************
 //************************************************* Constants for ESPHome integration ****************************************************************
@@ -1510,10 +1510,10 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         notAPacket = notAPacket || (packet->data[0] != AC_PACKET_START_BYTE);
 
         // если пакет по длине меньше, чем указано в фильтре, то не выводим.
-        // если вывод пакетов отключен с помощью директивы AC_PACKET_LOGGER_WORKS, то тоже не выводим.
+        // если вывод пакетов отключен с помощью директивы HOLMES_WORKS, то тоже не выводим.
         // "не пакеты" выводим всегда, так как от них зависит отладка багов
-        if ((!notAPacket) && (packet->header->body_length < AC_PACKET_LOGGER_FILTER_LEN)) return;
-        if ((!notAPacket) && (!AC_PACKET_LOGGER_WORKS)) return;
+        if ((!notAPacket) && (packet->header->body_length < HOLMES_FILTER_LEN)) return;
+        if ((!notAPacket) && (!HOLMES_WORKS)) return;
 
         String st = "";
         char textBuf[11];
@@ -1535,20 +1535,20 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         // формируем данные
         for (int i = 0; i < packet->bytesLoaded; i++) {
             // для заголовков нормальных пакетов надо отработать скобки (если они есть)
-            if ((!notAPacket) && (i == 0)) st += AC_PACKET_LOGGER_HEADER_BRACKET_OPEN;
+            if ((!notAPacket) && (i == 0)) st += HOLMES_HEADER_BRACKET_OPEN;
             // для CRC нормальных пакетов надо отработать скобки (если они есть)
-            if ((!notAPacket) && (i == packet->header->body_length + AC_HEADER_SIZE)) st += AC_PACKET_LOGGER_CRC_BRACKET_OPEN;
+            if ((!notAPacket) && (i == packet->header->body_length + AC_HEADER_SIZE)) st += HOLMES_CRC_BRACKET_OPEN;
 
             memset(textBuf, 0, 11);
-            sprintf(textBuf, AC_PACKET_LOGGER_BYTE_FORMAT, packet->data[i]);
+            sprintf(textBuf, HOLMES_BYTE_FORMAT, packet->data[i]);
             st += textBuf;
 
             // для заголовков нормальных пакетов надо отработать скобки (если они есть)
-            if ((!notAPacket) && (i == AC_HEADER_SIZE - 1)) st += AC_PACKET_LOGGER_HEADER_BRACKET_CLOSE;
+            if ((!notAPacket) && (i == AC_HEADER_SIZE - 1)) st += HOLMES_HEADER_BRACKET_CLOSE;
             // для CRC нормальных пакетов надо отработать скобки (если они есть)
-            if ((!notAPacket) && (i == packet->header->body_length + AC_HEADER_SIZE + 2 - 1)) st += AC_PACKET_LOGGER_CRC_BRACKET_CLOSE;
+            if ((!notAPacket) && (i == packet->header->body_length + AC_HEADER_SIZE + 2 - 1)) st += HOLMES_CRC_BRACKET_CLOSE;
 
-            st += AC_PACKET_LOGGER_DELIMITER;
+            st += HOLMES_DELIMITER;
         }
 
         _debugMsg(st, dbgLevel, line);
