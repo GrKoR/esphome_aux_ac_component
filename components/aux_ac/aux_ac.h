@@ -26,8 +26,6 @@
 #endif
 #endif
 
-// раскоментируй ключ HOLMS для вывода лога под Эксель, значение ключа - размер пакетов которые будут видны
-//#define HOLMS 19
 
 namespace esphome {
 namespace aux_ac {
@@ -40,6 +38,47 @@ using climate::ClimatePreset;
 using climate::ClimateSwingMode;
 using climate::ClimateTraits;
 
+//****************************************************************************************************************************************************
+//**************************************************** Packet logger configuration *******************************************************************
+//****************************************************************************************************************************************************
+// v.0.2.9: замена директиве HOLMS
+#ifdef HOLMS
+#undef HOLMS
+#warning "HOLMS was deprecated in v.0.2.9. Use AC_PACKET_LOGGER_x instead (see below)."
+#endif
+
+// Директива AC_PACKET_LOGGER_WORKS позволяет включить (true) или выключить (false) вывод пакетов в лог
+// Причём отключение вывода пакетов не затронет вывод остальных данных
+#define AC_PACKET_LOGGER_WORKS true
+
+// Директива AC_PACKET_LOGGER_BYTE_FORMAT задаёт формат вывод каждого байта пакета в лог в формате sprintf.
+// Для вывода в шестнадцатиричном виде с двумя знаками, задайте "%02X".
+// Для вывода в десятичном виде с тремя знаками, задайте "%03d".
+#define AC_PACKET_LOGGER_BYTE_FORMAT "%02X"
+
+// Директива AC_PACKET_LOGGER_FILTER_LEN обеспечивает фильтрацию вывода пакетов в лог.
+// Все корректные пакеты, длина тела которых короче AC_PACKET_LOGGER_FILTER_LEN, будут проигнорированы.
+// Все корректные пакеты, длина тела которых AC_PACKET_LOGGER_FILTER_LEN и более, попадут в лог.
+// Все данные, не являющиеся корректными пакетами, попадут в лог в любом случае. Это нужно для целей отладки.
+// В протоколе встречаются пакеты с телом следующей длины: 0, 1, 2, 4, 8, 15, 23
+#define AC_PACKET_LOGGER_FILTER_LEN 0
+
+// Директива AC_PACKET_LOGGER_DELIMITER позволяет задать разделитель байт пакета при выводе в лог
+// Для "классического" вывода задайте " "
+// Для вывода "под Excel" задайте ";"
+#define AC_PACKET_LOGGER_DELIMITER " "
+
+// Директивы AC_PACKET_LOGGER_x_BRACKET_OPEN и AC_PACKET_LOGGER_x_BRACKET_CLOSE задают открывающую и
+// закрывающую скобки для заголовка и CRC.
+// Если вместо скобок указать "", то в логе скобок не будет.
+#define AC_PACKET_LOGGER_HEADER_BRACKET_OPEN "["
+#define AC_PACKET_LOGGER_HEADER_BRACKET_CLOSE "]"
+#define AC_PACKET_LOGGER_CRC_BRACKET_OPEN "["
+#define AC_PACKET_LOGGER_CRC_BRACKET_CLOSE "]"
+
+//****************************************************************************************************************************************************
+//************************************************* Constants for ESPHome integration ****************************************************************
+//****************************************************************************************************************************************************
 class Constants {
    public:
     static const std::string AC_FIRMWARE_VERSION;
@@ -72,7 +111,7 @@ class Constants {
     static const uint32_t AC_PACKET_TIMEOUT_MIN;
 };
 
-const std::string Constants::AC_FIRMWARE_VERSION = "0.2.9-dev.4";
+const std::string Constants::AC_FIRMWARE_VERSION = "0.2.9-dev.5";
 
 // custom fan modes
 const std::string Constants::MUTE = "mute";
@@ -104,6 +143,9 @@ const uint32_t Constants::AC_PACKET_TIMEOUT_MAX = 600;
 const uint32_t Constants::AC_PACKET_TIMEOUT_MIN = 150;
 
 
+//****************************************************************************************************************************************************
+//********************************************************* ОСНОВНЫЕ СТРУКТУРЫ ***********************************************************************
+//****************************************************************************************************************************************************
 class AirCon;
 
 // состояния конечного автомата компонента
@@ -1460,12 +1502,18 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
      *          Для нормального пакета данные выводятся с форматированием.
      * line - строка, на которой произошел вызов (удобно при отладке)
      **/
-    void _debugPrintPacket(packet_t *packet, uint8_t dbgLevel = ESPHOME_LOG_LEVEL_DEBUG, unsigned int line = 0) {
+    void _debugPrintPacket(packet_t *packet, uint8_t dbgLevel = ESPHOME_LOG_LEVEL_DEBUG, unsigned int line = __LINE__) {
         // определяем, полноценный ли пакет нам передан
         bool notAPacket = false;
         // указатель заголовка всегда установден на начало буфера
         notAPacket = notAPacket || (packet->crc == nullptr);
         notAPacket = notAPacket || (packet->data[0] != AC_PACKET_START_BYTE);
+
+        // если пакет по длине меньше, чем указано в фильтре, то не выводим.
+        // если вывод пакетов отключен с помощью директивы AC_PACKET_LOGGER_WORKS, то тоже не выводим.
+        // "не пакеты" выводим всегда, так как от них зависит отладка багов
+        if ((!notAPacket) && (packet->header->body_length < AC_PACKET_LOGGER_FILTER_LEN)) return;
+        if ((!notAPacket) && (!AC_PACKET_LOGGER_WORKS)) return;
 
         String st = "";
         char textBuf[11];
@@ -1484,44 +1532,26 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
             st += "[--] ";  // преамбула для "непакета"
         }
 
-// формируем данные
-#ifdef HOLMS
-        // если этот дефайн объявлен, то в лог попадут только пакеты больше указанного в дефайне размера
-        // при этом весь вывод будет в десятичном виде, данные будут разделены ";"
-        // и не будет выделения заголовков и CRC квадратными скобками
-        dbgLevel = ESPHOME_LOG_LEVEL_ERROR;
-        if (packet->header->body_length > HOLMS) {
-            for (int i = 0; i < packet->bytesLoaded; i++) {
-                sprintf(textBuf, "%03d;", packet->data[i]);
-                st += textBuf;
-            }
-
-            if (line == 0) line = __LINE__;
-            _debugMsg(st, dbgLevel, line);
-        }
-#else
-        // если дефайна HOLMS нет, то выводим пакеты в HEX и все подряд
+        // формируем данные
         for (int i = 0; i < packet->bytesLoaded; i++) {
-            // для нормальных пакетов надо заключить заголовок в []
-            if ((!notAPacket) && (i == 0)) st += "[";
-            // для нормальных пакетов надо заключить CRC в []
-            if ((!notAPacket) && (i == packet->header->body_length + AC_HEADER_SIZE)) st += "[";
+            // для заголовков нормальных пакетов надо отработать скобки (если они есть)
+            if ((!notAPacket) && (i == 0)) st += AC_PACKET_LOGGER_HEADER_BRACKET_OPEN;
+            // для CRC нормальных пакетов надо отработать скобки (если они есть)
+            if ((!notAPacket) && (i == packet->header->body_length + AC_HEADER_SIZE)) st += AC_PACKET_LOGGER_CRC_BRACKET_OPEN;
 
             memset(textBuf, 0, 11);
-            sprintf(textBuf, "%02X", packet->data[i]);
+            sprintf(textBuf, AC_PACKET_LOGGER_BYTE_FORMAT, packet->data[i]);
             st += textBuf;
 
-            // для нормальных пакетов надо заключить заголовок в []
-            if ((!notAPacket) && (i == AC_HEADER_SIZE - 1)) st += "]";
-            // для нормальных пакетов надо заключить CRC в []
-            if ((!notAPacket) && (i == packet->header->body_length + AC_HEADER_SIZE + 2 - 1)) st += "]";
+            // для заголовков нормальных пакетов надо отработать скобки (если они есть)
+            if ((!notAPacket) && (i == AC_HEADER_SIZE - 1)) st += AC_PACKET_LOGGER_HEADER_BRACKET_CLOSE;
+            // для CRC нормальных пакетов надо отработать скобки (если они есть)
+            if ((!notAPacket) && (i == packet->header->body_length + AC_HEADER_SIZE + 2 - 1)) st += AC_PACKET_LOGGER_CRC_BRACKET_CLOSE;
 
-            st += " ";
+            st += AC_PACKET_LOGGER_DELIMITER;
         }
 
-        if (line == 0) line = __LINE__;
         _debugMsg(st, dbgLevel, line);
-#endif
     }
 
     /** расчет CRC16 для блока данных data длиной len
