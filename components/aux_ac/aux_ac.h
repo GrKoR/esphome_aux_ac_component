@@ -111,7 +111,7 @@ class Constants {
     static const uint32_t AC_PACKET_TIMEOUT_MIN;
 };
 
-const std::string Constants::AC_FIRMWARE_VERSION = "0.2.9-dev.5";
+const std::string Constants::AC_FIRMWARE_VERSION = "0.2.9";
 
 // custom fan modes
 const std::string Constants::MUTE = "mute";
