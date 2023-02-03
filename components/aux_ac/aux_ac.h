@@ -111,7 +111,7 @@ class Constants {
     static const uint32_t AC_PACKET_TIMEOUT_MIN;
 };
 
-const std::string Constants::AC_FIRMWARE_VERSION = "0.2.9";
+const std::string Constants::AC_FIRMWARE_VERSION = "0.2.10";
 
 // custom fan modes
 const std::string Constants::MUTE = "mute";
@@ -206,7 +206,7 @@ union packet_crc_t {
     uint8_t crc[2];
 };
 
-// структура пекета
+// структура пекета[)
 struct packet_t {
     uint32_t msec;  // значение millis в момент определения корректности пакета
     packet_header_t *header;
