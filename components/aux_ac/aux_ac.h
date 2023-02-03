@@ -384,7 +384,7 @@ struct packet_small_info_body_t {
     // байт 10 пакета: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b10
     //uint8_t target_temp_int_and_v_louver;
     uint8_t v_louver : 3;
-    bool target_temp_int : 5;
+    uint8_t target_temp_int : 5;
 
 
     // байт 11 пакета: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b11
