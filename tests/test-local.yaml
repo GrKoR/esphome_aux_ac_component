@@ -1,7 +1,7 @@
 external_components:
   - source:
       type: local
-      path: ..\components
+      path: ../components
 
 substitutions:
   devicename: test_local_airflow_dir
@@ -89,7 +89,7 @@ climate:
       name: $upper_devicename Defrost State
       id: ${devicename}_defrost_state
       internal: false
-    invertor_power:
+    inverter_power:
       name: $upper_devicename Invertor Power
       id: ${devicename}_invertor_power
       internal: false
