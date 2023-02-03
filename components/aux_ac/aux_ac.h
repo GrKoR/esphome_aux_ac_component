@@ -111,7 +111,7 @@ class Constants {
     static const uint32_t AC_PACKET_TIMEOUT_MIN;
 };
 
-const std::string Constants::AC_FIRMWARE_VERSION = "0.2.9";
+const std::string Constants::AC_FIRMWARE_VERSION = "0.2.10";
 
 // custom fan modes
 const std::string Constants::MUTE = "mute";
@@ -206,7 +206,7 @@ union packet_crc_t {
     uint8_t crc[2];
 };
 
-// структура пекета
+// структура пекета[)
 struct packet_t {
     uint32_t msec;  // значение millis в момент определения корректности пакета
     packet_header_t *header;
@@ -382,13 +382,19 @@ struct packet_small_info_body_t {
     uint8_t cmd_answer;
 
     // байт 10 пакета: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b10
-    uint8_t target_temp_int_and_v_louver;
+    //uint8_t target_temp_int_and_v_louver;
+    uint8_t v_louver : 3;
+    uint8_t target_temp_int : 5;
+
 
     // байт 11 пакета: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b11
     uint8_t h_louver;
 
     // байт 12 пакета: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b12
-    uint8_t target_temp_frac;
+    //uint8_t target_temp_frac;
+    uint8_t ir_timer : 6;
+    bool reserv126 : 1;
+    bool target_temp_frac_bool : 1;
 
     // байт 13 пакета: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b13
     uint8_t fan_speed;
@@ -419,7 +425,7 @@ struct packet_small_info_body_t {
     bool inverter_power_limitation_enable : 1;
 
     // байт 22 пакета: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b22
-    uint8_t target_temp_frac2;
+    uint8_t target_temp_frac_dec;
 };
 
 //****************************************************************************************************************************************************
@@ -1286,12 +1292,14 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                         small_info_body = (packet_small_info_body_t *)(_inPacket.body);
 
                         // в малом пакете передается большое количество установленных пользователем параметров работы
-                        stateFloat = 8 + (small_info_body->target_temp_int_and_v_louver >> 3) + 0.5 * (float)(small_info_body->target_temp_frac >> 7);
+                        //stateFloat = 8 + (small_info_body->target_temp_int_and_v_louver >> 3) + 0.5 * (float)(small_info_body->target_temp_frac >> 7);
+                        stateFloat = 8.0 + (float)(small_info_body->target_temp_int) + ( (small_info_body->target_temp_frac_bool) ? 0.5 : 0.0 );
                         stateChangedFlag = stateChangedFlag || (_current_ac_state.temp_target != stateFloat);
                         _current_ac_state.temp_target = stateFloat;
                         _current_ac_state.temp_target_matter = true;
 
-                        stateByte = small_info_body->target_temp_int_and_v_louver & AC_LOUVERV_MASK;
+                        //stateByte = small_info_body->target_temp_int_and_v_louver & AC_LOUVERV_MASK;
+                        stateByte = small_info_body->v_louver;
                         stateChangedFlag = stateChangedFlag || (_current_ac_state.louver.louver_v != (ac_louver_V)stateByte);
                         _current_ac_state.louver.louver_v = (ac_louver_V)stateByte;
 
@@ -1701,14 +1709,15 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
             // дробная часть температуры
             if (cmd->temp_target - (uint8_t)(cmd->temp_target) > 0) {
-                pack->body[4] = (pack->body[4] & ~AC_TEMP_TARGET_FRAC_PART_MASK) | 1;
+                pack->body[4] = (pack->body[4] | AC_TEMP_TARGET_FRAC_PART_MASK);
             } else {
-                pack->body[4] = (pack->body[4] & ~AC_TEMP_TARGET_FRAC_PART_MASK) | 0;
+                pack->body[4] = (pack->body[4] & ~AC_TEMP_TARGET_FRAC_PART_MASK);
             }
         }
 
         // ограничение мощности инвертора
-        if (cmd->inverter_power_limitation_value != AC_INVERTER_POWER_LIMITATION_VALUE_UNTOUCHED) {
+        if ((cmd->inverter_power_limitation_enable) && 
+            (cmd->inverter_power_limitation_value != AC_INVERTER_POWER_LIMITATION_VALUE_UNTOUCHED)) {
             pack->body[13] = (pack->body[13] & ~AC_INVERTER_POWER_LIMITATION_ENABLE_MASK) | (cmd->inverter_power_limitation_enable << 7);
             cmd->inverter_power_limitation_value = _power_limitation_value_normalise(cmd->inverter_power_limitation_value);
             pack->body[13] = (pack->body[13] & ~AC_INVERTER_POWER_LIMITATION_VALUE_MASK) | cmd->inverter_power_limitation_value;
