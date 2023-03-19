@@ -2,7 +2,7 @@
 `Aux_ac` has been tested and works successfully with the air conditioners from the list below.<br/>
 Кондиционеры из списка ниже протестированы и точно совместимы с `aux_ac`.
 
-+ AUX (models: ASW-H09A4/LK-700R1, ASW-H09B4/LK-700R1, ASW-H09A4/LK-700R1DI, AMWM-H07/4R1 multisplit, AL-H48/5DR2(U)/ALMD-H48/5DR2, ASW-H07A4/FP-R1DI, ASW-H09A4/FP-R1DI, ASW-H07A4/DE-R1DI, AUX-18QC/I/AUX-18QC/O, KFR-26GW/BpHRB+3, KFR-35GW)
++ AUX (models: ALMD-H48/5DR2 / AL-H48/5DR2(U), AMWM-H07/4R1 multisplit, ASW-H07A4/DE-R1DI, ASW-H07A4/FP-R1DI, ASW-H09A4/FP-R1DI, ASW-H09A4/LK-700R1, ASW-H09A4/LK-700R1DI, ASW-H12B4/JD-R2DI, ASW-H09B4/LK-700R1, AUX-18QC/I / AUX-18QC/O, KFR-26GW/BpHRB+3, KFR-35GW)
 + Ballu (models: BLC_CF/in-60HN1, BSUI-09HN8, BSUI-12HN8)
 + Centek (models: CT-65A12, CT-65F09, CT-65Q09, CT-65Q12, CT-65Z10, CT-65Z18)
 + Dimstal (model: SMND-QC-12-J-Smart ECO)
