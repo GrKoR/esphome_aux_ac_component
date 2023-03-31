@@ -7,7 +7,7 @@
 Плата esp-12e перед подключением кондиционера и модуля питания:  
 ![esp-12e minimal photo](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/esp-12e.jpg?raw=true)
 
-Внутренний блок сплит-системы может иметь 5-проводное или 4-проводное подключение (псевдо-USB) к модулю wifi.  
+Внутренний блок сплит-системы может иметь 5-проводное или 4-проводное подключение (псевдо-USB) к модулю wifi. Встречаются и другие виды подключения. Например, AUX Aegean Sea ( 爱琴海 ), за подробностями подключения сюда: [issue #71](https://github.com/GrKoR/esphome_aux_ac_component/issues/71).  
 
 ## 5-проводное подключение
 Для 5-проводного подключения используется коннектор [JST SM](https://www.jst-mfg.com/product/pdf/eng/eSM.pdf).

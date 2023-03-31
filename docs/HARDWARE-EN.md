@@ -8,7 +8,7 @@ I leave GPIO0 in air cause I don't see any reason to solder additional component
 ESP-12E before DC-DC and air conditioner connected:  
 ![esp-12e minimal photo](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/esp-12e.jpg?raw=true)
  
-Air conditioner internal block has a 5-wire or a 4-wire (pseudo-USB) connection to the wifi-module.
+Air conditioner internal block has a 5-wire or a 4-wire (pseudo-USB) connection to the wifi-module. There are another types of connection too. For example AUX Aegean Sea ( 爱琴海 ), check [issue #71](https://github.com/GrKoR/esphome_aux_ac_component/issues/71) for details.
 
 ## 5-wire connection
 It use [JST SM](https://www.jst-mfg.com/product/pdf/eng/eSM.pdf) connector for 5-wire connection.
