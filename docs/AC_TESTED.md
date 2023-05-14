@@ -10,7 +10,7 @@
 + Energolux (models: SAS07L4-A, SAS07M2-AI, SAS09L4-A, SAS09Z4-AI, SAS12BN1-AI, SAS12CH1-AI, SAS12Z3-AI)
 + Hyundai (models: H-AR16-07H, H-AR21-07H, H-AR21-09H)
 + Idea (models: ISR-12HR-SA7-DN1 ION)
-+ IGC (models: RAK-07NH multysplit)
++ IGC (models: RAK-07NH multysplit, RAS-07AX/RAC-07AX)
 + Loriot (models: LAC-09AS)
 + RCool (models: GRA12B0-KSZKLM641)
 + Roda (models: RS-AL09F)
