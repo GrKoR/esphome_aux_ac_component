@@ -9,6 +9,7 @@
 + Elgin (models: HWFI09B2IA/ HWFE09B2NA)
 + Energolux (models: SAS07L4-A, SAS07M2-AI, SAS09L4-A, SAS09Z4-AI, SAS12BN1-AI, SAS12CH1-AI, SAS12Z3-AI)
 + Hyundai (models: H-AR16-07H, H-AR21-07H, H-AR21-09H)
++ iClima (models: ICI-09A/IUI-09A)
 + Idea (models: ISR-12HR-SA7-DN1 ION)
 + IGC (models: RAK-07NH multysplit, RAS-07AX/RAC-07AX)
 + Loriot (models: LAC-09AS)
