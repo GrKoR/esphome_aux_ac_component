@@ -49,7 +49,7 @@ Yellow wire is connected to the Vin pin of the power module.
 Blue wire is connected to the RXD pin of esp-12e.  
 Red wire is connected to the TXD pin of esp-12e.  
 
-**ATTENTION!** In case you are using board like NodeMCU instead of clean esp8266/esp32 module, you shouldn't connect RX & TX wires of air conditioner to TX & RX pins of board. Use any other digital pins for UART connection. It doesn't matter if your board will use hardware or software UART. All UART types are working well.  
+**ATTENTION!** In case you are using board like NodeMCU instead of clean esp8266/esp32 module, you shouldn't connect RX & TX wires of air conditioner to TX & RX pins of board! *(TXD1/RXD1, TXD2/RXD2 are also most likely not suitable.)* Use any other digital pins for UART connection. It doesn't matter if your board will use hardware or software UART. All UART types are working well.  
 The usage of alternate pins for NodeMCU-like boards is necessary cause RX & TX lines of this boards are often have additional components like resistors or USB-TTL converters connected. This components are violate esp-to-ac UART connection.
 
 Here is it:  
