@@ -49,7 +49,7 @@ Yellow wire is connected to the Vin pin of the power module.
 Blue wire is connected to the RXD pin of esp-12e.  
 Red wire is connected to the TXD pin of esp-12e.  
 
-**ATTENTION!** In case you are using board like NodeMCU instead of clean esp8266/esp32 module, you shouldn't connect RX & TX wires of air conditioneer to TX & RX pins of board. Use any other digital pins for UART connection. It doesn't matter if your board will use hardware or software UART. All UART types are working well.  
+**ATTENTION!** In case you are using board like NodeMCU instead of clean esp8266/esp32 module, you shouldn't connect RX & TX wires of air conditioner to TX & RX pins of board. Use any other digital pins for UART connection. It doesn't matter if your board will use hardware or software UART. All UART types are working well.  
 The usage of alternate pins for NodeMCU-like boards is necessary cause RX & TX lines of this boards are often have additional components like resistors or USB-TTL converters connected. This components are violate esp-to-ac UART connection.
 
 Here is it:  
@@ -58,7 +58,7 @@ Here is it:
 All connections in custom 3d-printed case looks like this:  
 ![module assembled](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/assembled.JPG?raw=true)
  
-Cause I haven't JST SM connector I made own:  
+Since I didn't have JST SM connectors, I made my own:
 ![JST SM connector replica](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/connector.JPG?raw=true).
  
 It is made of standard 2.54mm pins and 3D-printed case.  
