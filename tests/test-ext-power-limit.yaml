@@ -75,11 +75,11 @@ climate:
       id: ${devicename}_outdoor_temp
       internal: false
     outbound_temperature:
-      name: $upper_devicename Colant Outbound Temperature
+      name: $upper_devicename Coolant Outbound Temperature
       id: ${devicename}_outbound_temp
       internal: false
     inbound_temperature:
-      name: $upper_devicename Colant Inbound Temperature
+      name: $upper_devicename Coolant Inbound Temperature
       id: ${devicename}_inbound_temp
       internal: false
     compressor_temperature:

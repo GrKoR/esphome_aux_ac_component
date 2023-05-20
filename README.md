@@ -108,11 +108,11 @@ climate:
       id: ac_outdoor_temp
       internal: false
     outbound_temperature:
-      name: AC Colant Outbound Temperature
+      name: AC Coolant Outbound Temperature
       id: ac_outbound_temp
       internal: false
     inbound_temperature:
-      name: AC Colant Inbound Temperature
+      name: AC Coolant Inbound Temperature
       id: ac_inbound_temp
       internal: false
     compressor_temperature:
