@@ -16,7 +16,7 @@ Component tested with ESPHome 1.18.0 and Rovex ALS1 air conditioner. It looks li
  
 ## Supported air conditioners ##
 AUX is one of the OEM air conditioner manufacturers. AUX produce ACs for many brands.
-There is the following list of AUX-based air conditioner on the Internet: AUX, Abion, AC ELECTRIC, Almacom, Ballu, Centek, Climer, DAX, Energolux, ERISSON, Green Energy, Hyundai, IGC, Kentatsu (some series only), Klimaire, KOMANCHI, LANZKRAFT, LEBERG, LGen, Monroe, Neoclima, NEOLINE, One Air, Pioneer (until 2016), Roda, Rovex, Royal Clima, SAKATA, Samurai, SATURN, Scarlett, SmartWay, Soling, Subtropic, SUBTROPIC, Supra, Timberk, Vertex, Zanussi. There are doubts about its completeness and reliability, but nothing better could be found.
+There is the following list of AUX-based air conditioner on the internet: AUX, Abion, AC ELECTRIC, Almacom, Ballu, Centek, Climer, DAX, Energolux, ERISSON, Green Energy, Hyundai, IGC, Kentatsu (some series only), Klimaire, KOMANCHI, LANZKRAFT, LEBERG, LGen, Monroe, Neoclima, NEOLINE, One Air, Pioneer (until 2016), Roda, Rovex, Royal Clima, SAKATA, Samurai, SATURN, Scarlett, SmartWay, Soling, Subtropic, SUBTROPIC, Supra, Timberk, Vertex, Zanussi. There are doubts about its completeness and reliability, but nothing better could be found.
 
 ### List of compatible ACs (tested) ###
 [The list of tested ACs](docs/AC_TESTED.md) is placed in a separate file and includes tested by the author or by users ACs. This list is permanently updated, mainly based on feedback from users in [Telegram chat](https://t.me/aux_ac).<br />
@@ -387,7 +387,7 @@ All settings in it is trivial. Just copy the file to your local folder, specify 
 All sources are located [in advanced example folder](https://github.com/GrKoR/esphome_aux_ac_component/tree/master/examples/advanced).
 
 This time we'll configure two relative identical air conditioners with `aux_ac` custom component.<br />
-Let's imagine we have ACs in a kitchen and in a living room. All ACs are the same brand and can be controlled by `aux_ac`. (These air conditioners may not be the same brand. The main thing is that they are compatible with aux_ac.)<br />  
+Let's imagine we have ACs in a kitchen and in a living room. Air conditioners can be of the same brand or different brands - the main thing is that they are compatible with `aux_ac` and can be controlled using `aux_ac`.<br />  
 Because we are lazy, we'll define all common configuration parts for two air conditioners in one `ac_common.yaml` file.<br />
 All specific parts of configuration are located in the `ac_kitchen.yaml` and `ac_livingroom.yaml`. Here we set `devicename` and `upper_devicename` for correct sensors and component naming. And here we specify the correct IP address of the device from `secrets.yaml`.<br />
 **Don't forget** to specify `wifi_ip_kitchen`, `wifi_ota_ip_kitchen`, `wifi_ip_livingroom` and `wifi_ota_ip_livingroom` in the `secrets.yaml` along with the other sensitive information, such as passwords, tokens etc.
