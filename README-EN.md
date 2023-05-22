@@ -99,7 +99,7 @@ climate:
     period: 7s
     show_action: true
     display_inverted: false
-    timeout: 150
+    timeout: 150
     indoor_temperature:
       name: AC Indoor Temperature
       id: ac_indoor_temp
