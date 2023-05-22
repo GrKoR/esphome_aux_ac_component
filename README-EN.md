@@ -2,7 +2,7 @@
 For communication about this project [please join this telegram chat](https://t.me/aux_ac). 
  
 For issues or feature requests, please go to [the issue section](https://github.com/GrKoR/esphome_aux_ac_component/issues). It will be perfect if you attach log to your issue. Log you can collect with [this python script](https://github.com/GrKoR/ac_python_logger). It helps you to save all data frames from the UART bus to a csv-file. This log combined with the detailed situation description will significantly speed up bug correction.
- 
+There is also a [detailed instruction describing how to properly request a feature](docs/HOW_TO_FEATURE_REQUEST-EN.md).
  
 ## DISCLAIMER ##
 1. All data of this project (software, firmware, schemes, 3d-models etc.) are provided **'AS IS'**. Everything you do with your devices, you are doing at your own risk. If you don't strongly understand what you are doing, just buy Wi-Fi module from your air conditioner manufacturer.
