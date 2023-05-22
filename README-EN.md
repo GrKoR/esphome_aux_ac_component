@@ -2,15 +2,15 @@
 For communication about this project [please join this telegram chat](https://t.me/aux_ac). 
  
 For issues or feature requests, please go to [the issue section](https://github.com/GrKoR/esphome_aux_ac_component/issues). It will be perfect if you attach log to your issue. Log you can collect with [this python script](https://github.com/GrKoR/ac_python_logger). It helps you to save all data frames from the UART bus to a csv-file. This log combined with the detailed situation description will significantly speed up bug correction.
- 
+There is also a [detailed instruction describing how to properly request a feature](docs/HOW_TO_FEATURE_REQUEST-EN.md).
  
 ## DISCLAIMER ##
-1. All data of this project (software, firmware, schemes, 3d-models etc.) are provided **'AS IS'**. Everything you do with your devices, you are doing at your own risk. If you don't strongly understand what you are doing, just buy wifi-module from your air conditioner manufacturer.
+1. All data of this project (software, firmware, schemes, 3d-models etc.) are provided **'AS IS'**. Everything you do with your devices, you are doing at your own risk. If you don't strongly understand what you are doing, just buy Wi-Fi module from your air conditioner manufacturer.
 2. I am not a programmer. So source code is certainly not optimal and badly decorated (but there are a lot of comments in it; sorry, a significant part of it is in Russian). Also, code may be written unsafe. I tried to test all parts of the code, but I'm sure I missed a lot of things. So treat it with suspicion, expect a trick from it, and if you discover something wrong write an issue here.
 3. Russian and English readme files are substantially identical in meaning. But in case of differences, the [Russian](https://github.com/GrKoR/esphome_aux_ac_component#readme) version is more significant.
  
 ## Short description ##
-This custom component allows you to control your air conditioner through wifi if it is made in the AUX factory.<br />
+This custom component allows you to control your air conditioner through Wi-Fi if it is made in the AUX factory.<br />
 Component tested with ESPHome 1.18.0 and Rovex ALS1 air conditioner. It looks like many other air conditioners can be controlled by `aux_ac`, but this possibility isn't tested. See list of tested ACs below for more details.
  
  
@@ -21,26 +21,16 @@ There is the following list of AUX-based air conditioner on the internet: AUX, A
 ### List of compatible ACs (tested) ###
 [The list of tested ACs](docs/AC_TESTED.md) is placed in a separate file and includes tested by the author or by users ACs. This list is permanently updated, mainly based on feedback from users in [Telegram chat](https://t.me/aux_ac).<br />
 
-If your AC is not in the list
-If your AC is listed above you should take a closer look at aux_ac.
-If the User Manual of your HVAC describes connection to wifi with mobile app ACFreedom it seems you may go deeper with aux_ac. But try all soft and hardware for your own risk. You must clearly understand what you are doing.
-If you are unsure it is better to wait while other users will test your model of AC (but it may never). Or please go to telegram-chat with your questions. Maybe you will get help there.
-
-If you have tested your air conditioner and aux_ac works with it please let me know about it. I'll add this info to the list of tested ACs above. The best way to report about your test results is write a message in the telegram or in the issue section.
-
-How to use it
-For correct component operation you need hardware and firmware. The hardware description is located in separate file.
-
-Firmware: Integration aux_ac to your configuration
-You need ESPHome v.1.18.0 or above. External_components have appeared in this version. But it is better to use ESPHome v.1.20.4 or above cause there was alot of external_components errors corrected before this version.
 ### If your AC is not in the list ###
-If your AC is listed above, you should take a closer look at `aux_ac`.<br />
-If the User Manual of your HVAC describes connection to wifi with mobile app ACFreedom it seems you may go deeper with `aux_ac`. But try all soft and hardware for your own risk. You must clearly understand what you are doing.<br />
-If you are unsure, it is better to wait while other users will test your model of AC (but it may never). Or please [go to telegram-chat](https://t.me/aux_ac) with your questions. Maybe you will get help there.
+1. If your AC is listed above, you should take a closer look at `aux_ac`.<br />
+2. If something about AUX is written on the nameplate of the air conditioner in the manufacturer line.<br />
+3. If the User Manual of your HVAC describes connection to Wi-Fi with mobile app ACFreedom it seems you may go deeper with `aux_ac`. But try all soft and hardware for your own risk. You must clearly understand what you are doing.<br />
+4. If the manufacturer of your AC offers a CTTM-40X24-WIFI-AKS Wi-Fi module (left) or the one in the photo on the right for control. Moreover, the right module can be either with a USB connector or with a 5-pin connector.<br />
+<img src="https://user-images.githubusercontent.com/57137862/172053621-60fe39d8-066e-44fa-91c5-725fa1f5c3bc.png" height="300">  <img src="https://user-images.githubusercontent.com/57137862/172053744-8ce4a13d-28cb-4688-a998-11ca3a7129df.png" height="300"> 
 
-If you have tested your air conditioner and `aux_ac` works with it, please let me know about it. I'll add this info to the list of tested ACs above.
-The best way to report about your test results is writing a message in the [telegram](https://t.me/aux_ac) or [in the issue section](https://github.com/GrKoR/esphome_aux_ac_component/issues).
-
+If you are unsure, it is better to wait while other users will test your model of AC (maybe never). Or please [go to telegram-chat](https://t.me/aux_ac) with your questions. Maybe you will get help there.<br />
+If you have tested your air conditioner and `aux_ac` works with it, please let me know about it. I'll add this info to the list of tested ACs above.<br />
+The best way to report about your test results is writing a message in the [telegram](https://t.me/aux_ac) or [in the issue section](https://github.com/GrKoR/esphome_aux_ac_component/issues).<br />
 
 ## How to use it ##
 For correct component operation, you need hardware and firmware. The hardware description is located [in a separate file](docs/HARDWARE-EN.md).
@@ -184,7 +174,7 @@ climate:
 
 - **period** (*Optional*, [time](https://esphome.io/guides/configuration-types.html#config-time), default ``7s``): Period between status requests to the AC. `Aux_ac` will receive the new air conditioner status only after a regular request, even if you change the settings of AC using IR-remote.
 
-- **show_action** (*Optional*, boolean, default ``true``): Whether to show current action of the device (experimental). For example, in the HEAT-COOL mode, AC hardware may be in one of the following actions:
+- **show_action** (*Optional*, boolean, default ``true``): Whether to show current action of the device (experimental). For example, in the HEAT_COOL mode, AC hardware may be in one of the following actions:
   - HEATING: AC is heating the air in the room;
   - IDLE: AC is working in the FAN mode, cause the target temperature is reached;
   - COOLING: AC is cooling the air.
@@ -226,7 +216,7 @@ climate:
 - **inverter_power_limit_state** (*Optional*): Configuration of the power limit state sensor. It displays the state of the power limitation function for the inverter HVAC (is it ON or OFF). All settings are the same as for the **display_state** (see description above).
 
 - **inverter_power_limit_value** (*Optional*): Configuration of the power limit value sensor. All settings are the same as for the **indoor_temperature** (see description above).  
-It reports the current value of the power limitation function for the inverter HVAC. This sensor represents the value only after the HVAC confirms the power limitation. The value is always in the range from 30 to 100%. This is the hardware limitation.
+It reports the current value of the power limitation function for the inverter HVAC. This sensor represents the value only after the HVAC confirms the power limitation. The value is always in the range from 30% to 100%. This is the hardware limitation.
 
 - **preset_reporter** (*Optional*): Parameters of text sensor with current preset. All settings are the same as for the **display_state** (see description above).  
   ESPHome Climate devices are not reporting their active presets (from **supported_presets** and **custom_presets** lists) to MQTT. This behavior has been noticed at least in version 1.20.0. In case you are using MQTT and want to receive information about active preset, you should declare this sensor in your yaml.
@@ -390,16 +380,16 @@ on_...:
 ## Simple example ##
 The source code of this example is located in the [aux_ac_simple.yaml](https://github.com/GrKoR/esphome_aux_ac_component/blob/master/examples/simple/aux_ac_simple.yaml) file.
 
-All settings in it is trivial. Just copy the file to your local folder, specify your wifi settings and compile YAML with ESPHome.
+All settings in it is trivial. Just copy the file to your local folder, specify your Wi-Fi settings and compile YAML with ESPHome.
 
 
 ## Advanced example ##
 All sources are located [in advanced example folder](https://github.com/GrKoR/esphome_aux_ac_component/tree/master/examples/advanced).
 
 This time we'll configure two relative identical air conditioners with `aux_ac` custom component.<br />
-Let's imagine we have ACs in a kitchen and in a living room. All ACs are the same brand and can be controlled by `aux_ac`.<br />  
+Let's imagine we have ACs in a kitchen and in a living room. Air conditioners can be of the same brand or different brands - the main thing is that they are compatible with `aux_ac` and can be controlled using `aux_ac`.<br />  
 Because we are lazy, we'll define all common configuration parts for two air conditioners in one `ac_common.yaml` file.<br />
-All specific parts of configuration are located in the `ac_kitchen.yaml` and `ac_livingroom.yaml`. Here we set `devicename` and `upper_devicename` for correct sensors and component naming. And here we specify the correct IP-address of the device from `secrets.yaml`.<br />
+All specific parts of configuration are located in the `ac_kitchen.yaml` and `ac_livingroom.yaml`. Here we set `devicename` and `upper_devicename` for correct sensors and component naming. And here we specify the correct IP address of the device from `secrets.yaml`.<br />
 **Don't forget** to specify `wifi_ip_kitchen`, `wifi_ota_ip_kitchen`, `wifi_ip_livingroom` and `wifi_ota_ip_livingroom` in the `secrets.yaml` along with the other sensitive information, such as passwords, tokens etc.
 
 If you try to compile `ac_common.yaml` it will raise errors. You need to compile `ac_kitchen.yaml` or `ac_livingroom.yaml` instead.
