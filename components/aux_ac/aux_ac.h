@@ -756,6 +756,10 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
     // если тут true, то 1 потушит дисплей, а 0 включит.
     bool _display_inverted = false;
 
+    // in optimistic mode, the entity states are updated immediately after receiving a command
+    // from Home Assistant/ESPHome
+    bool _optimistic = true;
+
     // флаг типа кондиционера. инвертор - true,  ON/OFF - false, начальная установка false
     // в таком режиме точность и скорость определения реального состояния системы для инвертора,
     // будет работать, но будет ниже, переменная устанавливается при первом получении большого пакета;
@@ -2472,6 +2476,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         ESP_LOGCONFIG(TAG, "  [x] Period: %dms", this->get_period());
         ESP_LOGCONFIG(TAG, "  [x] Show action: %s", TRUEFALSE(this->get_show_action()));
         ESP_LOGCONFIG(TAG, "  [x] Display inverted: %s", TRUEFALSE(this->get_display_inverted()));
+        ESP_LOGCONFIG(TAG, "  [x] Optimistic: %s", TRUEFALSE(this->get_optimistic()));
         ESP_LOGCONFIG(TAG, "  [x] Packet timeout: %dms", this->get_packet_timeout());
 
 #if defined(PRESETS_SAVING)
@@ -2830,7 +2835,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
 
         if (hasCommand) {
             commandSequence(&cmd);
-            this->publish_all_states();  // Publish updated state
+            if (this->get_optimistic()) {
+                this->publish_all_states();  // Publish updated state
+            }
 
 #if defined(PRESETS_SAVING)
             // флаг отправки новой команды, для процедуры сохранения пресетов, если есть настройка
@@ -3266,6 +3273,9 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         this->_packet_timeout = ms;
     }
     uint32_t get_packet_timeout() { return this->_packet_timeout; }
+
+    void set_optimistic(bool optimistic) { this->_optimistic = optimistic; }
+    bool get_optimistic() { return this->_optimistic; }
 
     // возможно функции get и не нужны, но вроде как должны быть
     void set_supported_modes(const std::set<ClimateMode> &modes) { this->_supported_modes = modes; }

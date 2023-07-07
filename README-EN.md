@@ -90,6 +90,7 @@ climate:
     show_action: true
     display_inverted: false
     timeout: 150
+    optimistic: true
     indoor_temperature:
       name: AC Indoor Temperature
       id: ac_indoor_temp
@@ -186,6 +187,8 @@ climate:
   In the most common use of `aux_ac`, it isn't necessary to change this value. This keyword is optional, so you may omit it.  
   The only situation when you can play with timeout is heavily loaded ESP. When you are using your ESP for many hard tasks, it is possible that `aux_ac` does not have enough time to receive AC responses. In this case, you can slightly raise the timeout value. But the best solution would be to remove some of the tasks from the ESP.  
   The timeout is limited to a range from `150` to `600` milliseconds. Other values are possible only with source code modification. But I don't recommend that.
+
+- **optimistic** (*Optional*, boolean, default ``true``): Whether entity states should be updated immediately after receiving a command from Home Assistant/ESPHome.
 
 - **indoor_temperature** (*Optional*): Parameters of the room air temperature sensor.
   - **name** (**Required**, string): The name for the temperature sensor.

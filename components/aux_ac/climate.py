@@ -10,6 +10,7 @@ from esphome.const import (
     CONF_DATA,
     CONF_ID,
     CONF_INTERNAL,
+    CONF_OPTIMISTIC,
     CONF_PERIOD,
     CONF_POSITION,
     CONF_SUPPORTED_MODES,
@@ -193,7 +194,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_SHOW_ACTION, default="true"): cv.boolean,
             cv.Optional(CONF_DISPLAY_INVERTED, default="false"): cv.boolean,
             cv.Optional(CONF_TIMEOUT, default=AC_PACKET_TIMEOUT_MIN): validate_packet_timeout,
-            
+            cv.Optional(CONF_OPTIMISTIC, default="true"): cv.boolean,
             cv.Optional(CONF_INVERTER_POWER_DEPRICATED): cv.invalid(
                 "The name of sensor was changed in v.0.2.9 from 'invertor_power' to 'inverter_power'. Update your config please."
             ),
@@ -400,6 +401,7 @@ async def to_code(config):
     cg.add(var.set_show_action(config[CONF_SHOW_ACTION]))
     cg.add(var.set_display_inverted(config[CONF_DISPLAY_INVERTED]))
     cg.add(var.set_packet_timeout(config[CONF_TIMEOUT]))
+    cg.add(var.set_optimistic(config[CONF_OPTIMISTIC]))
     if CONF_SUPPORTED_MODES in config:
         cg.add(var.set_supported_modes(config[CONF_SUPPORTED_MODES]))
     if CONF_SUPPORTED_SWING_MODES in config:
