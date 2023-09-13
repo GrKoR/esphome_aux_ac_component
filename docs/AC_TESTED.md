@@ -19,6 +19,7 @@
 + Royal Clima (models: CO-D 18HNI/CO-E 18HNI, RCI-SA30HN)
 + Samurai (models: SMA-07HRN1 ION, SMA-09HRN1 ION)
 + Subtropic (models: SUB-07HN1, SUB-12HN1)
++ TOYOTOMI (models: SONZAI THN/THG-A35SZ)
 + VOX (models: IVA5-12JR1, IJO09-SC4D)
 + Zephir (models: ZEL 12000BTU)
 + Бирюса (models: B-07DPR/B-07DPQ, B-09FIR/B-09FIQ)
