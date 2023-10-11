@@ -843,7 +843,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
     uint8_t _sequence_current_step;
 
     // флаг успешного выполнения стартовой последовательности команд
-    bool _startupSequenceComlete = false;
+    bool _startupSequenceComplete = false;
 
     // очистка последовательности команд
     void _clearSequence() {
@@ -1257,8 +1257,8 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
                 // до отправки пинг-ответа проверяем, не выполнялась ли стартовая последовательность команд
                 // по задумке она выполняется после подключения к кондиционеру после ответа на первый пинг
                 // нужна для максимально быстрого определния текущих параметров кондиционера
-                if (!_startupSequenceComlete) {
-                    _startupSequenceComlete = startupSequence();
+                if (!_startupSequenceComplete) {
+                    _startupSequenceComplete = startupSequence();
                 }
 
                 _setStateMachineState(ACSM_SENDING_PACKET);
@@ -2094,7 +2094,7 @@ class AirCon : public esphome::Component, public esphome::climate::Climate {
         _clearSequence();
 
         // выполнена ли уже стартовая последовательность команд (сбор информации о статусе кондея)
-        _startupSequenceComlete = false;
+        _startupSequenceComplete = false;
 
         // первоначальная инициализация
         this->preset = climate::CLIMATE_PRESET_NONE;
