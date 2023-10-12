@@ -485,6 +485,16 @@ namespace esphome
 #define AC_TIMER_MINUTES_MASK 0b00111111
 #define AC_TIMER_HOURS_MASK 0b00011111
 
+// Temperature unit of measurement
+// Air conditioner works with Celsius but can convert it to Fahrenheit for display on the LED screen.
+#define AC_TEMPERATURE_UNIT_MASK 0b00000010
+        enum ac_temperature_unit : uint8_t
+        {
+            AC_TEMPERATURE_UNIT_CELSIUS = 0x00,
+            AC_TEMPERATURE_UNIT_FAHRENHEIT = 0x02,
+            AC_TEMPERATURE_UNIT_UNTOUCHED = 0xFF
+        };
+
 // включение таймера сна
 #define AC_TIMER_MASK 0b01000000
         enum ac_timer : uint8_t
@@ -642,22 +652,23 @@ namespace esphome
 //*****************************************************************************
 // структура для сохранения настроек, специально вынесено в макрос, чтобы использовать в нескольких местах
 // сделано Brokly для того, чтобы поведение wifi-модуля походило на ИК-пульт (для каждого режима сохранялись свои настройки температуры и прочего)
-#define AC_COMMAND_BASE    \
-    float temp_target;     \
-    ac_power power;        \
-    ac_clean clean;        \
-    ac_health health;      \
-    ac_mode mode;          \
-    ac_sleep sleep;        \
-    ac_louver louver;      \
-    ac_fanspeed fanSpeed;  \
-    ac_fanturbo fanTurbo;  \
-    ac_fanmute fanMute;    \
-    ac_display display;    \
-    ac_mildew mildew;      \
-    ac_timer timer;        \
-    uint8_t timer_hours;   \
-    uint8_t timer_minutes; \
+#define AC_COMMAND_BASE         \
+    float temp_target;          \
+    ac_power power;             \
+    ac_clean clean;             \
+    ac_health health;           \
+    ac_mode mode;               \
+    ac_temperature_unit t_unit; \
+    ac_sleep sleep;             \
+    ac_louver louver;           \
+    ac_fanspeed fanSpeed;       \
+    ac_fanturbo fanTurbo;       \
+    ac_fanmute fanMute;         \
+    ac_display display;         \
+    ac_mildew mildew;           \
+    ac_timer timer;             \
+    uint8_t timer_hours;        \
+    uint8_t timer_minutes;      \
     bool temp_target_matter
 
 // чистый размер этой структуры 20 байт, скорее всего из-за выравнивания, она будет больше
@@ -1107,6 +1118,7 @@ namespace esphome
                 cmd->louver.louver_v = AC_LOUVERV_UNTOUCHED;
                 cmd->mildew = AC_MILDEW_UNTOUCHED;
                 cmd->mode = AC_MODE_UNTOUCHED;
+                cmd->t_unit = AC_TEMPERATURE_UNIT_UNTOUCHED;
                 cmd->power = AC_POWER_UNTOUCHED;
                 cmd->sleep = AC_SLEEP_UNTOUCHED;
                 cmd->timer = AC_TIMER_UNTOUCHED;
@@ -1465,6 +1477,10 @@ namespace esphome
                         stateByte = small_info_body->mode & AC_MODE_MASK;
                         stateChangedFlag = stateChangedFlag || (_current_ac_state.mode != (ac_mode)stateByte);
                         _current_ac_state.mode = (ac_mode)stateByte;
+
+                        stateByte = small_info_body->mode & AC_TEMPERATURE_UNIT_MASK;
+                        stateChangedFlag = stateChangedFlag || (_current_ac_state.t_unit != (ac_temperature_unit)stateByte);
+                        _current_ac_state.t_unit = (ac_temperature_unit)stateByte;
 
                         stateByte = small_info_body->mode & AC_SLEEP_MASK;
                         stateChangedFlag = stateChangedFlag || (_current_ac_state.sleep != (ac_sleep)stateByte);
@@ -1949,6 +1965,10 @@ namespace esphome
                 if (cmd->mode != AC_MODE_UNTOUCHED)
                 {
                     pack->body[7] = (pack->body[7] & ~AC_MODE_MASK) | cmd->mode;
+                }
+                if (cmd->t_unit != AC_TEMPERATURE_UNIT_UNTOUCHED)
+                {
+                    pack->body[7] = (pack->body[7] & ~AC_TEMPERATURE_UNIT_MASK) | cmd->t_unit;
                 }
                 if (cmd->sleep != AC_SLEEP_UNTOUCHED)
                 {
@@ -3032,7 +3052,10 @@ namespace esphome
                         // COOL: температура +1 градус через час, еще через час дополнительные +1 градус, дальше не меняется.
                         // HEAT: температура -2 градуса через час, еще через час дополнительные -2 градуса, дальше не меняется.
                         // Восстанавливается ли температура через 7 часов при отключении режима - не понятно.
-                        if (cmd.mode == AC_MODE_COOL or cmd.mode == AC_MODE_HEAT or cmd.mode == AC_MODE_DRY or cmd.mode == AC_MODE_AUTO or _current_ac_state.mode == AC_MODE_COOL or _current_ac_state.mode == AC_MODE_HEAT or _current_ac_state.mode == AC_MODE_DRY or _current_ac_state.mode == AC_MODE_AUTO)
+                        if (cmd.mode == AC_MODE_COOL or _current_ac_state.mode == AC_MODE_COOL or
+                            cmd.mode == AC_MODE_HEAT or _current_ac_state.mode == AC_MODE_HEAT or
+                            cmd.mode == AC_MODE_DRY or _current_ac_state.mode == AC_MODE_DRY or
+                            cmd.mode == AC_MODE_AUTO or _current_ac_state.mode == AC_MODE_AUTO)
                         {
                             hasCommand = true;
                             cmd.sleep = AC_SLEEP_ON;
