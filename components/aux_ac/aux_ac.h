@@ -17,7 +17,7 @@
 #include "esphome/core/helpers.h"
 
 // весь функционал сохранения пресетов прячу под дефайн
-// #define PRESETS_SAVING
+//  #define PRESETS_SAVING
 #ifdef PRESETS_SAVING
 #ifdef ESP32
 #include "esphome/core/preferences.h"
@@ -1910,13 +1910,16 @@ namespace esphome
                     // целая часть температуры
                     pack->body[2] = (pack->body[2] & ~AC_TEMP_TARGET_INT_PART_MASK) | (((uint8_t)(cmd->temp_target) - 8) << 3);
 
-            // дробная часть температуры
-            if (cmd->temp_target - (uint8_t)(cmd->temp_target) >= 0.5) {
-                pack->body[4] = (pack->body[4] | AC_TEMP_TARGET_FRAC_PART_MASK);
-            } else {
-                pack->body[4] = (pack->body[4] & ~AC_TEMP_TARGET_FRAC_PART_MASK);
-            }
-        }
+                    // дробная часть температуры
+                    if (cmd->temp_target - (uint8_t)(cmd->temp_target) > 0)
+                    {
+                        pack->body[4] = (pack->body[4] | AC_TEMP_TARGET_FRAC_PART_MASK);
+                    }
+                    else
+                    {
+                        pack->body[4] = (pack->body[4] & ~AC_TEMP_TARGET_FRAC_PART_MASK);
+                    }
+                }
 
                 // ограничение мощности инвертора
                 if ((cmd->inverter_power_limitation_enable) &&
