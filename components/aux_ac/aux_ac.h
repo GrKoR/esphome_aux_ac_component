@@ -1911,7 +1911,7 @@ namespace esphome
                     pack->body[2] = (pack->body[2] & ~AC_TEMP_TARGET_INT_PART_MASK) | (((uint8_t)(cmd->temp_target) - 8) << 3);
 
                     // дробная часть температуры
-                    if (cmd->temp_target - (uint8_t)(cmd->temp_target) > 0)
+                    if (cmd->temp_target - (uint8_t)(cmd->temp_target) >= 0.5)
                     {
                         pack->body[4] = (pack->body[4] | AC_TEMP_TARGET_FRAC_PART_MASK);
                     }
