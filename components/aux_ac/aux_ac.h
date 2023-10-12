@@ -113,7 +113,7 @@ namespace esphome
             static const uint32_t AC_PACKET_TIMEOUT_MIN;
         };
 
-        const std::string Constants::AC_FIRMWARE_VERSION = "0.2.11";
+        const std::string Constants::AC_FIRMWARE_VERSION = "0.2.12";
 
         // custom fan modes
         const std::string Constants::MUTE = "mute";
