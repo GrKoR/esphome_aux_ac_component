@@ -15,7 +15,7 @@
 + IGC (models: RAK-07NH multysplit, RAS-07AX/RAC-07AX)
 + Loriot (models: LAC-09AS)
 + RCool (models: GRA12B0-KSZKLM641)
-+ Roda (models: RS-AL09F)
++ Roda (models: RS-AL09F, RS-AL24F)
 + Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)
 + Royal Clima (models: CO-D 18HNI/CO-E 18HNI, RCI-SA30HN)
 + Samurai (models: SMA-07HRN1 ION, SMA-09HRN1 ION)
