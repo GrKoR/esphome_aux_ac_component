@@ -113,7 +113,7 @@ namespace esphome
             static const uint32_t AC_PACKET_TIMEOUT_MIN;
         };
 
-        const std::string Constants::AC_FIRMWARE_VERSION = "0.2.12";
+        const std::string Constants::AC_FIRMWARE_VERSION = "0.2.13";
 
         // custom fan modes
         const std::string Constants::MUTE = "mute";
@@ -1922,8 +1922,7 @@ namespace esphome
                 }
 
                 // ограничение мощности инвертора
-                if ((cmd->inverter_power_limitation_enable) &&
-                    (cmd->inverter_power_limitation_value != AC_INVERTER_POWER_LIMITATION_VALUE_UNTOUCHED))
+                if ((cmd->inverter_power_limitation_value != AC_INVERTER_POWER_LIMITATION_VALUE_UNTOUCHED))
                 {
                     pack->body[13] = (pack->body[13] & ~AC_INVERTER_POWER_LIMITATION_ENABLE_MASK) | (cmd->inverter_power_limitation_enable << 7);
                     cmd->inverter_power_limitation_value = _power_limitation_value_normalise(cmd->inverter_power_limitation_value);
