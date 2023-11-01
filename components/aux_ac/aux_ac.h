@@ -626,12 +626,20 @@ namespace esphome
 // GK: define убрал, т.к. считаю, что сбрасывать счетчик не надо.
 // #define AC_MIN_COUNTER_MASK     0b00111111
 
-// маски ограничения мощности для инверторного кондиционера
-#define AC_INVERTER_POWER_LIMITATION_ENABLE_MASK 0b10000000
-#define AC_INVERTER_POWER_LIMITATION_VALUE_MASK 0b01111111
-#define AC_INVERTER_POWER_LIMITATION_VALUE_UNTOUCHED 0xFF
+// включение-выключение функции "Ограничение мощности".
+        enum ac_powLim_state : uint8_t
+        {
+            AC_POWLIMSTAT_OFF = 0x00,
+            AC_POWLIMSTAT_ON = 0x80,
+            AC_POWLIMSTAT_UNTOUCHED = 0xFF
+        };
 
-        // положение вертикальных жалюзи для фронтенда
+// маски ограничения мощности для инверторного кондиционера
+#define AC_POWLIMVAL_MASK 0b01111111
+#define AC_POWLIMVAL_UNTOUCHED 0xFF
+
+// положение вертикальных жалюзи для фронтенда
+#define AC_POWLIMSTAT_MASK 0b10000000
         enum ac_vlouver_frontend : uint8_t
         {
             AC_VLOUVER_FRONTEND_SWING = 0x00,
@@ -707,8 +715,8 @@ namespace esphome
             ac_realFan realFanSpeed;                 // текущая скорость вентилятора
             uint8_t inverter_power;                  // мощность инвертора
             bool defrost;                            // режим разморозки внешнего блока (накопление тепла + прогрев испарителя)
-            bool inverter_power_limitation_enable;   // ограничение мощности инвертора
-            uint8_t inverter_power_limitation_value; // значение ограничения мощности инвертора
+            ac_powLim_state power_lim_state;         // статус ограничения мощности инвертора
+            uint8_t  power_lim_value;                // значение ограничения мощности инвертора
         };
 
         typedef ac_command_t ac_state_t; // текущее состояние параметров кондея можно хранить в таком же формате, как и комманды
@@ -1134,8 +1142,8 @@ namespace esphome
                 cmd->realFanSpeed = AC_REAL_FAN_UNTOUCHED;
                 cmd->inverter_power = 0;
                 cmd->defrost = false;
-                cmd->inverter_power_limitation_enable = false;
-                cmd->inverter_power_limitation_value = AC_INVERTER_POWER_LIMITATION_VALUE_UNTOUCHED;
+                cmd->power_lim_state = AC_POWLIMSTAT_UNTOUCHED;
+                cmd->power_lim_value = AC_POWLIMVAL_UNTOUCHED;
             };
 
             // очистка буфера размером AC_BUFFER_SIZE
@@ -1509,17 +1517,15 @@ namespace esphome
                         stateByte = small_info_body->display_and_mildew & AC_MILDEW_MASK;
                         stateChangedFlag = stateChangedFlag || (_current_ac_state.mildew != (ac_mildew)stateByte);
                         _current_ac_state.mildew = (ac_mildew)stateByte;
-
-                        // enable flag of power limitation for inverter ACs
-                        bool temp = small_info_body->inverter_power_limitation_enable;
-                        stateChangedFlag = stateChangedFlag || (_current_ac_state.inverter_power_limitation_enable != temp);
-                        _current_ac_state.inverter_power_limitation_enable = temp;
-
-                        // the limit value of power limitation for inverter ACs
+                        
+                        stateByte = AC_POWLIMSTAT_ON * small_info_body->inverter_power_limitation_enable;
+                        stateChangedFlag = stateChangedFlag || (_current_ac_state.power_lim_state != (ac_powLim_state)stateByte);
+                        _current_ac_state.power_lim_state = (ac_powLim_state)stateByte;                        
+                      
                         stateByte = small_info_body->inverter_power_limitation_value;
-                        stateChangedFlag = stateChangedFlag || (_current_ac_state.inverter_power_limitation_value != stateByte);
-                        _current_ac_state.inverter_power_limitation_value = stateByte;
-
+                        stateChangedFlag = stateChangedFlag || (_current_ac_state.power_lim_value != stateByte);
+                        _current_ac_state.power_lim_value = stateByte;
+                        
                         // уведомляем об изменении статуса сплита
                         if (stateChangedFlag)
                             stateChanged();
@@ -1921,12 +1927,17 @@ namespace esphome
                     }
                 }
 
-                // ограничение мощности инвертора
-                if ((cmd->inverter_power_limitation_value != AC_INVERTER_POWER_LIMITATION_VALUE_UNTOUCHED))
+                // значение ограничения мощности инвертора
+                if ((cmd->power_lim_value != AC_POWLIMVAL_UNTOUCHED))
                 {
-                    pack->body[13] = (pack->body[13] & ~AC_INVERTER_POWER_LIMITATION_ENABLE_MASK) | (cmd->inverter_power_limitation_enable << 7);
-                    cmd->inverter_power_limitation_value = _power_limitation_value_normalise(cmd->inverter_power_limitation_value);
-                    pack->body[13] = (pack->body[13] & ~AC_INVERTER_POWER_LIMITATION_VALUE_MASK) | cmd->inverter_power_limitation_value;
+                    cmd->power_lim_value = _power_limitation_value_normalise(cmd->power_lim_value);
+                    pack->body[13] = (pack->body[13] & ~AC_POWLIMVAL_MASK) | (cmd->power_lim_value & AC_POWLIMVAL_MASK);
+                }
+
+                // включение/выключение ограничения мощности инвертора
+                if ((cmd->power_lim_state != AC_POWLIMSTAT_UNTOUCHED))
+                {
+                    pack->body[13] = (pack->body[13] & ~AC_POWLIMSTAT_MASK) | (cmd->power_lim_state & AC_POWLIMSTAT_MASK);
                 }
 
                 //  обнулить счетчик минут с последней команды
@@ -2790,11 +2801,10 @@ namespace esphome
                     sensor_vlouver_state_->publish_state((float)this->getCurrentVlouverFrontendState());
                 // флаг включенного ограничения мощности инвертора
                 if (sensor_inverter_power_limit_state_ != nullptr)
-                    sensor_inverter_power_limit_state_->publish_state(_current_ac_state.inverter_power_limitation_enable);
+                    sensor_inverter_power_limit_state_->publish_state(_current_ac_state.power_lim_state == AC_POWLIMSTAT_ON);
                 // значение ограничения мощности инвертора
                 if (sensor_inverter_power_limit_value_ != nullptr)
-                    sensor_inverter_power_limit_value_->publish_state(_current_ac_state.inverter_power_limitation_value);
-
+                    sensor_inverter_power_limit_value_->publish_state(_current_ac_state.power_lim_value);
                 // сенсор состояния сплита
                 if (sensor_preset_reporter_ != nullptr)
                 {
@@ -2837,11 +2847,8 @@ namespace esphome
 #endif
 
                 ESP_LOGCONFIG(TAG, "  [?] Is inverter %s", millis() > _update_period + 1000 ? YESNO(_is_inverter) : "pending...");
-
                 LOG_SENSOR("  ", "Inverter Power", this->sensor_inverter_power_);
                 LOG_SENSOR("  ", "Inverter Power Limit Value", this->sensor_inverter_power_limit_value_);
-                LOG_BINARY_SENSOR("  ", "Inverter Power Limit State", this->sensor_inverter_power_limit_state_);
-
                 LOG_SENSOR("  ", "Indoor Temperature", this->sensor_indoor_temperature_);
                 LOG_SENSOR("  ", "Outdoor Temperature", this->sensor_outdoor_temperature_);
                 LOG_SENSOR("  ", "Inbound Temperature", this->sensor_inbound_temperature_);
@@ -2849,6 +2856,7 @@ namespace esphome
                 LOG_SENSOR("  ", "Compressor Temperature", this->sensor_compressor_temperature_);
                 LOG_BINARY_SENSOR("  ", "Defrost Status", this->sensor_defrost_);
                 LOG_BINARY_SENSOR("  ", "Display", this->sensor_display_);
+                LOG_BINARY_SENSOR("  ", "Inverter Power Limit State", this->sensor_inverter_power_limit_state_);
                 LOG_TEXT_SENSOR("  ", "Preset Reporter", this->sensor_preset_reporter_);
                 this->dump_traits_(TAG);
             }
@@ -3533,61 +3541,97 @@ namespace esphome
                 return true;
             }
 
-            // выключает ограничение мощности сплита
-            bool powerLimitationOffSequence()
+            // выключает-выключает ограничение мощности сплита
+            bool powerLimitationOnOffSequence(bool state)
             {
                 // нет смысла в последовательности, если нет коннекта с кондиционером
                 if (!get_has_connection())
                 {
-                    _debugMsg(F("powerLimitationOffSequence: no pings from HVAC. It seems like no AC connected."), ESPHOME_LOG_LEVEL_ERROR, __LINE__);
+                    _debugMsg(F("powerLimitationOnOffSequence: no pings from HVAC. It seems like no AC connected."), ESPHOME_LOG_LEVEL_ERROR, __LINE__);
                     return false;
                 }
 
                 if (!this->_is_inverter)
+                {
+                    _debugMsg(F("powerLimitationOnSequence: unsupported for noninverter AC."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                     return false; // если кондиционер не инверторный, то выходим
-
+                }
+                
                 // формируем команду
                 ac_command_t cmd;
                 _clearCommand(&cmd); // не забываем очищать, а то будет мусор
-                cmd.inverter_power_limitation_enable = false;
-                cmd.inverter_power_limitation_value = this->_current_ac_state.inverter_power_limitation_value;
+                if(state){
+                   cmd.power_lim_state = AC_POWLIMSTAT_ON; // включить ограничение мощности
+                } else {
+                   cmd.power_lim_state = AC_POWLIMSTAT_OFF; // отключить ограничение мощности
+                }
                 // добавляем команду в последовательность
                 if (!commandSequence(&cmd))
                     return false;
 
-                _debugMsg(F("powerLimitationOffSequence: loaded (value = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, cmd.inverter_power_limitation_enable);
+                _debugMsg(F("powerLimitationOnOffSequence: loaded (state = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, cmd.power_lim_state);
                 return true;
             }
+            
+            // выключает ограничение мощности сплита
+            bool powerLimitationOffSequence()
+            {
+               return powerLimitationOnOffSequence(false);
+            }
 
-            // включает ограничение мощности сплита на нужный уровень
-            bool powerLimitationOnSequence(uint8_t power_limit = Constants::AC_MIN_INVERTER_POWER_LIMIT)
+            // устанавливает ограничение мощности сплита на нужный уровень
+            bool powerLimitationSetSequence(uint8_t power_limit, bool setOn=false)
             {
                 // нет смысла в последовательности, если нет коннекта с кондиционером
                 if (!get_has_connection())
                 {
-                    _debugMsg(F("powerLimitationOnSequence: no pings from HVAC. It seems like no AC connected."), ESPHOME_LOG_LEVEL_ERROR, __LINE__);
+                    _debugMsg(F("powerLimitationSetSequence: no pings from HVAC. It seems like no AC connected."), ESPHOME_LOG_LEVEL_ERROR, __LINE__);
                     return false;
                 }
 
                 if (!this->_is_inverter)
                 { // если кондиционер не инверторный, то выходим
-                    _debugMsg(F("powerLimitationOnSequence: unsupported for noninverter AC."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                    _debugMsg(F("powerLimitationSetSequence: unsupported for noninverter AC."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                     return false;
                 }
 
-                power_limit = this->_power_limitation_value_normalise(power_limit);
-
+                if(power_limit != this->_power_limitation_value_normalise(power_limit))
+                {
+                    _debugMsg(F("powerLimitationSetSequence: incorrect power limit value."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
+                    return false;
+                }
+                
                 // формируем команду
                 ac_command_t cmd;
                 _clearCommand(&cmd); // не забываем очищать, а то будет мусор
-                cmd.inverter_power_limitation_enable = true;
-                cmd.inverter_power_limitation_value = power_limit;
+                cmd.power_lim_value = power_limit;
+                if (setOn)
+                {
+                    cmd.power_lim_state = AC_POWLIMSTAT_ON;
+                }
                 // добавляем команду в последовательность
                 if (!commandSequence(&cmd))
                     return false;
-
-                _debugMsg(F("powerLimitationOnSequence: loaded (power limit = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, power_limit);
+                
+                if (setOn)
+                {
+                   _debugMsg(F("powerLimitationSetSequence: loaded (state = %02X, power limit = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, cmd.power_lim_state, power_limit);
+                } else {
+                   _debugMsg(F("powerLimitationSetSequence: loaded (power limit = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, power_limit);
+                }
                 return true;
+            }
+
+            // включает ограничение мощности сплита
+            bool powerLimitationOnSequence()
+            {
+               return powerLimitationOnOffSequence(true);
+            }
+
+            // включает ограничение мощности сплита на нужный уровень
+            bool powerLimitationOnSequence(uint8_t power_limit)
+            {
+               return powerLimitationSetSequence(power_limit, true);
             }
 
             // конвертирует состояние жалюзи из кодов сплита в коды для фронтенда
