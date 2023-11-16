@@ -26,17 +26,21 @@ You should feed your ESP **from +12V..+14V line only**! It is prohibited to use 
 ## 4-wire connection (pseudo-USB)
 For 4-wire connection it is used USB-like connector. It is only physical USB but its pinout is UART with +12V..+14V power line.  
 
-**ATTENTION!** It is incompatible with normal USB devices! Ordinary USB device like USB flash drive will be damaged if it will be plugged in air conditioner USB connector.
+**ATTENTION!** It is incompatible with normal USB devices! Ordinary USB device like USB flash drive will be damaged if it will be plugged in air conditioner USB connector.  
+
+**ATTENTION #2!** Manufacturer was changed power circuit and connector pinout in 2022-2023: power rail has +8.5V DC and TX/RX pins are swapped.  
 
 ### Pinout ###
 <img src="https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/USB-pinout.png?raw=true" width="400">
 
-1. +12V..+14V DC. Service manual declares up to +16V.
-2. RX of air conditioner. High level is +5V.
-3. TX of air conditioner. High level is +5V.
+1. +12V..+14V DC before 2022-2023, +8.5V DC after 2022-2023. Service manual declares up to +16V.
+2. RX of air conditioner before 2022-2023, TX for later modifications. High level is +5V.
+3. TX of air conditioner before 2022-2023, RX for later modifications. High level is +5V.
 4. GND - ground.
 
-Big thanks to [@diabl0](https://github.com/diabl0) for this pinout in [issue #70](https://github.com/GrKoR/esphome_aux_ac_component/issues/70).
+Big thanks to [@diabl0](https://github.com/diabl0) for this pinout in [issue #70](https://github.com/GrKoR/esphome_aux_ac_component/issues/70).  
+
+If you are not sure, on which USB-pins do you have RX and TX lines, than don't afraid to connect it randomly. Neither air conditioner nor ESP will be damaged in this situation, just `aux_ac` can't receive data from the air conditioner. Swap TX and RX and your device will probably work.  
 
 ## Power supply
 
