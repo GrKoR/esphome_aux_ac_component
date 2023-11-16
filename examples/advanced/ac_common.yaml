@@ -215,3 +215,15 @@ number:
         - aux_ac.vlouver_set:
             id: aux_id
             position: !lambda "return x;"
+
+  - platform: template
+    name: ${upper_devicename} Power Limit
+    id: ${devicename}_power_limit
+    icon: "mdi:battery-unknown"
+    mode: "slider"
+    min_value: 30
+    max_value: 100
+    step: 1
+    set_action:
+      then:
+        - lambda: !lambda "id(aux_id).powerLimitationOnSequence( x );"
