@@ -290,7 +290,7 @@ namespace esphome
                 return *this;
 
             value = Capabilities::normilize_target_temperature(value);
-            _command_frame->set_value(10, (uint8_t)(value - 8), 0b1111'1000, 3);
+            _command_frame->set_value(10, (uint8_t)(value - 8), 0b11111000, 3);
             _command_frame->set_bit(12, 7, (value - (uint8_t)(value) >= 0.5));
             return *this;
         }
@@ -300,7 +300,7 @@ namespace esphome
             if (_command_frame->get_body_length() != COMMAND_SET_BODY_LENGTH)
                 return *this;
 
-            _command_frame->set_value(10, (uint8_t)value, 0b0000'0111);
+            _command_frame->set_value(10, (uint8_t)value, 0b00000111);
             return *this;
         }
 
@@ -309,7 +309,7 @@ namespace esphome
             if (_command_frame->get_body_length() != COMMAND_SET_BODY_LENGTH)
                 return *this;
 
-            _command_frame->set_value(11, (uint8_t)value, 0b1110'0000);
+            _command_frame->set_value(11, (uint8_t)value, 0b11100000);
             return *this;
         }
 
@@ -318,7 +318,7 @@ namespace esphome
             if (_command_frame->get_body_length() != COMMAND_SET_BODY_LENGTH)
                 return *this;
 
-            _command_frame->set_value(13, (uint8_t)value, 0b1110'0000);
+            _command_frame->set_value(13, (uint8_t)value, 0b11100000);
             return *this;
         }
 
@@ -349,7 +349,7 @@ namespace esphome
             if (_command_frame->get_body_length() != COMMAND_SET_BODY_LENGTH)
                 return *this;
 
-            _command_frame->set_value(15, (uint8_t)value, 0b1110'0000);
+            _command_frame->set_value(15, (uint8_t)value, 0b11100000);
 
             return *this;
         }
@@ -446,7 +446,7 @@ namespace esphome
             if (!_aircon->ac_type_inverter)
                 return *this;
 
-            _command_frame->set_value(21, Capabilities::normilize_inverter_power_limit(value), 0b0111'1111);
+            _command_frame->set_value(21, Capabilities::normilize_inverter_power_limit(value), 0b01111111);
             return *this;
         }
 

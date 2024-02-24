@@ -119,14 +119,14 @@ namespace esphome
             // target temperature:
             // byte 10: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b10
             // byte 12: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b12
-            update_property(aircon.target_temperature, (float)(8.0 + (float)frame.get_value(10, 0b1111'1000, 3) + (frame.get_bit(12, 7) ? 0.5 : 0.0)), state_changed);
+            update_property(aircon.target_temperature, (float)(8.0 + (float)frame.get_value(10, 0b11111000, 3) + (frame.get_bit(12, 7) ? 0.5 : 0.0)), state_changed);
 
             // vertical louver state:
             // byte 10: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b10
             // horizontal louver state:
             // byte 11: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b11
-            update_property(aircon.louver_vertical, (ac_louver_V)frame.get_value(10, 0b0000'0111), state_changed);
-            update_property(aircon.louver_horizontal, (ac_louver_H)frame.get_value(11, 0b1110'0000), state_changed);
+            update_property(aircon.louver_vertical, (ac_louver_V)frame.get_value(10, 0b00000111), state_changed);
+            update_property(aircon.louver_horizontal, (ac_louver_H)frame.get_value(11, 0b11100000), state_changed);
             if (aircon.louver_vertical == AC_LOUVERV_SWING_UPDOWN && aircon.louver_horizontal != AC_LOUVERH_SWING_LEFTRIGHT)
                 update_property(aircon.swing_mode, ClimateSwingMode::CLIMATE_SWING_VERTICAL, state_changed);
             else if (aircon.louver_vertical != AC_LOUVERV_SWING_UPDOWN && aircon.louver_horizontal == AC_LOUVERH_SWING_LEFTRIGHT)
@@ -138,17 +138,17 @@ namespace esphome
 
             // last IR-command was this time ago (minutes)
             // byte 12: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b12
-            update_property(aircon.last_IR_passed, frame.get_value(12, 0b0011'1111), state_changed);
+            update_property(aircon.last_IR_passed, frame.get_value(12, 0b00111111), state_changed);
 
             // fan speed:
             // byte 13: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b13
-            update_property(aircon.fan_mode, ac_fanspeed_to_climate_fan_mode((ac_fanspeed)frame.get_value(13, 0b1110'0000)), state_changed);
+            update_property(aircon.fan_mode, ac_fanspeed_to_climate_fan_mode((ac_fanspeed)frame.get_value(13, 0b11100000)), state_changed);
 
             // timer activation & delay:
             // byte 13: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b13
             // byte 14: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b14
             // byte 18: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b18
-            // timer.delay_minutes_uint16 = frame.get_value(13, 0b0001'1111) * 60 + frame.get_value(14, 0b0001'1111);
+            // timer.delay_minutes_uint16 = frame.get_value(13, 0b00011111) * 60 + frame.get_value(14, 0b00011111);
             // timer.enabled_bool = frame.get_bit(18, 6);
             // update_property(aircon.???, ???, state_changed);
 
@@ -177,7 +177,7 @@ namespace esphome
             // power & mode:
             // byte 15: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b15
             // byte 18: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b18
-            update_property(aircon.mode, _power_and_mode_to_climate_mode(frame.get_bit(18, 5), (ac_mode)frame.get_value(15, 0b1110'0000)), state_changed);
+            update_property(aircon.mode, _power_and_mode_to_climate_mode(frame.get_bit(18, 5), (ac_mode)frame.get_value(15, 0b11100000)), state_changed);
 
             // temperature: Celsius or Fahrenheit
             // byte 15: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b15
@@ -240,7 +240,7 @@ namespace esphome
             // byte 21: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_11_b21
             if (aircon.ac_type_inverter)
             {
-                update_property(aircon.inverter_power_limitation_value, frame.get_value(21, 0b0111'1111), state_changed);
+                update_property(aircon.inverter_power_limitation_value, frame.get_value(21, 0b01111111), state_changed);
                 update_property(aircon.inverter_power_limitation_on, frame.get_bit(21, 7), state_changed);
             }
             else
@@ -289,14 +289,14 @@ namespace esphome
 
             // real FAN speed
             // byte 13: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b13
-            update_property(aircon.real_fan_speed, (ac_fanspeed_real)frame.get_value(13, 0b0000'0111), state_changed);
+            update_property(aircon.real_fan_speed, (ac_fanspeed_real)frame.get_value(13, 0b00000111), state_changed);
 
             // byte 14: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b14
 
             // ambient indoor temperature:
             // byte 15: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b15
             // byte 31: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b31
-            update_property(aircon.current_temperature, (float)(frame.get_value(31, 0b0000'1111) / 10.0 + frame.get_value(15) - 0x20), state_changed);
+            update_property(aircon.current_temperature, (float)(frame.get_value(31, 0b00001111) / 10.0 + frame.get_value(15) - 0x20), state_changed);
 
             // byte 16: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b16
 
@@ -334,8 +334,8 @@ namespace esphome
 
             // compressor temperature:
             // byte 22: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b22
-            if (frame.get_value(22, 0b0111'1111) >= 0x20)
-                update_property(aircon.temperature_outdoor_discharge, (uint8_t)(frame.get_value(22, 0b0111'1111) - 0x20), state_changed);
+            if (frame.get_value(22, 0b01111111) >= 0x20)
+                update_property(aircon.temperature_outdoor_discharge, (uint8_t)(frame.get_value(22, 0b01111111) - 0x20), state_changed);
             else
                 aircon.temperature_outdoor_discharge.reset();
 
@@ -349,7 +349,7 @@ namespace esphome
             // inverter power (0..100 %)
             // byte 24: https://github.com/GrKoR/AUX_HVAC_Protocol#packet_cmd_21_b24
             if (aircon.ac_type_inverter)
-                update_property(aircon.inverter_power, frame.get_value(24, 0b0111'1111), state_changed);
+                update_property(aircon.inverter_power, frame.get_value(24, 0b01111111), state_changed);
             else
                 aircon.inverter_power.reset();
 
