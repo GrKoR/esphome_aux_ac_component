@@ -13,6 +13,7 @@
 + iClima (models: ICI-09A/IUI-09A)
 + Idea (models: ISR-12HR-SA7-DN1 ION)
 + IGC (models: RAK-07NH multysplit, RAS-07AX/RAC-07AX)
++ Ishimatsu (models: AVK-09I)
 + Loriot (models: LAC-09AS)
 + RCool (models: GRA12B0-KSZKLM641)
 + Roda (models: RS-AL09F, RS-AL24F)
