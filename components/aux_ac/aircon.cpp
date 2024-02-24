@@ -41,7 +41,7 @@ namespace esphome
         }
 
         // **************************************************************************************************
-        const std::string Capabilities::AC_FIRMWARE_VERSION = "1.0.0 beta 1";
+        const std::string Capabilities::AC_FIRMWARE_VERSION = "1.0.0";
 
         // **************************************************************************************************
         // custom fan modes
