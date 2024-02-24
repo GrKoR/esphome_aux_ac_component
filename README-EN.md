@@ -87,30 +87,37 @@ climate:
     id: aux_id
     uart_id: ac_uart_bus
     period: 7s
-    show_action: true
     display_inverted: false
-    timeout: 150
+    timeout: 300
     optimistic: true
-    indoor_temperature:
-      name: AC Indoor Temperature
-      id: ac_indoor_temp
+    indoor_ambient_temperature:
+      name: AC Indoor Ambient Temperature
+      id: ac_indoor_ambient_temp
       accuracy_decimals: 1
       internal: false
-    outdoor_temperature:
-      name: AC Outdoor Temperature
-      id: ac_outdoor_temp
+    outdoor_ambient_temperature:
+      name: AC Outdoor Ambient Temperature
+      id: ac_outdoor_ambient_temp
       internal: false
-    outbound_temperature:
-      name: AC Coolant Outbound Temperature
-      id: ac_outbound_temp
+    outdoor_condenser_temperature:
+      name: AC Outdoor Condenser Temperature
+      id: ac_outdoor_condenser_temp
       internal: false
-    inbound_temperature:
-      name: AC Coolant Inbound Temperature
-      id: ac_inbound_temp
+    compressor_suction_temperature:
+      name: AC Compressor Suction Temperature
+      id: ac_compressor_suction_temp
       internal: false
-    compressor_temperature:
-      name: AC Compressor Temperature
-      id: ac_strange_temp
+    indoor_coil_temperature:
+      name: AC Indoor Coil Temperature
+      id: ac_indoor_coil_temp
+      internal: false
+    compressor_discharge_temperature:
+      name: AC Compressor Discharge Temperature
+      id: ac_compressor_discharge_temp
+      internal: false
+    defrost_temperature:
+      name: AC Defrost Temperature
+      id: ac_defrost_temp
       internal: false
     display_state:
       name: AC Display State
@@ -175,35 +182,38 @@ climate:
 
 - **period** (*Optional*, [time](https://esphome.io/guides/configuration-types.html#config-time), default ``7s``): Period between status requests to the AC. `Aux_ac` will receive the new air conditioner status only after a regular request, even if you change the settings of AC using IR-remote.
 
-- **show_action** (*Optional*, boolean, default ``true``): Whether to show current action of the device (experimental). For example, in the HEAT_COOL mode, AC hardware may be in one of the following actions:
-  - HEATING: AC is heating the air in the room;
-  - IDLE: AC is working in the FAN mode, cause the target temperature is reached;
-  - COOLING: AC is cooling the air.
-  The same thing will be in HEAT or COOL modes, with the only difference of the list of actions (IDLE + HEATING or IDLE + COOLING).
-
   - **display_inverted** (*Optional*, boolean, default ``false``): It configures display driver logic level. As it turned out in the issue [#31](https://github.com/GrKoR/esphome_aux_ac_component/issues/31), different models of conditioners manage display different way. Rovex ACs powers off display by bit `1` in command packet and power it on by bit `0`. Many other conditioners do this vice versa.
 
-- **timeout** (*Optional*, unsigned integer, default ``150``): Packet timeout for `aux_ac` data receiver.  
+- **timeout** (*Optional*, unsigned integer, default ``300``): Packet timeout for `aux_ac` data receiver.  
   In the most common use of `aux_ac`, it isn't necessary to change this value. This keyword is optional, so you may omit it.  
   The only situation when you can play with timeout is heavily loaded ESP. When you are using your ESP for many hard tasks, it is possible that `aux_ac` does not have enough time to receive AC responses. In this case, you can slightly raise the timeout value. But the best solution would be to remove some of the tasks from the ESP.  
-  The timeout is limited to a range from `150` to `600` milliseconds. Other values are possible only with source code modification. But I don't recommend that.
+  The timeout is limited to a range from `300` to `800` milliseconds. Other values are possible only with source code modification. But I don't recommend that.
 
 - **optimistic** (*Optional*, boolean, default ``true``): Whether entity states should be updated immediately after receiving a command from Home Assistant/ESPHome.
 
-- **indoor_temperature** (*Optional*): Parameters of the room air temperature sensor.
+- **indoor_ambient_temperature** (*Optional*): Parameters of the room air temperature sensor.
   - **name** (**Required**, string): The name for the temperature sensor.
   - **id** (*Optional*, [ID](https://esphome.io/guides/configuration-types.html#config-id)): Set the ID of this sensor for use in lambdas.
   - **internal** (*Optional*, boolean): Mark this component as internal. Internal components will not be exposed to the frontend (like Home Assistant). As opposed to default [Sensor](https://esphome.io/components/sensor/index.html#base-sensor-configuration) behaviour, this variable is **always true** except in cases where the user has set it directly.
   - All other options from [Sensor](https://esphome.io/components/sensor/index.html#base-sensor-configuration).
+  > **ATTENTION!** The sensor's name was changed in v.1.0.0 to synchronize with AUX service manuals.  
 
-- **outdoor_temperature** (*Optional*): Parameters of the outdoor temperature sensor. They are the same as the **indoor_temperature** (see description above).  
-  > **Attention!** When the air conditioner is turned off, the outdoor temperature is updated rarely (every 6-7 hours). This isn't a bug of the component, but a feature of the air conditioner hardware. The only way to get changes more often is to create a template sensor, the temperature of which can be changed manually. When the air conditioner is working, the value of this sensor can be copied from the **outdoor_temperature**. When the air conditioner is turned off, the temperature value should be recalculated according to the dynamics of the **outbound_temperature** sensor (it changes frequently and shows values close to the air temperature when the air conditioner is turned off). You can't copy the value of **outbound_temperature** without changes to the template sensor in AC off mode, because these temperatures are not identical.
+- **outdoor_ambient_temperature** (*Optional*): Parameters of the outdoor temperature sensor. They are the same as the **indoor_ambient_temperature** (see description above).  
+  > **Attention!** When the air conditioner is turned off, the outdoor temperature is updated rarely (every 6-7 hours). This isn't a bug of the component, but a feature of the air conditioner hardware. The only way to get changes more often is to create a template sensor, the temperature of which can be changed manually. When the air conditioner is working, the value of this sensor can be copied from the **outdoor_ambient_temperature**. When the air conditioner is turned off, the temperature value should be recalculated according to the dynamics of the **compressor_suction_temperature** sensor (it changes frequently and shows values close to the air temperature when the air conditioner is turned off). You can't copy the value of **compressor_suction_temperature** without changes to the template sensor in AC off mode, because these temperatures are not identical.  
+  > **ATTENTION!** The sensor's name was changed in v.1.0.0 to synchronize with AUX service manuals.  
 
-- **inbound_temperature** (*Optional*): Parameters of the coolant inbound temperature sensor. They are the same as the **indoor_temperature** (see description above).
+- **outdoor_condenser_temperature** (*Optional*): Parameters of the temperature sensor for condenser in outdoor unit. All the parameters are the same as the **indoor_ambient_temperature** (see description above).  
 
-- **outbound_temperature** (*Optional*):  Parameters of the coolant outbound temperature sensor. They are the same as the **indoor_temperature** (see description above).
+- **indoor_coil_temperature** (*Optional*): Parameters of the temperature sensor for indoor unit coil. All the parameters are the same as the **indoor_ambient_temperature** (see description above).
+  > **ATTENTION!** The sensor's name was changed in v.1.0.0 to synchronize with AUX service manuals.  
 
-- **compressor_temperature** (*Optional*):  Parameters of the compressor temperature sensor. They are the same as the **indoor_temperature** (see description above).
+- **compressor_suction_temperature** (*Optional*):  Parameters of the temperature sensor for compressor suction pipe. All the parameters are the same as the **indoor_ambient_temperature** (see description above).
+  > **ATTENTION!** The sensor's name was changed in v.1.0.0 to synchronize with AUX service manuals.  
+
+- **compressor_discharge_temperature** (*Optional*):  Parameters of the temperature sensor for compressor discharge pipe. All the parameters are the same as the **indoor_ambient_temperature** (see description above).
+  > **ATTENTION!** The sensor's name was changed in v.1.0.0 to synchronize with AUX service manuals.  
+
+- **defrost_temperature** (*Optional*): Parameters of the defrost temperature sensor in the outdoor unit. All the parameters are the same as the **indoor_ambient_temperature** (see description above).  
 
 - **display_state** (*Optional*): The information for the HVAC display state sensor (is display ON or OFF)
   - **name** (**Required**, string): The name for the display state sensor.
@@ -213,12 +223,12 @@ climate:
 
 - **defrost_state** (*Optional*): The information for the HVAC defrost function state sensor (is it ON or OFF). All settings are the same as for the **display_state** (see description above).
 
-- **inverter_power** (*Optional*): The information for the inverter power sensor. All settings are the same as for the **indoor_temperature** (see description above).
+- **inverter_power** (*Optional*): The information for the inverter power sensor. All settings are the same as for the **indoor_ambient_temperature** (see description above).
   > **ATTENTION!** The parameter name was changed in v.0.2.9 due to incorrect spelling.
 
 - **inverter_power_limit_state** (*Optional*): Configuration of the power limit state sensor. It displays the state of the power limitation function for the inverter HVAC (is it ON or OFF). All settings are the same as for the **display_state** (see description above).
 
-- **inverter_power_limit_value** (*Optional*): Configuration of the power limit value sensor. All settings are the same as for the **indoor_temperature** (see description above).  
+- **inverter_power_limit_value** (*Optional*): Configuration of the power limit value sensor. All settings are the same as for the **indoor_ambient_temperature** (see description above).  
 It reports the current value of the power limitation function for the inverter HVAC. This sensor represents the value only after the HVAC confirms the power limitation. The value is always in the range from 30% to 100%. This is the hardware limitation.
 
 - **preset_reporter** (*Optional*): Parameters of text sensor with current preset. All settings are the same as for the **display_state** (see description above).  
