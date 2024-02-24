@@ -165,5 +165,5 @@ number:
     set_action:
       then:
         - lambda: !lambda |-
-            id(aux_id).powerLimitationOnSequence( x );
+            id(aux_id).action_power_limitation_on( x );
 
