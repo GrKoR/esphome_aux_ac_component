@@ -99,11 +99,6 @@ AirConDisplayOffAction = aux_ac_ns.class_(
 AirConDisplayOnAction = aux_ac_ns.class_(
     "AirConDisplayOnAction", automation.Action)
 
-# test packet action
-# AirConSendTestPacketAction = aux_ac_ns.class_(
-#    "AirConSendTestPacketAction", automation.Action
-# )
-
 # vertical louvers actions
 AirConVLouverSwingAction = aux_ac_ns.class_(
     "AirConVLouverSwingAction", automation.Action)
@@ -186,12 +181,6 @@ CUSTOM_PRESETS = {
     "ANTIFUNGUS": Capabilities.CUSTOM_PRESET_ANTIFUNGUS,
 }
 validate_custom_presets = cv.enum(CUSTOM_PRESETS, upper=True)
-
-
-def validate_raw_data(value):
-    if isinstance(value, list):
-        return cv.Schema([cv.hex_uint8_t])(value)
-    raise cv.Invalid("data must be a list of bytes")
 
 
 def output_info(config):
