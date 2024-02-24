@@ -47,6 +47,7 @@ namespace esphome
         };
 
         ac_louver_V vlouver_frontend_to_ac_louver_V(const vlouver_esphome_position_t vlouver_frontend);
+        vlouver_esphome_position_t ac_louver_V_to_vlouver_frontend(const ac_louver_V aux_vlouver);
 
         std::string ac_louver_V_to_string(ac_louver_V louver);
 

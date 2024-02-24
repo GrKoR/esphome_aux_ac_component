@@ -106,6 +106,36 @@ namespace esphome
             }
         }
 
+        vlouver_esphome_position_t ac_louver_V_to_vlouver_frontend(const ac_louver_V aux_vlouver)
+        {
+            switch (aux_vlouver)
+            {
+            case AC_LOUVERV_SWING_UPDOWN:
+                return AC_VLOUVER_FRONTEND_SWING;
+
+            case AC_LOUVERV_OFF:
+                return AC_VLOUVER_FRONTEND_STOP;
+
+            case AC_LOUVERV_TOP:
+                return AC_VLOUVER_FRONTEND_TOP;
+
+            case AC_LOUVERV_MIDDLE_ABOVE:
+                return AC_VLOUVER_FRONTEND_MIDDLE_ABOVE;
+
+            case AC_LOUVERV_MIDDLE:
+                return AC_VLOUVER_FRONTEND_MIDDLE;
+
+            case AC_LOUVERV_MIDDLE_BELOW:
+                return AC_VLOUVER_FRONTEND_MIDDLE_BELOW;
+
+            case AC_LOUVERV_BOTTOM:
+                return AC_VLOUVER_FRONTEND_BOTTOM;
+
+            default:
+                return AC_VLOUVER_FRONTEND_STOP;
+            }
+        }
+
         std::string ac_louver_V_to_string(ac_louver_V louver)
         {
             switch (louver)

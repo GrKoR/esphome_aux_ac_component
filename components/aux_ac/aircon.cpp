@@ -733,33 +733,7 @@ namespace esphome
         // converts vertical louver state from hardware codes to frontend code
         vlouver_esphome_position_t AirCon::aux_vlouver_to_frontend(const ac_louver_V vLouver)
         {
-            switch (vLouver)
-            {
-            case AC_LOUVERV_SWING_UPDOWN:
-                return AC_VLOUVER_FRONTEND_SWING;
-
-            case AC_LOUVERV_OFF:
-                return AC_VLOUVER_FRONTEND_STOP;
-
-            case AC_LOUVERV_TOP:
-                return AC_VLOUVER_FRONTEND_TOP;
-
-            case AC_LOUVERV_MIDDLE_ABOVE:
-                return AC_VLOUVER_FRONTEND_MIDDLE_ABOVE;
-
-            case AC_LOUVERV_MIDDLE:
-                return AC_VLOUVER_FRONTEND_MIDDLE;
-
-            case AC_LOUVERV_MIDDLE_BELOW:
-                return AC_VLOUVER_FRONTEND_MIDDLE_BELOW;
-
-            case AC_LOUVERV_BOTTOM:
-                return AC_VLOUVER_FRONTEND_BOTTOM;
-
-            default:
-                ESP_LOGW(TAG, "aux_vlouver_to_frontend: unknown vertical louver hardware state = %u", vLouver);
-                return AC_VLOUVER_FRONTEND_STOP;
-            }
+            return ac_louver_V_to_vlouver_frontend(vLouver);
         }
 
         // **************************************************************************************************
@@ -773,33 +747,7 @@ namespace esphome
         // converts vertical louver position from frontend codes to hardware code
         ac_louver_V AirCon::frontend_vlouver_to_aux(const vlouver_esphome_position_t vLouver)
         {
-            switch (vLouver)
-            {
-            case AC_VLOUVER_FRONTEND_SWING:
-                return AC_LOUVERV_SWING_UPDOWN;
-
-            case AC_VLOUVER_FRONTEND_STOP:
-                return AC_LOUVERV_OFF;
-
-            case AC_VLOUVER_FRONTEND_TOP:
-                return AC_LOUVERV_TOP;
-
-            case AC_VLOUVER_FRONTEND_MIDDLE_ABOVE:
-                return AC_LOUVERV_MIDDLE_ABOVE;
-
-            case AC_VLOUVER_FRONTEND_MIDDLE:
-                return AC_LOUVERV_MIDDLE;
-
-            case AC_VLOUVER_FRONTEND_MIDDLE_BELOW:
-                return AC_LOUVERV_MIDDLE_BELOW;
-
-            case AC_VLOUVER_FRONTEND_BOTTOM:
-                return AC_LOUVERV_BOTTOM;
-
-            default:
-                ESP_LOGW(TAG, "frontend_vlouver_to_aux: unknown frontend vertical louver state = %u", vLouver);
-                return AC_LOUVERV_OFF;
-            }
+            return vlouver_frontend_to_ac_louver_V(vLouver);
         }
     } // namespace aux_airconditioner
 } // namespace esphome
