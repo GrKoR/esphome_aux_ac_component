@@ -1,7 +1,7 @@
 # DON'T COMPILE THIS FILE
 # This file contains common settings for all air conditioners of your house
 external_components:
-  - source: github://GrKoR/esphome_aux_ac_component
+  - source: github://GrKoR/esphome_aux_ac_component@dev
     components: [ aux_ac ]
     refresh: 0s
 
