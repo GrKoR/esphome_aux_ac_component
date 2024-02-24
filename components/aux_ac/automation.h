@@ -1,186 +1,169 @@
 #pragma once
 
-#include "aux_ac.h"
+#include "aircon.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 
-namespace esphome {
-namespace aux_ac {
+namespace esphome
+{
+    namespace aux_airconditioner
+    {
+        class AirCon;
 
-// **************************************** DISPLAY ACTIONS ****************************************
-template <typename... Ts>
-class AirConDisplayOffAction : public Action<Ts...> {
-   public:
-    explicit AirConDisplayOffAction(AirCon *ac) : ac_(ac) {}
+        // **************************************** DISPLAY ACTIONS ****************************************
+        template <typename... Ts>
+        class AirConDisplayOffAction : public Action<Ts...>
+        {
+        public:
+            explicit AirConDisplayOffAction(AirCon *ac) : ac_(ac) {}
 
-    void play(Ts... x) override { this->ac_->displayOffSequence(); }
+            void play(Ts... x) override { this->ac_->action_display_off(); }
 
-   protected:
-    AirCon *ac_;
-};
+        protected:
+            AirCon *ac_;
+        };
 
-template <typename... Ts>
-class AirConDisplayOnAction : public Action<Ts...> {
-   public:
-    explicit AirConDisplayOnAction(AirCon *ac) : ac_(ac) {}
+        template <typename... Ts>
+        class AirConDisplayOnAction : public Action<Ts...>
+        {
+        public:
+            explicit AirConDisplayOnAction(AirCon *ac) : ac_(ac) {}
 
-    void play(Ts... x) override { this->ac_->displayOnSequence(); }
+            void play(Ts... x) override { this->ac_->action_display_on(); }
 
-   protected:
-    AirCon *ac_;
-};
+        protected:
+            AirCon *ac_;
+        };
 
-// **************************************** VERTICAL LOUVER ACTIONS ****************************************
-template <typename... Ts>
-class AirConVLouverSwingAction : public Action<Ts...> {
-   public:
-    explicit AirConVLouverSwingAction(AirCon *ac) : ac_(ac) {}
+        // **************************************** VERTICAL LOUVER ACTIONS ****************************************
+        template <typename... Ts>
+        class AirConVLouverSwingAction : public Action<Ts...>
+        {
+        public:
+            explicit AirConVLouverSwingAction(AirCon *ac) : ac_(ac) {}
 
-    void play(Ts... x) override { this->ac_->setVLouverSwingSequence(); }
+            void play(Ts... x) override { this->ac_->action_set_vlouver_swing(); }
 
-   protected:
-    AirCon *ac_;
-};
+        protected:
+            AirCon *ac_;
+        };
 
-template <typename... Ts>
-class AirConVLouverStopAction : public Action<Ts...> {
-   public:
-    explicit AirConVLouverStopAction(AirCon *ac) : ac_(ac) {}
+        template <typename... Ts>
+        class AirConVLouverStopAction : public Action<Ts...>
+        {
+        public:
+            explicit AirConVLouverStopAction(AirCon *ac) : ac_(ac) {}
 
-    void play(Ts... x) override { this->ac_->setVLouverStopSequence(); }
+            void play(Ts... x) override { this->ac_->action_set_vlouver_stop(); }
 
-   protected:
-    AirCon *ac_;
-};
+        protected:
+            AirCon *ac_;
+        };
 
-template <typename... Ts>
-class AirConVLouverTopAction : public Action<Ts...> {
-   public:
-    explicit AirConVLouverTopAction(AirCon *ac) : ac_(ac) {}
+        template <typename... Ts>
+        class AirConVLouverTopAction : public Action<Ts...>
+        {
+        public:
+            explicit AirConVLouverTopAction(AirCon *ac) : ac_(ac) {}
 
-    void play(Ts... x) override { this->ac_->setVLouverTopSequence(); }
+            void play(Ts... x) override { this->ac_->action_set_vlouver_top_position(); }
 
-   protected:
-    AirCon *ac_;
-};
+        protected:
+            AirCon *ac_;
+        };
 
-template <typename... Ts>
-class AirConVLouverMiddleAboveAction : public Action<Ts...> {
-   public:
-    explicit AirConVLouverMiddleAboveAction(AirCon *ac) : ac_(ac) {}
+        template <typename... Ts>
+        class AirConVLouverMiddleAboveAction : public Action<Ts...>
+        {
+        public:
+            explicit AirConVLouverMiddleAboveAction(AirCon *ac) : ac_(ac) {}
 
-    void play(Ts... x) override { this->ac_->setVLouverMiddleAboveSequence(); }
+            void play(Ts... x) override { this->ac_->action_set_vlouver_middle_above_position(); }
 
-   protected:
-    AirCon *ac_;
-};
+        protected:
+            AirCon *ac_;
+        };
 
-template <typename... Ts>
-class AirConVLouverMiddleAction : public Action<Ts...> {
-   public:
-    explicit AirConVLouverMiddleAction(AirCon *ac) : ac_(ac) {}
+        template <typename... Ts>
+        class AirConVLouverMiddleAction : public Action<Ts...>
+        {
+        public:
+            explicit AirConVLouverMiddleAction(AirCon *ac) : ac_(ac) {}
 
-    void play(Ts... x) override { this->ac_->setVLouverMiddleSequence(); }
+            void play(Ts... x) override { this->ac_->action_set_vlouver_middle_position(); }
 
-   protected:
-    AirCon *ac_;
-};
+        protected:
+            AirCon *ac_;
+        };
 
-template <typename... Ts>
-class AirConVLouverMiddleBelowAction : public Action<Ts...> {
-   public:
-    explicit AirConVLouverMiddleBelowAction(AirCon *ac) : ac_(ac) {}
+        template <typename... Ts>
+        class AirConVLouverMiddleBelowAction : public Action<Ts...>
+        {
+        public:
+            explicit AirConVLouverMiddleBelowAction(AirCon *ac) : ac_(ac) {}
 
-    void play(Ts... x) override { this->ac_->setVLouverMiddleBelowSequence(); }
+            void play(Ts... x) override { this->ac_->action_set_vlouver_middle_below_position(); }
 
-   protected:
-    AirCon *ac_;
-};
+        protected:
+            AirCon *ac_;
+        };
 
-template <typename... Ts>
-class AirConVLouverBottomAction : public Action<Ts...> {
-   public:
-    explicit AirConVLouverBottomAction(AirCon *ac) : ac_(ac) {}
+        template <typename... Ts>
+        class AirConVLouverBottomAction : public Action<Ts...>
+        {
+        public:
+            explicit AirConVLouverBottomAction(AirCon *ac) : ac_(ac) {}
 
-    void play(Ts... x) override { this->ac_->setVLouverBottomSequence(); }
+            void play(Ts... x) override { this->ac_->action_set_vlouver_bottom(); }
 
-   protected:
-    AirCon *ac_;
-};
+        protected:
+            AirCon *ac_;
+        };
 
-template <typename... Ts>
-class AirConVLouverSetAction : public Action<Ts...> {
-   public:
-    AirConVLouverSetAction(AirCon *ac) : ac_(ac) {}
-    TEMPLATABLE_VALUE(uint8_t, value);
+        template <typename... Ts>
+        class AirConVLouverSetAction : public Action<Ts...>
+        {
+        public:
+            AirConVLouverSetAction(AirCon *ac) : ac_(ac) {}
+            TEMPLATABLE_VALUE(uint8_t, value);
 
-    void play(Ts... x) {
-        vlpos_ = this->value_.value(x...);
-        this->ac_->setVLouverFrontendSequence((ac_vlouver_frontend)vlpos_);
-    }
+            void play(Ts... x)
+            {
+                this->ac_->action_set_vlouver_position((vlouver_esphome_position_t)this->value_.value(x...));
+            }
 
-   protected:
-    AirCon *ac_;
-    uint8_t vlpos_;
-};
+        protected:
+            AirCon *ac_;
+        };
 
-// **************************************** SEND TEST PACKET ACTION ****************************************
-template <typename... Ts>
-class AirConSendTestPacketAction : public Action<Ts...> {
-   public:
-    explicit AirConSendTestPacketAction(AirCon *ac) : ac_(ac) {}
-    void set_data_template(std::function<std::vector<uint8_t>(Ts...)> func) {
-        this->data_func_ = func;
-        this->static_ = false;
-    }
-    void set_data_static(const std::vector<uint8_t> &data) {
-        this->data_static_ = data;
-        this->static_ = true;
-    }
+        // **************************************** POWER LIMITATION ACTIONS ****************************************
+        template <typename... Ts>
+        class AirConPowerLimitationOffAction : public Action<Ts...>
+        {
+        public:
+            explicit AirConPowerLimitationOffAction(AirCon *ac) : ac_(ac) {}
 
-    void play(Ts... x) override {
-        if (this->static_) {
-            this->ac_->sendTestPacket(this->data_static_);
-        } else {
-            auto val = this->data_func_(x...);
-            this->ac_->sendTestPacket(val);
-        }
-    }
+            void play(Ts... x) override { this->ac_->action_power_limitation_off(); }
 
-   protected:
-    AirCon *ac_;
-    bool static_{false};
-    std::function<std::vector<uint8_t>(Ts...)> data_func_{};
-    std::vector<uint8_t> data_static_{};
-};
+        protected:
+            AirCon *ac_;
+        };
 
-// **************************************** POWER LIMITATION ACTIONS ****************************************
-template <typename... Ts>
-class AirConPowerLimitationOffAction : public Action<Ts...> {
-   public:
-    explicit AirConPowerLimitationOffAction(AirCon *ac) : ac_(ac) {}
+        template <typename... Ts>
+        class AirConPowerLimitationOnAction : public Action<Ts...>
+        {
+        public:
+            AirConPowerLimitationOnAction(AirCon *ac) : ac_(ac) {}
+            TEMPLATABLE_VALUE(uint8_t, value);
 
-    void play(Ts... x) override { this->ac_->powerLimitationOffSequence(); }
+            void play(Ts... x)
+            {
+                this->ac_->action_power_limitation_on(this->value_.value(x...));
+            }
 
-   protected:
-    AirCon *ac_;
-};
+        protected:
+            AirCon *ac_;
+        };
 
-template <typename... Ts>
-class AirConPowerLimitationOnAction : public Action<Ts...> {
-   public:
-    AirConPowerLimitationOnAction(AirCon *ac) : ac_(ac) {}
-    TEMPLATABLE_VALUE(uint8_t, value);
-
-    void play(Ts... x) {
-        this->pwr_lim_ = this->value_.value(x...);
-        this->ac_->powerLimitationOnSequence(this->pwr_lim_);
-    }
-
-   protected:
-    AirCon *ac_;
-    uint8_t pwr_lim_;
-};
-
-}  // namespace aux_ac
-}  // namespace esphome
+    } // namespace aux_airconditioner
+} // namespace esphome

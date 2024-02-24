@@ -59,32 +59,39 @@ climate:
     id: aux_id
     uart_id: ac_uart_bus
     period: 7s
-    show_action: true
     display_inverted: true
     optimistic: true
-    indoor_temperature:
-      name: $upper_devicename Indoor Temperature
-      id: ${devicename}_indoor_temp
+    indoor_ambient_temperature:
+      name: $upper_devicename Indoor Ambient Temperature
+      id: ${devicename}_indoor_ambient_temp
+      internal: false
+    outdoor_ambient_temperature:
+      name: $upper_devicename Outdoor Ambient Temperature
+      id: ${devicename}_outdoor_ambient_temp
+      internal: false
+    outdoor_condenser_temperature:
+      name: $upper_devicename Outdoor Condenser Temperature
+      id: ${devicename}_outdoor_condenser_temp
+      internal: false
+    compressor_suction_temperature:
+      name: $upper_devicename Compressor Suction Temperature
+      id: ${devicename}_compressor_suction_temp
+      internal: false
+    indoor_coil_temperature:
+      name: $upper_devicename Indoor Coil Temperature
+      id: ${devicename}_indoor_coil_temp
+      internal: false
+    compressor_discharge_temperature:
+      name: $upper_devicename Compressor Discharge Temperature
+      id: ${devicename}_compressor_discharge_temp
+      internal: false
+    defrost_temperature:
+      name: $upper_devicename Defrost Temperature
+      id: ${devicename}_defrost_temp
       internal: false
     display_state:
       name: $upper_devicename Display State
       id: ${devicename}_display_state
-      internal: false
-    outdoor_temperature:
-      name: $upper_devicename Outdoor Temperature
-      id: ${devicename}_outdoor_temp
-      internal: false
-    outbound_temperature:
-      name: $upper_devicename Coolant Outbound Temperature
-      id: ${devicename}_outbound_temp
-      internal: false
-    inbound_temperature:
-      name: $upper_devicename Coolant Inbound Temperature
-      id: ${devicename}_inbound_temp
-      internal: false
-    compressor_temperature:
-      name: $upper_devicename Compressor Temperature
-      id: ${devicename}_strange_temp
       internal: false
     defrost_state:
       name: $upper_devicename Defrost State

@@ -61,7 +61,6 @@ climate:
     id: aux_id
     uart_id: ac_uart_bus
     period: 7s
-    show_action: true
     display_inverted: true
 
 
@@ -121,5 +120,4 @@ number:
     set_action:
       then:
         - lambda: !lambda |-
-            if (x == 6) x = 7;  // делаем так, чтобы выключение отрабатывать корректно
-            id(aux_id).setVLouverSequence( static_cast<esphome::aux_ac::ac_louver_V>(x) );
+            id(aux_id).action_set_vlouver_position( static_cast<esphome::aux_airconditioner::vlouver_esphome_position_t>(x));
