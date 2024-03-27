@@ -16,7 +16,7 @@ It use [JST SM](https://www.jst-mfg.com/product/pdf/eng/eSM.pdf) connector for 5
 ### Pinout ###
 1. Yellow: +12V..+14V DC. Measured +14.70V max and +13.70V min. Service manual declares up to +16V.
 2. Black: ground.
-3. White: +5V DC (max: +5.63V; min: +4.43V) I have no idea what this is for. It goes directly to the air conditioner microcontroller through resistor 1kOhm and it does not affect the operation of the module.
+3. White: +5V DC (max: +5.63V; min: +4.43V) Enable signal for the 3V3 buck regulator on the OEM module. It goes directly to the air conditioner microcontroller through resistor 1kOhm. It's non used with the EPS module.
 4. Blue: TX of air conditioner. High is +5V.
 5. Red: RX of air conditioner. High is +5V.
 
