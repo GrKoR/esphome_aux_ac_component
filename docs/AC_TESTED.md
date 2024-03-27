@@ -21,6 +21,7 @@
 + Royal Clima (models: CO-D 18HNI/CO-E 18HNI, RCI-SA30HN)
 + Samurai (models: SMA-07HRN1 ION, SMA-09HRN1 ION)
 + Subtropic (models: SUB-07HN1, SUB-12HN1)
++ Tesla (models: TA35FFML-12410M)
 + TOYOTOMI (models: SONZAI THN/THG-A35SZ)
 + VOX (models: IVA5-12JR1, IJO09-SC4D)
 + Xigma (models: XG-SJ56RHA-IDU)
