@@ -54,6 +54,14 @@ external_components:
       type: git
       url: https://github.com/GrKoR/esphome_aux_ac_component
 ```
+Если требуется прошить определенную версию компонента, используйте синтаксис из примера ниже. Здесь прошивается версия 0.2.14. Список версий смотрите [в тегах на гитхаб](https://github.com/GrKoR/esphome_aux_ac_component/tags).
+```yaml
+external_components:
+  - source:
+      type: git
+      url: https://github.com/GrKoR/esphome_aux_ac_component
+      ref: v.0.2.14
+```
 2. Настройте UART для коммуникации с вашим кондиционером:
 ```yaml
 uart:

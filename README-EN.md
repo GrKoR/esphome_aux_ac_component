@@ -46,6 +46,14 @@ external_components:
       type: git
       url: https://github.com/GrKoR/esphome_aux_ac_component
 ```
+In case you need a specific version of the component, you can use the component declaration from the example below. The example uses version 0.2.14 of the component. You can find a list of available versions [on the GitHub tags page](https://github.com/GrKoR/esphome_aux_ac_component/tags).
+```yaml
+external_components:
+  - source:
+      type: git
+      url: https://github.com/GrKoR/esphome_aux_ac_component
+      ref: v.0.2.14
+```
 2. Configure UART to communicate with air conditioner:
 ```yaml
 uart:
