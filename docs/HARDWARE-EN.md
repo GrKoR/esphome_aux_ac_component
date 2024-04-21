@@ -33,9 +33,9 @@ For 4-wire connection it is used USB-like connector. It is only physical USB but
 ### Pinout ###
 <img src="https://github.com/GrKoR/esphome_aux_ac_component/blob/master/images/USB-pinout.png?raw=true" width="400">
 
-1. +12V..+14V DC before 2022-2023, +8.5V DC after 2022-2023. Service manual declares up to +16V.
-2. RX of air conditioner before 2022-2023, TX for later modifications. High level is +5V.
-3. TX of air conditioner before 2022-2023, RX for later modifications. High level is +5V.
+1. +12V..+14V DC before 2022-2023, possible +8.5V DC after 2022-2023. Service manual declares up to +16V.
+2. RX of the air conditioner for models manufactured before about Jul.2022, TX of the air conditioner for later modifications. High level is +5V.
+3. TX of the air conditioner  for models manufactured before about Jul.2022, RX of the air conditioner for later modifications. High level is +5V.
 4. GND - ground.
 
 Big thanks to [@diabl0](https://github.com/diabl0) for this pinout in [issue #70](https://github.com/GrKoR/esphome_aux_ac_component/issues/70).  
