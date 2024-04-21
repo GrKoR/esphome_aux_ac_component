@@ -15,6 +15,7 @@
 + IGC (models: RAK-07NH multysplit, RAS-07AX/RAC-07AX)
 + Ishimatsu (models: AVK-09I)
 + Loriot (models: LAC-09AS)
++ Mirage (models: EWC121E - CWC121E)
 + RCool (models: GRA12B0-KSZKLM641)
 + Roda (models: RS-AL09F, RS-AL24F)
 + Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)
