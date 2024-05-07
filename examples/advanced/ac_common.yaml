@@ -139,6 +139,8 @@ sensor:
     unit_of_measurement: "dBa"
     accuracy_decimals: 0
 
+  - platform: uptime
+    name: ${upper_devicename} Uptime Sensor
 
 switch:
   - platform: template
