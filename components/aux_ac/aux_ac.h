@@ -113,7 +113,8 @@ namespace esphome
             static const uint32_t AC_PACKET_TIMEOUT_MIN;
         };
 
-        const std::string Constants::AC_FIRMWARE_VERSION = "0.2.14";
+        // AUX_AC_FIRMWARE_VERSION will be defined by the ESPHome code generator at compile time
+        const std::string Constants::AC_FIRMWARE_VERSION = AUX_AC_FIRMWARE_VERSION;
 
         // custom fan modes
         const std::string Constants::MUTE = "mute";
@@ -128,8 +129,9 @@ namespace esphome
         const float Constants::AC_MIN_TEMPERATURE = 16.0;
         const float Constants::AC_MAX_TEMPERATURE = 32.0;
         const float Constants::AC_TEMPERATURE_STEP = 0.5;
-        const uint8_t Constants::AC_MIN_INVERTER_POWER_LIMIT = 30;  // 30%
-        const uint8_t Constants::AC_MAX_INVERTER_POWER_LIMIT = 100; // 100%
+        // AUX_AC_MIN_INVERTER_POWER_LIMIT and AUX_AC_MAX_INVERTER_POWER_LIMIT will be defined by the ESPHome code generator at compile time
+        const uint8_t Constants::AC_MIN_INVERTER_POWER_LIMIT = AUX_AC_MIN_INVERTER_POWER_LIMIT;
+        const uint8_t Constants::AC_MAX_INVERTER_POWER_LIMIT = AUX_AC_MAX_INVERTER_POWER_LIMIT;
         const uint32_t Constants::AC_STATES_REQUEST_INTERVAL = 7000;
         // таймаут загрузки пакета
         // По расчетам выходит:
@@ -141,8 +143,9 @@ namespace esphome
         // команды будут теряться. От такой коллизии мы не защищены в любом случае. Но чем меньше таймаут,
         // тем меньше шансов на коллизию.
         // Из этих соображений выбраны границы диапазона (_MIN и _MAX значения).
-        const uint32_t Constants::AC_PACKET_TIMEOUT_MAX = 600;
-        const uint32_t Constants::AC_PACKET_TIMEOUT_MIN = 150;
+        // AUX_AC_PACKET_TIMEOUT_MAX and AUX_AC_PACKET_TIMEOUT_MIN will be defined by the ESPHome code generator at compile time
+        const uint32_t Constants::AC_PACKET_TIMEOUT_MAX = AUX_AC_PACKET_TIMEOUT_MAX;
+        const uint32_t Constants::AC_PACKET_TIMEOUT_MIN = AUX_AC_PACKET_TIMEOUT_MIN;
 
         //****************************************************************************************************************************************************
         //********************************************************* ОСНОВНЫЕ СТРУКТУРЫ ***********************************************************************
