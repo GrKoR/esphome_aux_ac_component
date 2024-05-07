@@ -20,7 +20,7 @@ wifi:
   password: !secret wifi_pass
   reboot_timeout: 0s
   ap:
-    ssid: Test AUX Fallback Hotspot
+    ssid: $upper_devicename Fallback Hotspot
     password: !secret wifi_ap_pass
 
 logger:
