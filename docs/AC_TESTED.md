@@ -26,6 +26,7 @@
 + Subtropic (models: SUB-07HN1, SUB-09HN1, SUB-12HN1)
 + Tesla (models: TA35FFML-12410M)
 + TOYOTOMI (models: SONZAI THN/THG-A35SZ)
++ Vertex (models: Falcon-18A)
 + VOX (models: IVA5-12JR1, IJO09-SC4D)
 + Xigma (models: XG-SJ56RHA-IDU)
 + Zephir (models: ZEL 12000BTU)
