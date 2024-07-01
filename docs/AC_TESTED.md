@@ -18,6 +18,7 @@
 + Ishimatsu (models: AVK-09I)
 + Loriot (models: LAC-09AS)
 + Mirage (models: EWC121E - CWC121E)
++ Osaka (models: STVP-12HH3)
 + RCool (models: GRA12B0-KSZKLM641)
 + Roda (models: RS-AL09F, RS-AL24F)
 + Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)
