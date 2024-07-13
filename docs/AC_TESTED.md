@@ -20,6 +20,7 @@
 + Mirage (models: EWC121E - CWC121E)
 + Osaka (models: STVP-12HH3)
 + RCool (models: GRA12B0-KSZKLM641)
++ Rinnai (models: RINV25RC)
 + Roda (models: RS-AL09F, RS-AL24F)
 + Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)
 + Royal Clima (models: CO-D 18HNI/CO-E 18HNI, RC-VNR29HN, RCI-SA30HN)
