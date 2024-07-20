@@ -32,7 +32,8 @@ api:
   reboot_timeout: 0s
 
 ota: 
-  password: !secret ota_pass
+  - platform: esphome
+    password: !secret ota_pass
 
 uart:
   id: ac_uart_bus

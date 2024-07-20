@@ -30,6 +30,7 @@ logger:
 api:
 
 ota:
+  - platform: esphome
 
 # UART0 configuration for AUX air conditioner communication
 uart:

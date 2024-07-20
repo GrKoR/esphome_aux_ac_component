@@ -53,7 +53,8 @@ api:
               return data;
 
 ota: 
-  password: !secret ota_pass
+  - platform: esphome
+    password: !secret ota_pass
 
 web_server:
   port: 80
