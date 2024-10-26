@@ -4,8 +4,10 @@
 /// немного переработанная версия старого компонента
 #pragma once
 
-#include <Arduino.h>
 #include <stdarg.h>
+#ifndef F
+#define F(string_literal) (string_literal)  
+#endif
 
 #include "esphome.h"
 #include "esphome/components/binary_sensor/binary_sensor.h"
@@ -15,6 +17,8 @@
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
+
+using String = std::string;
 
 // весь функционал сохранения пресетов прячу под дефайн
 //  #define PRESETS_SAVING
