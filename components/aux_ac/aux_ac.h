@@ -19,8 +19,6 @@
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
 
-using String = std::string;
-
 // весь функционал сохранения пресетов прячу под дефайн
 //  #define PRESETS_SAVING
 #ifdef PRESETS_SAVING
@@ -1669,7 +1667,7 @@ namespace esphome
              * msg - сообщение, выводимое в лог
              * line - строка, на которой произошел вызов (удобно при отладке)
              */
-            void _debugMsg(const String &msg, uint8_t dbgLevel = ESPHOME_LOG_LEVEL_DEBUG, unsigned int line = 0, ...)
+            void _debugMsg(const std::string &msg, uint8_t dbgLevel = ESPHOME_LOG_LEVEL_DEBUG, unsigned int line = 0, ...)
             {
                 if (dbgLevel < ESPHOME_LOG_LEVEL_NONE)
                     dbgLevel = ESPHOME_LOG_LEVEL_NONE;
@@ -1710,7 +1708,7 @@ namespace esphome
                 if ((!notAPacket) && (!HOLMES_WORKS))
                     return;
 
-                String st = "";
+                std::string st = "";
                 char textBuf[11];
 
                 // заполняем время получения пакета
