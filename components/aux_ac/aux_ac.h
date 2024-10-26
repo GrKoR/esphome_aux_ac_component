@@ -5,6 +5,7 @@
 #pragma once
 
 #include <stdarg.h>
+#include <cinttypes>
 #ifndef F
 #define F(string_literal) (string_literal)  
 #endif
@@ -1714,7 +1715,7 @@ namespace esphome
 
                 // заполняем время получения пакета
                 memset(textBuf, 0, 11);
-                sprintf(textBuf, "%010u", packet->msec);
+                sprintf(textBuf, "%010" PRIu32, packet->msec);
                 st = st + textBuf + ": ";
 
                 // формируем преамбулы
@@ -2843,11 +2844,11 @@ namespace esphome
             {
                 ESP_LOGCONFIG(TAG, "AUX HVAC:");
                 ESP_LOGCONFIG(TAG, "  [x] Firmware version: %s", Constants::AC_FIRMWARE_VERSION.c_str());
-                ESP_LOGCONFIG(TAG, "  [x] Period: %dms", this->get_period());
+                ESP_LOGCONFIG(TAG, "  [x] Period: %" PRIu32 "ms", this->get_period());
                 ESP_LOGCONFIG(TAG, "  [x] Show action: %s", TRUEFALSE(this->get_show_action()));
                 ESP_LOGCONFIG(TAG, "  [x] Display inverted: %s", TRUEFALSE(this->get_display_inverted()));
                 ESP_LOGCONFIG(TAG, "  [x] Optimistic: %s", TRUEFALSE(this->get_optimistic()));
-                ESP_LOGCONFIG(TAG, "  [x] Packet timeout: %dms", this->get_packet_timeout());
+                ESP_LOGCONFIG(TAG, "  [x] Packet timeout: %" PRIu32 "ms", this->get_packet_timeout());
 
 #if defined(PRESETS_SAVING)
                 ESP_LOGCONFIG(TAG, "  [x] Save settings %s", TRUEFALSE(this->get_store_settings()));
