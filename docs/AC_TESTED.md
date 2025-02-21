@@ -2,7 +2,7 @@
 `Aux_ac` has been tested and works successfully with the air conditioners from the list below.<br/>
 Кондиционеры из списка ниже протестированы и точно совместимы с `aux_ac`.
 
-+ ANDE (models: AND-12/FA+)
++ ANDE (models: AND-12/FA+, AND-AMWM-H12(JA) / AND-AM2-H18/4DR3)
 + Argo (models: Greenstyle 9000, Greenstyle 12000, Greenstyle 18000)
 + Arielli (models: ASW-H09B4/FGR3DI-EU)
 + AUX (models: ALMD-H48/5DR2 / AL-H48/5DR2(U), AMWM-H07/4R1 multisplit, AMWM-H07/4R2(J) multisplit, AMWM-H12/4R2(J) multisplit, AMWM-H12/4R3 multisplit, ASM-H12LL, ASM-H24LD, ASW-H07A4/DE-R1DI, ASW-H07A4/FP-R1DI, ASW-H07A4/JD-R1, ASW-H09A4/FP-R1DI, ASW-H09A4/LK-700R1, ASW-H09A4/LK-700R1DI, ASW-H09B4/LK-700R1, ASW-H09B7A4, ASW-H12A4/FAR1, ASW-H12A4/HA-R2DI, ASW-H12A4/JD-R2DI, ASW-H12B4/JD-R2DI, ASW-H12C5C4/JER3DI-B8-2, ASW-H12C5C4/JOR3DI-B8, ASW-H12U3/JIR1DI-US, ASW-H18A4/QH-R1DI / AS-H18A4/QH-R1DI, AUX-07JO/I / AUX-M3-21LCLH multisplit, AUX-12JO/I / AUX-M3-21LCLH multisplit, AUX-12F3H, AUX-18QC/I / AUX-18QC/O, AWM-09G1V4-X, HA-18000BTU, KFR-26GW/BpHRB+3, KFR-26GW/BpQYA2+2R3, KFR-26GW/BpQYD2+2R3, KFR-26GW/BpR3QYA1+1, KFR-26GW/BpR3QYD1+1, KFR-26GW/BpR3QYQ1+1, KFR-26GW/BpR3QYQ2+2, KFR-35GW/BpQYA1+1R3, KFR-35GW/BpQYA2+2R3, KFR-35GW/BpQYD1+1R3, KFR-35GW/BpQYD2+2R3, KFR-35GW/BpR3QYQ1+1, KFR-35GW/BpR3QYQ2+2 (see [issue #71](https://github.com/GrKoR/esphome_aux_ac_component/issues/71) for detais of `Aegean Sea`[爱琴海] AUX family AC connection)
