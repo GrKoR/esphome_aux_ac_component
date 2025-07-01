@@ -16,7 +16,7 @@
 + Hyundai (models: H-AR16-07H, H-AR21-07H, H-AR21-09H)
 + iClima (models: ICI-09A/IUI-09A)
 + Idea (models: ISR-12HR-SA7-DN1 ION)
-+ IGC (models: RAK-07NH multysplit, RAS-07AX/RAC-07AX, RAS-V09N2X/RAC-V09N2X)
++ IGC (models: RAK-07NH multysplit, RAS-07AX/RAC-07AX, RAS-V09N2X/RAC-V09N2X, RAS-V12NQR/RAC-V12NQR)
 + IKON (models: ASW-H12C5C4/HCR3DI-B8)
 + Ishimatsu (models: AVK-09I)
 + Loriot (models: LAC-09AS)
