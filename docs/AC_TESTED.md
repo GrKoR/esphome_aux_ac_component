@@ -28,6 +28,7 @@
 + Royal Clima (models: CO-D 18HNI/CO-E 18HNI, RC-VNR29HN, RCI-SA30HN)
 + RVX (models: RS-12ALS)
 + Samurai (models: SMA-07HRN1 ION, SMA-09HRN1 ION)
++ Scarlett	(models: RRI-09-MPI)
 + Subtropic (models: SUB/in-07HN1 / SUB/out-07HN1, SUB/in-09HN1 / SUB/out-09HN1, SUB/in-12HN1 / SUB/out-12HN1)
 + Tesla (models: TA35FFML-12410M)
 + Tornado (models: ISKA-INV-12 X WIFI EU)
