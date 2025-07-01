@@ -36,6 +36,7 @@
 + Tornado (models: ISKA-INV-12 X WIFI EU)
 + TOYOTOMI (models: SONZAI THN/THG-A35SZ)
 + Vertex (models: Falcon-18A)
++ VORTEX (models: VAI-A 1219F JMRV)
 + VOX (models: IJO09-SC4D, IVA5-12JR1)
 + Xigma (models: XG-SJ56RHA-IDU)
 + Zephir (models: ZEL 12000BTU)
