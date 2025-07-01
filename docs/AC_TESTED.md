@@ -25,7 +25,7 @@
 + Rinnai (models: RINV25RC)
 + Roda (models: RS-AL09F, RS-AL24F)
 + Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)
-+ Royal Clima (models: CO-D 18HNI/CO-E 18HNI, CO-D 24HNI/CO-E 24HNI, RC-VNR29HN, RCI-SA30HN)
++ Royal Clima (models: CO-D 18HNI/CO-E 18HNI, CO-D 24HNI/CO-E 24HNI, RC-VNR29HN, RC-RNC28HN, RCI-SA30HN)
 + RVX (models: RS-12ALS)
 + Samurai (models: SMA-07HRN1 ION, SMA-09HRN1 ION)
 + Scarlett	(models: RRI-09-MPI)
