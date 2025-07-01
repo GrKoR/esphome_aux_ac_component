@@ -12,6 +12,7 @@
 + Electrolux (models: EACS/I-07HSK/N3, EACS/I-09HIX-BLACK/N8)
 + Elgin (models: HWFI09B2IA/ HWFE09B2NA)
 + Energolux (models: SAS07L2-A, SAS07L4-A, SAS07M2-AI, SAS09B3-A, SAS09L4-A, SAS09Z4-AI, SAS12BN1-AI, SAS09Z4-AI, SAS18Z4-AI)
++ Fujico (models: ACF-I07AHRDN1)
 + Hyundai (models: H-AR16-07H, H-AR21-07H, H-AR21-09H)
 + iClima (models: ICI-09A/IUI-09A)
 + Idea (models: ISR-12HR-SA7-DN1 ION)
