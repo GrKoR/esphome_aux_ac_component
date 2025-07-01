@@ -190,7 +190,7 @@ def output_info(config):
 
 
 CONFIG_SCHEMA = cv.All(
-    climate.CLIMATE_SCHEMA.extend(
+    climate.climate_schema(climate.Climate).extend(
         {
             cv.GenerateID(): cv.declare_id(AirCon),
             cv.Optional(CONF_PERIOD, default="7s"): cv.time_period,
