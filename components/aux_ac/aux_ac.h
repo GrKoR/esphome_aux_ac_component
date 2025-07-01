@@ -4,8 +4,8 @@
 /// немного переработанная версия старого компонента
 #pragma once
 
-#include <Arduino.h>
 #include <stdarg.h>
+#include <cinttypes>
 
 #include "esphome.h"
 #include "esphome/components/binary_sensor/binary_sensor.h"
@@ -15,6 +15,11 @@
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
+
+#ifndef USE_ARDUINO
+using String = std::string;
+#define F(string_literal) (string_literal)
+#endif
 
 // весь функционал сохранения пресетов прячу под дефайн
 //  #define PRESETS_SAVING
@@ -710,16 +715,16 @@ namespace esphome
         {
             AC_COMMAND_BASE;
             ac_health_status health_status;
-            float temp_ambient;                      // внутренняя температура
-            int8_t temp_outdoor;                     // внешняя температура
-            int8_t temp_inbound;                     // температура входящая
-            int8_t temp_outbound;                    // температура исходящая
-            int8_t temp_compressor;                  // температура компрессора
-            ac_realFan realFanSpeed;                 // текущая скорость вентилятора
-            uint8_t inverter_power;                  // мощность инвертора
-            bool defrost;                            // режим разморозки внешнего блока (накопление тепла + прогрев испарителя)
-            ac_powLim_state power_lim_state;         // статус ограничения мощности инвертора
-            uint8_t  power_lim_value;                // значение ограничения мощности инвертора
+            float temp_ambient;              // внутренняя температура
+            int8_t temp_outdoor;             // внешняя температура
+            int8_t temp_inbound;             // температура входящая
+            int8_t temp_outbound;            // температура исходящая
+            int8_t temp_compressor;          // температура компрессора
+            ac_realFan realFanSpeed;         // текущая скорость вентилятора
+            uint8_t inverter_power;          // мощность инвертора
+            bool defrost;                    // режим разморозки внешнего блока (накопление тепла + прогрев испарителя)
+            ac_powLim_state power_lim_state; // статус ограничения мощности инвертора
+            uint8_t power_lim_value;         // значение ограничения мощности инвертора
         };
 
         typedef ac_command_t ac_state_t; // текущее состояние параметров кондея можно хранить в таком же формате, как и комманды
@@ -1520,15 +1525,15 @@ namespace esphome
                         stateByte = small_info_body->display_and_mildew & AC_MILDEW_MASK;
                         stateChangedFlag = stateChangedFlag || (_current_ac_state.mildew != (ac_mildew)stateByte);
                         _current_ac_state.mildew = (ac_mildew)stateByte;
-                        
+
                         stateByte = AC_POWLIMSTAT_ON * small_info_body->inverter_power_limitation_enable;
                         stateChangedFlag = stateChangedFlag || (_current_ac_state.power_lim_state != (ac_powLim_state)stateByte);
-                        _current_ac_state.power_lim_state = (ac_powLim_state)stateByte;                        
-                      
+                        _current_ac_state.power_lim_state = (ac_powLim_state)stateByte;
+
                         stateByte = small_info_body->inverter_power_limitation_value;
                         stateChangedFlag = stateChangedFlag || (_current_ac_state.power_lim_value != stateByte);
                         _current_ac_state.power_lim_value = stateByte;
-                        
+
                         // уведомляем об изменении статуса сплита
                         if (stateChangedFlag)
                             stateChanged();
@@ -1710,7 +1715,7 @@ namespace esphome
 
                 // заполняем время получения пакета
                 memset(textBuf, 0, 11);
-                sprintf(textBuf, "%010u", packet->msec);
+                sprintf(textBuf, "%010" PRIu32, packet->msec);
                 st = st + textBuf + ": ";
 
                 // формируем преамбулы
@@ -2839,11 +2844,11 @@ namespace esphome
             {
                 ESP_LOGCONFIG(TAG, "AUX HVAC:");
                 ESP_LOGCONFIG(TAG, "  [x] Firmware version: %s", Constants::AC_FIRMWARE_VERSION.c_str());
-                ESP_LOGCONFIG(TAG, "  [x] Period: %dms", this->get_period());
+                ESP_LOGCONFIG(TAG, "  [x] Period: %" PRIu32 "ms", this->get_period());
                 ESP_LOGCONFIG(TAG, "  [x] Show action: %s", TRUEFALSE(this->get_show_action()));
                 ESP_LOGCONFIG(TAG, "  [x] Display inverted: %s", TRUEFALSE(this->get_display_inverted()));
                 ESP_LOGCONFIG(TAG, "  [x] Optimistic: %s", TRUEFALSE(this->get_optimistic()));
-                ESP_LOGCONFIG(TAG, "  [x] Packet timeout: %dms", this->get_packet_timeout());
+                ESP_LOGCONFIG(TAG, "  [x] Packet timeout: %" PRIu32 "ms", this->get_packet_timeout());
 
 #if defined(PRESETS_SAVING)
                 ESP_LOGCONFIG(TAG, "  [x] Save settings %s", TRUEFALSE(this->get_store_settings()));
@@ -3545,7 +3550,7 @@ namespace esphome
             }
 
             // устанавливает ограничение мощности сплита на нужный уровень
-            bool powerLimitationSetSequence(uint8_t power_limit, bool set_on=false)
+            bool powerLimitationSetSequence(uint8_t power_limit, bool set_on = false)
             {
                 // нет смысла в последовательности, если нет коннекта с кондиционером
                 if (!get_has_connection())
@@ -3560,12 +3565,12 @@ namespace esphome
                     return false;
                 }
 
-                if(power_limit != this->_power_limitation_value_normalise(power_limit))
+                if (power_limit != this->_power_limitation_value_normalise(power_limit))
                 {
                     _debugMsg(F("powerLimitationSetSequence: incorrect power limit value."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                     return false;
                 }
-                
+
                 // формируем команду
                 ac_command_t cmd;
                 _clearCommand(&cmd); // не забываем очищать, а то будет мусор
@@ -3577,12 +3582,14 @@ namespace esphome
                 // добавляем команду в последовательность
                 if (!commandSequence(&cmd))
                     return false;
-                
+
                 if (set_on)
                 {
-                   _debugMsg(F("powerLimitationSetSequence: loaded (state = %02X, power limit = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, cmd.power_lim_state, power_limit);
-                } else {
-                   _debugMsg(F("powerLimitationSetSequence: loaded (power limit = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, power_limit);
+                    _debugMsg(F("powerLimitationSetSequence: loaded (state = %02X, power limit = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, cmd.power_lim_state, power_limit);
+                }
+                else
+                {
+                    _debugMsg(F("powerLimitationSetSequence: loaded (power limit = %02X)"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, power_limit);
                 }
                 return true;
             }
@@ -3602,14 +3609,17 @@ namespace esphome
                     _debugMsg(F("powerLimitationOnSequence: unsupported for noninverter AC."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                     return false; // если кондиционер не инверторный, то выходим
                 }
-                
+
                 // формируем команду
                 ac_command_t cmd;
                 _clearCommand(&cmd); // не забываем очищать, а то будет мусор
-                if(enable_limit){
-                   cmd.power_lim_state = AC_POWLIMSTAT_ON; // включить ограничение мощности
-                } else {
-                   cmd.power_lim_state = AC_POWLIMSTAT_OFF; // отключить ограничение мощности
+                if (enable_limit)
+                {
+                    cmd.power_lim_state = AC_POWLIMSTAT_ON; // включить ограничение мощности
+                }
+                else
+                {
+                    cmd.power_lim_state = AC_POWLIMSTAT_OFF; // отключить ограничение мощности
                 }
                 // добавляем команду в последовательность
                 if (!commandSequence(&cmd))
@@ -3622,19 +3632,19 @@ namespace esphome
             // включает ограничение мощности сплита
             bool powerLimitationOnSequence()
             {
-               return powerLimitationOnOffSequence(true);
+                return powerLimitationOnOffSequence(true);
             }
 
             // включает ограничение мощности сплита на нужный уровень
             bool powerLimitationOnSequence(uint8_t power_limit)
             {
-               return powerLimitationSetSequence(power_limit, true);
+                return powerLimitationSetSequence(power_limit, true);
             }
-            
+
             // выключает ограничение мощности сплита
             bool powerLimitationOffSequence()
             {
-               return powerLimitationOnOffSequence(false);
+                return powerLimitationOnOffSequence(false);
             }
 
             // конвертирует состояние жалюзи из кодов сплита в коды для фронтенда

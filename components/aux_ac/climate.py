@@ -33,7 +33,7 @@ from esphome.components.climate import (
     ClimateSwingMode,
 )
 
-AUX_AC_FIRMWARE_VERSION = '0.2.15'
+AUX_AC_FIRMWARE_VERSION = '0.2.16'
 AC_PACKET_TIMEOUT_MIN = 150
 AC_PACKET_TIMEOUT_MAX = 600
 AC_POWER_LIMIT_MIN = 30
