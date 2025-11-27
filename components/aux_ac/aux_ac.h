@@ -2434,6 +2434,22 @@ namespace esphome
             bool get_hw_initialized() { return _hw_initialized; };
             bool get_has_connection() { return _has_connection; };
 
+            // --- Helper functions for consistent louver interpretation ---
+            // Some AUX-based models use 0x20 for "horizontal off", while others (e.g., ROVEX, Royal Clima) use 0xE0.
+            // These helpers normalize those differences so swing detection stays consistent.
+            // Keeping both encodings here replaces the old workaround that caused HA to jump back to OFF
+            // when horizontal was swinging and vertical was fixed.
+
+            static inline bool is_h_off(uint8_t h) {
+                return (h == AC_LOUVERH_OFF_AUX) || (h == AC_LOUVERH_OFF_ALTERNATIVE);
+            }
+            static inline bool is_h_swing(uint8_t h) {
+                return (h == AC_LOUVERH_SWING_LEFTRIGHT);
+            }
+            static inline bool is_v_swing(uint8_t v) {
+                return (v == AC_LOUVERV_SWING_UPDOWN);
+            }
+
             // возвращает, есть ли елементы в последовательности команд
             bool hasSequence()
             {
@@ -2807,29 +2823,25 @@ namespace esphome
 
                 /*************************** LOUVERs ***************************/
                 this->swing_mode = climate::CLIMATE_SWING_OFF;
-                if (_current_ac_state.power == AC_POWER_ON)
-                {
-                    if (_current_ac_state.louver.louver_h == AC_LOUVERH_SWING_LEFTRIGHT && _current_ac_state.louver.louver_v == AC_LOUVERV_OFF)
-                    {
-                        this->swing_mode = climate::CLIMATE_SWING_HORIZONTAL;
-                    }
-                    else if (_current_ac_state.louver.louver_h == AC_LOUVERH_OFF_AUX && _current_ac_state.louver.louver_v == AC_LOUVERV_SWING_UPDOWN)
-                    {
-                        // TODO: КОСТЫЛЬ!
-                        this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
-                    }
-                    else if (_current_ac_state.louver.louver_h == AC_LOUVERH_OFF_ALTERNATIVE && _current_ac_state.louver.louver_v == AC_LOUVERV_SWING_UPDOWN)
-                    {
-                        // TODO: КОСТЫЛЬ!
-                        //       временно сделал так. Сделать нормально - это надо подумать.
-                        //       На AUX и многих других марках выключенный режим горизонтальных жалюзи равен 0x20, а на ROVEX и Royal Clima 0xE0
-                        //       Из-за этого происходил сброс на OFF во фронтенде Home Assistant. Пришлось городить это.
-                        //       Надо как-то изящнее решить эту историю
-                        this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
-                    }
-                    else if (_current_ac_state.louver.louver_h == AC_LOUVERH_SWING_LEFTRIGHT && _current_ac_state.louver.louver_v == AC_LOUVERV_SWING_UPDOWN)
-                    {
+                
+                if (_current_ac_state.power == AC_POWER_ON) {
+                    const uint8_t h = _current_ac_state.louver.louver_h;
+                    const uint8_t v = _current_ac_state.louver.louver_v;
+                
+                    const bool hSwing = is_h_swing(h);
+                    const bool hOff   = is_h_off(h);
+                    const bool vSwing = is_v_swing(v);
+                
+                    if (hSwing && vSwing) {
                         this->swing_mode = climate::CLIMATE_SWING_BOTH;
+                    } else if (hSwing) {
+                        // Horizontal swings even if vertical is fixed to a position
+                        this->swing_mode = climate::CLIMATE_SWING_HORIZONTAL;
+                    } else if (vSwing && hOff) {
+                        // Vertical swings while horizontal is not swinging
+                        this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
+                    } else {
+                        this->swing_mode = climate::CLIMATE_SWING_OFF;
                     }
                 }
 
@@ -3369,8 +3381,16 @@ namespace esphome
                     // But the ROVEX IR-remote does not provide this features. Therefore this features haven't been tested.
                     // May be suitable for other models of AUX-based ACs.
                     case climate::CLIMATE_SWING_OFF:
+                        // Stop BOTH axes, but don't disturb vertical if it was already fixed (2..6)
                         cmd.louver.louver_h = AC_LOUVERH_OFF_ALTERNATIVE;
-                        cmd.louver.louver_v = AC_LOUVERV_OFF;
+                        if (_current_ac_state.louver.louver_v == AC_LOUVERV_SWING_UPDOWN) {
+                            // If vertical was swinging, stop it.
+                            cmd.louver.louver_v = AC_LOUVERV_OFF;
+                        } else {
+                            // Keep existing fixed position (2..6).
+                            cmd.louver.louver_v = _current_ac_state.louver.louver_v;
+                        }
+
                         hasCommand = true;
                         this->swing_mode = swingmode;
                         break;
@@ -3391,7 +3411,12 @@ namespace esphome
 
                     case climate::CLIMATE_SWING_HORIZONTAL:
                         cmd.louver.louver_h = AC_LOUVERH_SWING_LEFTRIGHT;
-                        cmd.louver.louver_v = AC_LOUVERV_OFF;
+                        // Stop vertical only if it was swinging; otherwise preserve prior fixed position
+                        if (_current_ac_state.louver.louver_v == AC_LOUVERV_SWING_UPDOWN) {
+                                cmd.louver.louver_v = AC_LOUVERV_OFF;
+                            } else {
+                                cmd.louver.louver_v = _current_ac_state.louver.louver_v;
+                            }
                         hasCommand = true;
                         this->swing_mode = swingmode;
                         break;
