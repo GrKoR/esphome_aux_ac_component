@@ -33,7 +33,6 @@ from esphome.components.climate import (
     ClimatePreset,
     ClimateSwingMode,
 )
-from pkg_resources import parse_version
 
 AUX_AC_FIRMWARE_VERSION = '0.3.1'
 AC_PACKET_TIMEOUT_MIN = 150
@@ -130,8 +129,9 @@ AirConPowerLimitationOnAction = aux_ac_ns.class_(
 
 
 def use_new_api():
-    current_version = parse_version(__version__)
-    return current_version >= parse_version("2025.11.0")
+    esphome_current_version = tuple(map(int, __version__.split('.')))
+    esphome_bc_version = tuple(map(int, "2025.11.0".split('.')))
+    return esphome_current_version >= esphome_bc_version
 
 
 def validate_packet_timeout(value):
