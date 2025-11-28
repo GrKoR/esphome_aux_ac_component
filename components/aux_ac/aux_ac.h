@@ -4025,7 +4025,7 @@ namespace esphome
                 // initAC() в формируемом питоном коде вызывается до вызова aux_ac.set_supported_***() с установленными пользователем в конфиге параметрами
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
                 _traits.add_feature_flags(climate::CLIMATE_SUPPORTS_CURRENT_TEMPERATURE);
-                _traits.add_feature_flags(climate::CLIMATE_REQUIRES_TWO_POINT_TARGET_TEMPERATURE);
+                // NOT setting CLIMATE_REQUIRES_TWO_POINT_TARGET_TEMPERATURE - this device uses single target temperature
 #else
                 _traits.set_supports_current_temperature(true);
                 _traits.set_supports_two_point_target_temperature(false); // if the climate device's target temperature should be split in target_temperature_low and target_temperature_high instead of just the single target_temperature
