@@ -1946,6 +1946,7 @@ namespace esphome
                     {
                         pack->body[4] = (pack->body[4] & ~AC_TEMP_TARGET_FRAC_PART_MASK);
                     }
+                    pack->body[14] = ((uint8_t)(cmd->temp_target * 10)) % 10;
                 }
 
                 // значение ограничения мощности инвертора
