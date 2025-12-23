@@ -1476,13 +1476,12 @@ namespace esphome
                         small_info_body = (packet_small_info_body_t *)(_inPacket.body);
 
                         // в малом пакете передается большое количество установленных пользователем параметров работы
-                        // stateFloat = 8 + (small_info_body->target_temp_int_and_v_louver >> 3) + 0.5 * (float)(small_info_body->target_temp_frac >> 7);
-                        stateFloat = 8.0 + (float)(small_info_body->target_temp_int) + ((small_info_body->target_temp_frac_bool) ? 0.5 : 0.0);
+                        // stateFloat = 8.0 + (float)(small_info_body->target_temp_int) + ((small_info_body->target_temp_frac_bool) ? 0.5 : 0.0);
+                        stateFloat = 8.0 + (float)(small_info_body->target_temp_int) + (small_info_body->target_temp_frac_dec / 10.0);
                         stateChangedFlag = stateChangedFlag || (_current_ac_state.temp_target != stateFloat);
                         _current_ac_state.temp_target = stateFloat;
                         _current_ac_state.temp_target_matter = true;
 
-                        // stateByte = small_info_body->target_temp_int_and_v_louver & AC_LOUVERV_MASK;
                         stateByte = small_info_body->v_louver;
                         stateChangedFlag = stateChangedFlag || (_current_ac_state.louver.louver_v != (ac_louver_V)stateByte);
                         _current_ac_state.louver.louver_v = (ac_louver_V)stateByte;
@@ -1946,6 +1945,7 @@ namespace esphome
                     {
                         pack->body[4] = (pack->body[4] & ~AC_TEMP_TARGET_FRAC_PART_MASK);
                     }
+                    pack->body[14] = ((uint8_t)(cmd->temp_target * 10)) % 10;
                 }
 
                 // значение ограничения мощности инвертора
