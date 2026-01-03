@@ -34,7 +34,7 @@ from esphome.components.climate import (
     ClimateSwingMode,
 )
 
-AUX_AC_FIRMWARE_VERSION = '0.3.2'
+AUX_AC_FIRMWARE_VERSION = '0.3.3'
 AC_PACKET_TIMEOUT_MIN = 150
 AC_PACKET_TIMEOUT_MAX = 600
 AC_POWER_LIMIT_MIN = 30
@@ -174,6 +174,7 @@ validate_swing_modes = cv.enum(ALLOWED_CLIMATE_SWING_MODES, upper=True)
 CUSTOM_FAN_MODES = {
     "MUTE": Capabilities.MUTE,
     "TURBO": Capabilities.TURBO,
+    "SOFT": Capabilities.SOFT,
 }
 validate_custom_fan_modes = cv.enum(CUSTOM_FAN_MODES, upper=True)
 

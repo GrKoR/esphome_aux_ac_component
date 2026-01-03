@@ -98,6 +98,7 @@ namespace esphome
 
             static const std::string MUTE;
             static const std::string TURBO;
+            static const std::string SOFT;
             static const std::string CLEAN;
             static const std::string HEALTH;
             static const std::string ANTIFUNGUS;
@@ -130,6 +131,7 @@ namespace esphome
         // custom fan modes
         const std::string Constants::MUTE = "mute";
         const std::string Constants::TURBO = "turbo";
+        const std::string Constants::SOFT = "soft";
 
         // custom presets
         const std::string Constants::CLEAN = "Clean";
@@ -482,13 +484,13 @@ namespace esphome
             AC_HEALTH_UNTOUCHED = 0xFF
         };
 
-// Статус ионизатора. Если бит поднят, то обнаружена ошибка ключения ионизатора
-#define AC_HEALTH_STATUS_MASK 0b00000001
-        enum ac_health_status : uint8_t
+// Режим потока при закрытых жалюзи (функции SOFT и HEALTH)
+#define AC_LOUVER_CLOSED_FLOW_MASK 0b00000001
+        enum ac_louver_closed_flow : uint8_t
         {
-            AC_HEALTH_STATUS_OFF = 0x00,
-            AC_HEALTH_STATUS_ON = 0x01,
-            AC_HEALTH_STATUS_UNTOUCHED = 0xFF
+            AC_LOUVER_CLOSED_FLOW_OFF = 0x00,
+            AC_LOUVER_CLOSED_FLOW_ON = 0x01,
+            AC_LOUVER_CLOSED_FLOW_UNTOUCHED = 0xFF
         };
 
 // целевая температура
@@ -720,7 +722,7 @@ namespace esphome
         struct ac_command_t
         {
             AC_COMMAND_BASE;
-            ac_health_status health_status;
+            ac_louver_closed_flow louver_closed_flow;
             float temp_ambient;              // внутренняя температура
             int8_t temp_outdoor;             // внешняя температура
             int8_t temp_inbound;             // температура входящая
@@ -1142,7 +1144,7 @@ namespace esphome
                 cmd->fanSpeed = AC_FANSPEED_UNTOUCHED;
                 cmd->fanTurbo = AC_FANTURBO_UNTOUCHED;
                 cmd->health = AC_HEALTH_UNTOUCHED;
-                cmd->health_status = AC_HEALTH_STATUS_UNTOUCHED;
+                cmd->louver_closed_flow = AC_LOUVER_CLOSED_FLOW_UNTOUCHED;
                 cmd->louver.louver_h = AC_LOUVERH_UNTOUCHED;
                 cmd->louver.louver_v = AC_LOUVERV_UNTOUCHED;
                 cmd->mildew = AC_MILDEW_UNTOUCHED;
@@ -1522,9 +1524,9 @@ namespace esphome
                         stateChangedFlag = stateChangedFlag || (_current_ac_state.health != (ac_health)stateByte);
                         _current_ac_state.health = (ac_health)stateByte;
 
-                        stateByte = small_info_body->status & AC_HEALTH_STATUS_MASK;
-                        stateChangedFlag = stateChangedFlag || (_current_ac_state.health_status != (ac_health_status)stateByte);
-                        _current_ac_state.health_status = (ac_health_status)stateByte;
+                        stateByte = small_info_body->status & AC_LOUVER_CLOSED_FLOW_MASK;
+                        stateChangedFlag = stateChangedFlag || (_current_ac_state.louver_closed_flow != (ac_louver_closed_flow)stateByte);
+                        _current_ac_state.louver_closed_flow = (ac_louver_closed_flow)stateByte;
 
                         stateByte = small_info_body->status & AC_CLEAN_MASK;
                         stateChangedFlag = stateChangedFlag || (_current_ac_state.clean != (ac_clean)stateByte);
@@ -2027,10 +2029,10 @@ namespace esphome
                     pack->body[10] = (pack->body[10] & ~AC_HEALTH_MASK) | cmd->health;
                 }
 
-                // какой то флаг ионизатора
-                if (cmd->health_status != AC_HEALTH_STATUS_UNTOUCHED)
+                // Режим потока при закрытых жалюзи
+                if (cmd->louver_closed_flow != AC_LOUVER_CLOSED_FLOW_UNTOUCHED)
                 {
-                    pack->body[10] = (pack->body[10] & ~AC_HEALTH_STATUS_MASK) | cmd->health_status;
+                    pack->body[10] = (pack->body[10] & ~AC_LOUVER_CLOSED_FLOW_MASK) | cmd->louver_closed_flow;
                 }
 
                 // дисплей
@@ -2647,62 +2649,43 @@ namespace esphome
 
                 _debugMsg(F("Climate fan mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->fan_mode);
 
-                /*************************** TURBO FAN MODE ***************************/
-                // TURBO работает в режимах FAN, COOL, HEAT, HEAT_COOL
-                // в режиме DRY изменение скорости вентилятора никак не влияло на его скорость, может сплит просто не вышел еще на режим? Надо попробовать долгую работу в этом режиме.
-                switch (_current_ac_state.fanTurbo)
+                /*************************** CUSTOM FAN MODES ***************************/
+                // SOFT, TURBO и MUTE являются взаимоисключающими
+                if (_current_ac_state.louver_closed_flow == AC_LOUVER_CLOSED_FLOW_ON)
                 {
-                case AC_FANTURBO_ON:
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
+                    this->set_custom_fan_mode_(Constants::SOFT.c_str());
+#else
+                    this->custom_fan_mode = Constants::SOFT;
+#endif
+                }
+                else if (_current_ac_state.fanTurbo == AC_FANTURBO_ON)
+                {
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
                     this->set_custom_fan_mode_(Constants::TURBO.c_str());
 #else
                     this->custom_fan_mode = Constants::TURBO;
 #endif
-                    break;
-
-                case AC_FANTURBO_OFF:
-                default:
-#if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
-                    if (this->has_custom_fan_mode()) {
-                        if (strcmp(this->get_custom_fan_mode(), Constants::TURBO.c_str()) == 0)
-                            this->clear_custom_fan_mode_();
-                    }
-#else
-                    if (this->custom_fan_mode == Constants::TURBO)
-                        this->custom_fan_mode = (std::string) "";
-#endif
-                    break;
                 }
-
-                _debugMsg(F("Climate fan TURBO mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.fanTurbo);
-
-                /*************************** MUTE FAN MODE ***************************/
-                // MUTE работает в режиме FAN. В режимах HEAT, COOL, HEAT_COOL не работает. DRY не проверял.
-                // проверку на несовместимые режимы выпилили, т.к. нет уверенности, что это поведение одинаково для всех
-                switch (_current_ac_state.fanMute)
+                else if (_current_ac_state.fanMute == AC_FANMUTE_ON)
                 {
-                case AC_FANMUTE_ON:
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
                     this->set_custom_fan_mode_(Constants::MUTE.c_str());
 #else
                     this->custom_fan_mode = Constants::MUTE;
 #endif
-                    break;
-
-                case AC_FANMUTE_OFF:
-                default:
+                }
+                else
+                {
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
-                    if (this->has_custom_fan_mode()) {
-                        if (strcmp(this->get_custom_fan_mode(), Constants::MUTE.c_str()) == 0)
-                            this->clear_custom_fan_mode_();
-                    }
+                    this->clear_custom_fan_mode_();
 #else
-                    if (this->custom_fan_mode == Constants::MUTE)
-                        this->custom_fan_mode = (std::string) "";
+                    this->custom_fan_mode = (std::string) "";
 #endif
-                    break;
                 }
 
+                _debugMsg(F("Climate fan LOUVER_CLOSED_FLOW mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.louver_closed_flow);
+                _debugMsg(F("Climate fan TURBO mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.fanTurbo);
                 _debugMsg(F("Climate fan MUTE mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.fanMute);
 
                 //========================  ОТОБРАЖЕНИЕ ПРЕСЕТОВ ================================
@@ -3109,20 +3092,25 @@ namespace esphome
 
                     if (strcmp(customfanmode, Constants::TURBO.c_str()) == 0)
                     {
-                        // TURBO fan mode is suitable in COOL and HEAT modes.
-                        // Other modes don't accept TURBO fan mode.
                         hasCommand = true;
                         cmd.fanTurbo = AC_FANTURBO_ON;
                         cmd.fanMute = AC_FANMUTE_OFF;
+                        cmd.louver_closed_flow = AC_LOUVER_CLOSED_FLOW_OFF;
                         this->set_custom_fan_mode_(customfanmode);
                     }
                     else if (strcmp(customfanmode, Constants::MUTE.c_str()) == 0)
                     {
-                        // MUTE fan mode is suitable in FAN mode only for Rovex air conditioner.
-                        // In COOL mode AC receives command without any changes.
-                        // May be other AUX-based air conditioners do the same.
                         hasCommand = true;
                         cmd.fanMute = AC_FANMUTE_ON;
+                        cmd.fanTurbo = AC_FANTURBO_OFF;
+                        cmd.louver_closed_flow = AC_LOUVER_CLOSED_FLOW_OFF;
+                        this->set_custom_fan_mode_(customfanmode);
+                    }
+                    else if (strcmp(customfanmode, Constants::SOFT.c_str()) == 0)
+                    {
+                        hasCommand = true;
+                        cmd.louver_closed_flow = AC_LOUVER_CLOSED_FLOW_ON;
+                        cmd.fanMute = AC_FANMUTE_OFF;
                         cmd.fanTurbo = AC_FANTURBO_OFF;
                         this->set_custom_fan_mode_(customfanmode);
                     }
@@ -3134,39 +3122,27 @@ namespace esphome
 
                     if (customfanmode == Constants::TURBO)
                     {
-                        // TURBO fan mode is suitable in COOL and HEAT modes.
-                        // Other modes don't accept TURBO fan mode.
-                        /*
-                        if (       cmd.mode == AC_MODE_COOL
-                                or cmd.mode == AC_MODE_HEAT
-                                or _current_ac_state.mode == AC_MODE_COOL
-                                or _current_ac_state.mode == AC_MODE_HEAT) {
-                        */
                         hasCommand = true;
                         cmd.fanTurbo = AC_FANTURBO_ON;
-                        cmd.fanMute = AC_FANMUTE_OFF; // зависимость от fanturbo
+                        cmd.fanMute = AC_FANMUTE_OFF;
+                        cmd.louver_closed_flow = AC_LOUVER_CLOSED_FLOW_OFF;
                         this->custom_fan_mode = customfanmode;
-                        /*
-                        } else {
-                            _debugMsg(F("TURBO fan mode is suitable in COOL and HEAT modes only."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
-                        }
-                        */
                     }
                     else if (customfanmode == Constants::MUTE)
                     {
-                        // MUTE fan mode is suitable in FAN mode only for Rovex air conditioner.
-                        // In COOL mode AC receives command without any changes.
-                        // May be other AUX-based air conditioners do the same.
-                        // if (                     cmd.mode == AC_MODE_FAN
-                        //        or _current_ac_state.mode == AC_MODE_FAN) {
-
                         hasCommand = true;
                         cmd.fanMute = AC_FANMUTE_ON;
-                        cmd.fanTurbo = AC_FANTURBO_OFF; // зависимость от fanmute
+                        cmd.fanTurbo = AC_FANTURBO_OFF;
+                        cmd.louver_closed_flow = AC_LOUVER_CLOSED_FLOW_OFF;
                         this->custom_fan_mode = customfanmode;
-                        //} else {
-                        //    _debugMsg(F("MUTE fan mode is suitable in FAN mode only."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
-                        //}
+                    }
+                    else if (customfanmode == Constants::SOFT)
+                    {
+                        hasCommand = true;
+                        cmd.louver_closed_flow = AC_LOUVER_CLOSED_FLOW_ON;
+                        cmd.fanMute = AC_FANMUTE_OFF;
+                        cmd.fanTurbo = AC_FANTURBO_OFF;
+                        this->custom_fan_mode = customfanmode;
                     }
                 }
 #endif
@@ -3192,8 +3168,8 @@ namespace esphome
                         {
                             hasCommand = true;
                             cmd.sleep = AC_SLEEP_ON;
-                            cmd.health = AC_HEALTH_OFF; // для логики пресетов
-                            cmd.health_status = AC_HEALTH_STATUS_OFF;
+                            cmd.health = AC_HEALTH_OFF;
+                            cmd.louver_closed_flow = AC_LOUVER_CLOSED_FLOW_OFF;
                             this->preset = preset;
                         }
                         else
@@ -3206,7 +3182,6 @@ namespace esphome
                         // выбран пустой пресет, сбрасываем все настройки
                         hasCommand = true;
                         cmd.health = AC_HEALTH_OFF;
-                        // cmd.health_status = AC_HEALTH_STATUS_OFF;   // GK: не нужно ставить, т.к. этот флаг устанавливается самим сплитом
                         cmd.sleep = AC_SLEEP_OFF;
                         cmd.mildew = AC_MILDEW_OFF;
                         cmd.clean = AC_CLEAN_OFF;
@@ -3321,7 +3296,6 @@ namespace esphome
                         {
                             hasCommand = true;
                             cmd.health = AC_HEALTH_ON;
-                            // cmd.health_status = AC_HEALTH_STATUS_ON;  // GK: статус кондей сам поднимает
                             cmd.fanTurbo = AC_FANTURBO_OFF; // зависимость от health
                             cmd.fanMute = AC_FANMUTE_OFF;   // зависимость от health
                             cmd.sleep = AC_SLEEP_OFF;       // для логики пресетов
