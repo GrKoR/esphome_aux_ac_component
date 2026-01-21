@@ -2664,7 +2664,7 @@ namespace esphome
                 default:
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
                     if (this->has_custom_fan_mode()) {
-                        if (strcmp(this->get_custom_fan_mode(), Constants::TURBO.c_str()) == 0)
+                        if (this->get_custom_fan_mode() == Constants::TURBO)
                             this->clear_custom_fan_mode_();
                     }
 #else
@@ -2693,7 +2693,7 @@ namespace esphome
                 default:
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
                     if (this->has_custom_fan_mode()) {
-                        if (strcmp(this->get_custom_fan_mode(), Constants::MUTE.c_str()) == 0)
+                        if (this->get_custom_fan_mode() == Constants::MUTE)
                             this->clear_custom_fan_mode_();
                     }
 #else
@@ -2720,7 +2720,7 @@ namespace esphome
                 // AC_HEALTH_OFF
                 // только в том случае, если до этого пресет был установлен
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
-                else if (this->has_custom_preset() && strcmp(this->get_custom_preset(), Constants::HEALTH.c_str()) == 0)
+                else if (this->has_custom_preset() && this->get_custom_preset() == Constants::HEALTH)
                 {
                     this->clear_custom_preset_();
                 }
@@ -2766,7 +2766,7 @@ namespace esphome
                 // AC_CLEAN_OFF
                 // только в том случае, если до этого пресет был установлен
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
-                else if (this->has_custom_preset() && strcmp(this->get_custom_preset(), Constants::CLEAN.c_str()) == 0)
+                else if (this->has_custom_preset() && this->get_custom_preset() == Constants::CLEAN)
                 {
                     this->clear_custom_preset_();
                 }
@@ -2808,7 +2808,7 @@ namespace esphome
                 case AC_MILDEW_OFF:
                 default:
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
-                    if (this->has_custom_preset() && strcmp(this->get_custom_preset(), Constants::ANTIFUNGUS.c_str()) == 0)
+                    if (this->has_custom_preset() && this->get_custom_preset() == Constants::ANTIFUNGUS)
                     {
                         this->clear_custom_preset_();
                     }
@@ -3105,18 +3105,17 @@ namespace esphome
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
                 else if (call.has_custom_fan_mode())
                 {
-                    const char *customfanmode = call.get_custom_fan_mode();
-
-                    if (strcmp(customfanmode, Constants::TURBO.c_str()) == 0)
+                    auto customfanmode = call.get_custom_fan_mode();
+                    if (customfanmode == Constants::TURBO)
                     {
                         // TURBO fan mode is suitable in COOL and HEAT modes.
                         // Other modes don't accept TURBO fan mode.
                         hasCommand = true;
                         cmd.fanTurbo = AC_FANTURBO_ON;
                         cmd.fanMute = AC_FANMUTE_OFF;
-                        this->set_custom_fan_mode_(customfanmode);
+                        this->set_custom_fan_mode_(Constants::TURBO.c_str());
                     }
-                    else if (strcmp(customfanmode, Constants::MUTE.c_str()) == 0)
+                    else if (customfanmode == Constants::MUTE)
                     {
                         // MUTE fan mode is suitable in FAN mode only for Rovex air conditioner.
                         // In COOL mode AC receives command without any changes.
@@ -3124,7 +3123,7 @@ namespace esphome
                         hasCommand = true;
                         cmd.fanMute = AC_FANMUTE_ON;
                         cmd.fanTurbo = AC_FANTURBO_OFF;
-                        this->set_custom_fan_mode_(customfanmode);
+                        this->set_custom_fan_mode_(Constants::MUTE.c_str());
                     }
                 }
 #else
@@ -3223,9 +3222,8 @@ namespace esphome
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
                 else if (call.has_custom_preset())
                 {
-                    const char *custom_preset = call.get_custom_preset();
-
-                    if (strcmp(custom_preset, Constants::CLEAN.c_str()) == 0)
+                    auto custom_preset = call.get_custom_preset();
+                    if (custom_preset == Constants::CLEAN)
                     {
                         // режим очистки кондиционера, включается (или должен включаться) при AC_POWER_OFF
                         // TODO: надо отдебажить выключение этого режима
@@ -3234,14 +3232,14 @@ namespace esphome
                             hasCommand = true;
                             cmd.clean = AC_CLEAN_ON;
                             cmd.mildew = AC_MILDEW_OFF;
-                            this->set_custom_preset_(custom_preset);
+                            this->set_custom_preset_(Constants::CLEAN.c_str());
                         }
                         else
                         {
                             _debugMsg(F("CLEAN preset is suitable in POWER_OFF mode only."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                         }
                     }
-                    else if (strcmp(custom_preset, Constants::HEALTH.c_str()) == 0)
+                    else if (custom_preset == Constants::HEALTH)
                     {
                         if (cmd.power == AC_POWER_ON ||
                             _current_ac_state.power == AC_POWER_ON)
@@ -3266,14 +3264,14 @@ namespace esphome
                             {
                                 cmd.fanSpeed = AC_FANSPEED_MEDIUM; // зависимость от health
                             }
-                            this->set_custom_preset_(custom_preset);
+                            this->set_custom_preset_(Constants::HEALTH.c_str());
                         }
                         else
                         {
                             _debugMsg(F("HEALTH preset is suitable in POWER_ON mode only."), ESPHOME_LOG_LEVEL_WARN, __LINE__);
                         }
                     }
-                    else if (strcmp(custom_preset, Constants::ANTIFUNGUS.c_str()) == 0)
+                    else if (custom_preset == Constants::ANTIFUNGUS)
                     {
                         // включение-выключение функции "Антиплесень".
                         // По факту: после выключения сплита он оставляет минут на 5 открытые жалюзи и глушит вентилятор.
@@ -3290,7 +3288,7 @@ namespace esphome
                         cmd.clean = AC_CLEAN_OFF; // для логики пресетов
 
                         hasCommand = true;
-                        this->set_custom_preset_(custom_preset);
+                        this->set_custom_preset_(Constants::ANTIFUNGUS.c_str());
                     }
                 }
 #else
