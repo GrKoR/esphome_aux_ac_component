@@ -2615,12 +2615,8 @@ namespace esphome
                 _debugMsg(F("Climate fan mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, this->fan_mode);
 
                 /*************************** CUSTOM FAN MODES ***************************/
-                // SOFT, TURBO и MUTE являются взаимоисключающими
-                if (_current_ac_state.louver_closed_flow == AC_LOUVER_CLOSED_FLOW_ON)
-                {
-                    this->set_custom_fan_mode_(Constants::SOFT);
-                }
-                else if (_current_ac_state.fanTurbo == AC_FANTURBO_ON)
+                // TURBO и MUTE являются взаимоисключающими
+                if (_current_ac_state.fanTurbo == AC_FANTURBO_ON)
                 {
                     this->set_custom_fan_mode_(Constants::TURBO);
                 }
@@ -2633,11 +2629,22 @@ namespace esphome
                     this->clear_custom_fan_mode_();
                 }
 
-                _debugMsg(F("Climate fan LOUVER_CLOSED_FLOW mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.louver_closed_flow);
                 _debugMsg(F("Climate fan TURBO mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.fanTurbo);
                 _debugMsg(F("Climate fan MUTE mode: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.fanMute);
 
                 //========================  ОТОБРАЖЕНИЕ ПРЕСЕТОВ ================================
+                /*************************** SOFT CUSTOM PRESET ***************************/
+                if (_current_ac_state.louver_closed_flow == AC_LOUVER_CLOSED_FLOW_ON)
+                {
+                    this->set_custom_preset_(Constants::SOFT);
+                }
+                else if (this->has_custom_preset() && this->get_custom_preset() == Constants::SOFT)
+                {
+                    this->clear_custom_preset_();
+                }
+
+                 _debugMsg(F("Climate LOUVER_CLOSED_FLOW preset: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.louver_closed_flow);
+
                 /*************************** HEALTH CUSTOM PRESET ***************************/
                 // режим работы ионизатора
                 if (_current_ac_state.health == AC_HEALTH_ON &&
@@ -2652,6 +2659,7 @@ namespace esphome
                     this->clear_custom_preset_();
                 }
 
+                 _debugMsg(F("Climate LOUVER_CLOSED_FLOW preset: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.louver_closed_flow);
                 _debugMsg(F("Climate HEALTH preset: %i"), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _current_ac_state.health);
 
                 /*************************** SLEEP PRESET ***************************/
@@ -3015,14 +3023,6 @@ namespace esphome
                         cmd.louver_closed_flow = AC_LOUVER_CLOSED_FLOW_OFF;
                         this->set_custom_fan_mode_(Constants::MUTE);
                     }
-                    else if (custom_fan_mode == Constants::SOFT)
-                    {
-                        hasCommand = true;
-                        cmd.louver_closed_flow = AC_LOUVER_CLOSED_FLOW_ON;
-                        cmd.fanMute = AC_FANMUTE_OFF;
-                        cmd.fanTurbo = AC_FANTURBO_OFF;
-                        this->set_custom_fan_mode_(Constants::SOFT);
-                    }
                 }
 
                 // Пользователь выбрал пресет
@@ -3077,15 +3077,18 @@ namespace esphome
                 {
                     auto custom_preset = call.get_custom_preset();
 
+                    cmd.clean = AC_CLEAN_OFF;
+                    cmd.mildew = AC_MILDEW_OFF;
+                    cmd.louver_closed_flow = AC_LOUVER_CLOSED_FLOW_OFF;
+
                     if (custom_preset == Constants::CLEAN)
                     {
                         // режим очистки кондиционера, включается (или должен включаться) при AC_POWER_OFF
-                        // TODO: надо отдебажить выключение этого режима
                         if (cmd.power == AC_POWER_OFF or _current_ac_state.power == AC_POWER_OFF)
                         {
-                            hasCommand = true;
                             cmd.clean = AC_CLEAN_ON;
-                            cmd.mildew = AC_MILDEW_OFF;
+
+                            hasCommand = true;
                             this->set_custom_preset_(Constants::CLEAN);
                         }
                         else
@@ -3104,6 +3107,7 @@ namespace esphome
                             cmd.fanMute = AC_FANMUTE_OFF;
                             cmd.sleep = AC_SLEEP_OFF;
 
+                            /* TODO: Users requested to check if this correct
                             if (cmd.mode == AC_MODE_COOL ||
                                 cmd.mode == AC_MODE_HEAT ||
                                 cmd.mode == AC_MODE_AUTO ||
@@ -3118,6 +3122,7 @@ namespace esphome
                             {
                                 cmd.fanSpeed = AC_FANSPEED_MEDIUM; // зависимость от health
                             }
+                            */
                             this->set_custom_preset_(Constants::HEALTH);
                         }
                         else
@@ -3127,23 +3132,19 @@ namespace esphome
                     }
                     else if (custom_preset == Constants::ANTIFUNGUS)
                     {
-                        // включение-выключение функции "Антиплесень".
-                        // По факту: после выключения сплита он оставляет минут на 5 открытые жалюзи и глушит вентилятор.
-                        // Уличный блок при этом гудит и тарахтит. Возможно, прогревается теплообменник для высыхания.
-                        // Через некоторое время внешний блок замолкает и сплит закрывает жалюзи.
-
-                        // Brokly:
-                        // включение-выключение функции "Антиплесень".
-                        // у меня пульт отправляет 5 посылок и на включение и на выключение, но реагирует на эту кнопку
-                        // только в режиме POWER_OFF
-
-                        // TODO: надо уточнить, в каких режимах штатно включается этот режим у кондиционера
                         cmd.mildew = AC_MILDEW_ON;
-                        cmd.clean = AC_CLEAN_OFF; // для логики пресетов
 
                         hasCommand = true;
                         this->set_custom_preset_(Constants::ANTIFUNGUS);
                     }
+                    else if (custom_preset == Constants::SOFT)
+                    {
+                        cmd.louver_closed_flow = AC_LOUVER_CLOSED_FLOW_ON;
+
+                        hasCommand = true;
+                        this->set_custom_fan_mode_(Constants::SOFT);
+                    }
+
                 }
 
                 // User requested swing_mode change
