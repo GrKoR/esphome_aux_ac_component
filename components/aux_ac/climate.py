@@ -128,12 +128,6 @@ AirConPowerLimitationOnAction = aux_ac_ns.class_(
 )
 
 
-def use_new_api():
-    esphome_current_version = tuple(map(int, __version__.split('.')))
-    esphome_bc_version = tuple(map(int, "2025.11.0".split('.')))
-    return esphome_current_version >= esphome_bc_version
-
-
 def validate_packet_timeout(value):
     minV = AC_PACKET_TIMEOUT_MIN
     maxV = AC_PACKET_TIMEOUT_MAX
@@ -433,20 +427,10 @@ async def to_code(config):
         cg.add(var.set_supported_swing_modes(config[CONF_SUPPORTED_SWING_MODES]))
     if CONF_SUPPORTED_PRESETS in config:
         cg.add(var.set_supported_presets(config[CONF_SUPPORTED_PRESETS]))
-    if use_new_api():
-        if CONF_CUSTOM_PRESETS in config:
-            presets = config[CONF_CUSTOM_PRESETS]
-            c_str_presets = [cg.RawExpression(f"aux_ac::Constants::{p}.c_str()") for p in presets]
-            cg.add(var.set_custom_presets(c_str_presets))
-        if CONF_CUSTOM_FAN_MODES in config:
-            fan_modes = config[CONF_CUSTOM_FAN_MODES]
-            c_str_fan_modes = [cg.RawExpression(f"aux_ac::Constants::{p}.c_str()") for p in fan_modes]
-            cg.add(var.set_custom_fan_modes(c_str_fan_modes))
-    else:
-        if CONF_CUSTOM_PRESETS in config:
-            cg.add(var.set_custom_presets(config[CONF_CUSTOM_PRESETS]))
-        if CONF_CUSTOM_FAN_MODES in config:
-            cg.add(var.set_custom_fan_modes(config[CONF_CUSTOM_FAN_MODES]))
+    if CONF_CUSTOM_PRESETS in config:
+        cg.add(var.set_custom_presets(config[CONF_CUSTOM_PRESETS]))
+    if CONF_CUSTOM_FAN_MODES in config:
+        cg.add(var.set_custom_fan_modes(config[CONF_CUSTOM_FAN_MODES]))
 
 
 DISPLAY_ACTION_SCHEMA = maybe_simple_id(

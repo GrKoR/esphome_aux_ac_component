@@ -92,69 +92,50 @@ namespace esphome
         class Constants
         {
         public:
-            static const std::string AC_FIRMWARE_VERSION;
+            // AUX_AC_FIRMWARE_VERSION is defined by the ESPHome code generator at compile time
+            static constexpr const char* AC_FIRMWARE_VERSION = AUX_AC_FIRMWARE_VERSION;
 
-            static const std::string MUTE;
-            static const std::string TURBO;
-            static const std::string CLEAN;
-            static const std::string HEALTH;
-            static const std::string ANTIFUNGUS;
+            // custom fan modes
+            static constexpr const char* MUTE = "mute";
+            static constexpr const char* TURBO = "turbo";
+
+            // custom presets
+            static constexpr const char* CLEAN = "Clean";
+            static constexpr const char* HEALTH = "Health";
+            static constexpr const char* ANTIFUNGUS = "Antifungus";
 
             /// минимальная и максимальная температура в градусах Цельсия, ограничения самого кондиционера
-            static const float AC_MIN_TEMPERATURE;
-            static const float AC_MAX_TEMPERATURE;
-            /// шаг изменения целевой температуры, градусы Цельсия
-            static const float AC_TEMPERATURE_STEP;
+            static constexpr const float AC_MIN_TEMPERATURE = 16.0;
+            static constexpr const float AC_MAX_TEMPERATURE = 32.0;
+            /// Target temperature step, Celsius degrees
+            static constexpr const float AC_TEMPERATURE_STEP = 0.5;
 
-            /// минимальное и максимальное значение мощности инвертора при установке ограничений
-            static const uint8_t AC_MIN_INVERTER_POWER_LIMIT;
-            static const uint8_t AC_MAX_INVERTER_POWER_LIMIT;
+            /// Minimal and maximal values of invertor power
+            // AUX_AC_MIN_INVERTER_POWER_LIMIT and AUX_AC_MAX_INVERTER_POWER_LIMIT are defined by the ESPHome code generator at compile time
+            static constexpr const uint8_t AC_MIN_INVERTER_POWER_LIMIT = AUX_AC_MIN_INVERTER_POWER_LIMIT;
+            static constexpr const uint8_t AC_MAX_INVERTER_POWER_LIMIT = AUX_AC_MAX_INVERTER_POWER_LIMIT;
 
             // периодичность опроса кондиционера на предмет изменения состояния
             // изменение параметров с пульта не сообщается в UART, поэтому надо запрашивать состояние, чтобы быть в курсе
             // значение в миллисекундах
-            static const uint32_t AC_STATES_REQUEST_INTERVAL;
+            static constexpr const uint32_t AC_STATES_REQUEST_INTERVAL = 7000;
 
             // границы допустимого диапазона таймаута загрузки пакета
             // таймаут загрузки - через такое количиство миллисекунд конечный автомат перейдет из
             // состояния ACSM_RECEIVING_PACKET в ACSM_IDLE, если пакет не будет загружен
-            static const uint32_t AC_PACKET_TIMEOUT_MAX;
-            static const uint32_t AC_PACKET_TIMEOUT_MIN;
+            // По расчетам выходит:
+            //      - получение и обработка посимвольно не должна длиться дольше 600 мсек.
+            //      - получение и обработка пакетов целиком не должна длиться дольше 150 мсек.
+            // Мы будем обрабатывать пакетами, поэтому 150.
+            // Растягивать приём пакетов очередью команд нельзя, так как кондиционер иногда посылает
+            // информационные пакеты без запроса. Такие пакеты будут рушить последовательность команд,
+            // команды будут теряться. От такой коллизии мы не защищены в любом случае. Но чем меньше таймаут,
+            // тем меньше шансов на коллизию.
+            // Из этих соображений выбраны границы диапазона (_MIN и _MAX значения).
+            // AUX_AC_PACKET_TIMEOUT_MAX and AUX_AC_PACKET_TIMEOUT_MIN are defined by the ESPHome code generator at compile time
+            static constexpr const uint32_t AC_PACKET_TIMEOUT_MAX = AUX_AC_PACKET_TIMEOUT_MAX;
+            static constexpr const uint32_t AC_PACKET_TIMEOUT_MIN = AUX_AC_PACKET_TIMEOUT_MIN;
         };
-
-        // AUX_AC_FIRMWARE_VERSION will be defined by the ESPHome code generator at compile time
-        const std::string Constants::AC_FIRMWARE_VERSION = AUX_AC_FIRMWARE_VERSION;
-
-        // custom fan modes
-        const std::string Constants::MUTE = "mute";
-        const std::string Constants::TURBO = "turbo";
-
-        // custom presets
-        const std::string Constants::CLEAN = "Clean";
-        const std::string Constants::HEALTH = "Health";
-        const std::string Constants::ANTIFUNGUS = "Antifungus";
-
-        // params
-        const float Constants::AC_MIN_TEMPERATURE = 16.0;
-        const float Constants::AC_MAX_TEMPERATURE = 32.0;
-        const float Constants::AC_TEMPERATURE_STEP = 0.5;
-        // AUX_AC_MIN_INVERTER_POWER_LIMIT and AUX_AC_MAX_INVERTER_POWER_LIMIT will be defined by the ESPHome code generator at compile time
-        const uint8_t Constants::AC_MIN_INVERTER_POWER_LIMIT = AUX_AC_MIN_INVERTER_POWER_LIMIT;
-        const uint8_t Constants::AC_MAX_INVERTER_POWER_LIMIT = AUX_AC_MAX_INVERTER_POWER_LIMIT;
-        const uint32_t Constants::AC_STATES_REQUEST_INTERVAL = 7000;
-        // таймаут загрузки пакета
-        // По расчетам выходит:
-        //      - получение и обработка посимвольно не должна длиться дольше 600 мсек.
-        //      - получение и обработка пакетов целиком не должна длиться дольше 150 мсек.
-        // Мы будем обрабатывать пакетами, поэтому 150.
-        // Растягивать приём пакетов очередью команд нельзя, так как кондиционер иногда посылает
-        // информационные пакеты без запроса. Такие пакеты будут рушить последовательность команд,
-        // команды будут теряться. От такой коллизии мы не защищены в любом случае. Но чем меньше таймаут,
-        // тем меньше шансов на коллизию.
-        // Из этих соображений выбраны границы диапазона (_MIN и _MAX значения).
-        // AUX_AC_PACKET_TIMEOUT_MAX and AUX_AC_PACKET_TIMEOUT_MIN will be defined by the ESPHome code generator at compile time
-        const uint32_t Constants::AC_PACKET_TIMEOUT_MAX = AUX_AC_PACKET_TIMEOUT_MAX;
-        const uint32_t Constants::AC_PACKET_TIMEOUT_MIN = AUX_AC_PACKET_TIMEOUT_MIN;
 
         //****************************************************************************************************************************************************
         //********************************************************* ОСНОВНЫЕ СТРУКТУРЫ ***********************************************************************
@@ -2638,7 +2619,7 @@ namespace esphome
                 switch (_current_ac_state.fanTurbo)
                 {
                 case AC_FANTURBO_ON:
-                    this->set_custom_fan_mode_(Constants::TURBO.c_str());
+                    this->set_custom_fan_mode_(Constants::TURBO);
                     break;
 
                 case AC_FANTURBO_OFF:
@@ -2656,7 +2637,7 @@ namespace esphome
                 switch (_current_ac_state.fanMute)
                 {
                 case AC_FANMUTE_ON:
-                    this->set_custom_fan_mode_(Constants::MUTE.c_str());
+                    this->set_custom_fan_mode_(Constants::MUTE);
                     break;
 
                 case AC_FANMUTE_OFF:
@@ -2674,7 +2655,7 @@ namespace esphome
                 if (_current_ac_state.health == AC_HEALTH_ON &&
                     _current_ac_state.power == AC_POWER_ON)
                 {
-                    this->set_custom_preset_(Constants::HEALTH.c_str());
+                    this->set_custom_preset_(Constants::HEALTH);
                 }
                 // AC_HEALTH_OFF
                 // только в том случае, если до этого пресет был установлен
@@ -2709,7 +2690,7 @@ namespace esphome
                 if (_current_ac_state.clean == AC_CLEAN_ON &&
                     _current_ac_state.power == AC_POWER_OFF)
                 {
-                    this->set_custom_preset_(Constants::CLEAN.c_str());
+                    this->set_custom_preset_(Constants::CLEAN);
                 }
                 // AC_CLEAN_OFF
                 // только в том случае, если до этого пресет был установлен
@@ -2739,7 +2720,7 @@ namespace esphome
                 switch (_current_ac_state.mildew)
                 {
                 case AC_MILDEW_ON:
-                    this->set_custom_preset_(Constants::ANTIFUNGUS.c_str());
+                    this->set_custom_preset_(Constants::ANTIFUNGUS);
                     break;
 
                 case AC_MILDEW_OFF:
@@ -2853,7 +2834,7 @@ namespace esphome
             void dump_config()
             {
                 ESP_LOGCONFIG(TAG, "AUX HVAC:");
-                ESP_LOGCONFIG(TAG, "  [x] Firmware version: %s", Constants::AC_FIRMWARE_VERSION.c_str());
+                ESP_LOGCONFIG(TAG, "  [x] Firmware version: %s", Constants::AC_FIRMWARE_VERSION);
                 ESP_LOGCONFIG(TAG, "  [x] Period: %" PRIu32 "ms", this->get_period());
                 ESP_LOGCONFIG(TAG, "  [x] Show action: %s", TRUEFALSE(this->get_show_action()));
                 ESP_LOGCONFIG(TAG, "  [x] Display inverted: %s", TRUEFALSE(this->get_display_inverted()));
@@ -3108,7 +3089,7 @@ namespace esphome
                             hasCommand = true;
                             cmd.clean = AC_CLEAN_ON;
                             cmd.mildew = AC_MILDEW_OFF;
-                            this->set_custom_preset_(Constants::CLEAN.c_str());
+                            this->set_custom_preset_(Constants::CLEAN);
                         }
                         else
                         {
@@ -3140,7 +3121,7 @@ namespace esphome
                             {
                                 cmd.fanSpeed = AC_FANSPEED_MEDIUM; // зависимость от health
                             }
-                            this->set_custom_preset_(Constants::HEALTH.c_str());
+                            this->set_custom_preset_(Constants::HEALTH);
                         }
                         else
                         {
@@ -3163,7 +3144,7 @@ namespace esphome
                         cmd.clean = AC_CLEAN_OFF; // для логики пресетов
 
                         hasCommand = true;
-                        this->set_custom_preset_(Constants::ANTIFUNGUS.c_str());
+                        this->set_custom_preset_(Constants::ANTIFUNGUS);
                     }
                 }
 
