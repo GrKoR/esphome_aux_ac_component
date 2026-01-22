@@ -36,7 +36,8 @@ The best way to report about your test results is writing a message in the [tele
 For correct component operation, you need hardware and firmware. The hardware description is located [in a separate file](docs/HARDWARE-EN.md).
 
 ### Firmware: Integration aux_ac to your configuration ###
-You need [ESPHome](https://esphome.io) v.2025.2.0 or above. You can try esphome before 2025.2.0 but I can't guarantee error-free compilation of the examples.
+You need [ESPHome](https://esphome.io) v.2026.1.0 or above.  
+To compile it with earlier versions of ESPHome, use the component [v.0.3.2 or older](https://github.com/GrKoR/esphome_aux_ac_component/tags).
 
 ## Installing ##
 1. Declare external component. Read [the manual](https://esphome.io/components/external_components.html?highlight=external) for details.
