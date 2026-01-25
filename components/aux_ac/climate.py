@@ -74,8 +74,16 @@ ICON_DISPLAY = "mdi:clock-digital"
 CONF_PRESET_REPORTER = "preset_reporter"
 ICON_PRESET_REPORTER = "mdi:format-list-group"
 
-CONF_REAL_FAN_SPEED = "real_fan_speed"
-ICON_REAL_FAN_SPEED = "mdi:fan"
+CONF_ACTUAL_FAN_SPEED = "actual_fan_speed"
+ICON_ACTUAL_FAN_SPEED = "mdi:fan"
+
+# Fan speed percentage configuration options
+CONF_OFF_PERCENT = "off_percent"
+CONF_MUTE_PERCENT = "mute_percent"
+CONF_LOW_PERCENT = "low_percent"
+CONF_MID_PERCENT = "mid_percent"
+CONF_HIGH_PERCENT = "high_percent"
+CONF_TURBO_PERCENT = "turbo_percent"
 
 CONF_VLOUVER_STATE = "vlouver_state"
 ICON_VLOUVER_STATE = "mdi:compare-vertical"
@@ -301,15 +309,21 @@ CONFIG_SCHEMA = cv.All(
                     cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
                 }
             ),
-            cv.Optional(CONF_REAL_FAN_SPEED): sensor.sensor_schema(
+            cv.Optional(CONF_ACTUAL_FAN_SPEED): sensor.sensor_schema(
                 unit_of_measurement=UNIT_PERCENT,
-                icon=ICON_REAL_FAN_SPEED,
+                icon=ICON_ACTUAL_FAN_SPEED,
                 accuracy_decimals=0,
                 device_class=DEVICE_CLASS_POWER_FACTOR,
                 state_class=STATE_CLASS_MEASUREMENT,
             ).extend(
                 {
                     cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                    cv.Optional(CONF_OFF_PERCENT): cv.int_range(min=0, max=100),
+                    cv.Optional(CONF_MUTE_PERCENT): cv.int_range(min=0, max=100),
+                    cv.Optional(CONF_LOW_PERCENT): cv.int_range(min=0, max=100),
+                    cv.Optional(CONF_MID_PERCENT): cv.int_range(min=0, max=100),
+                    cv.Optional(CONF_HIGH_PERCENT): cv.int_range(min=0, max=100),
+                    cv.Optional(CONF_TURBO_PERCENT): cv.int_range(min=0, max=100),
                 }
             ),
             cv.Optional(CONF_INVERTER_POWER_LIMIT_VALUE): sensor.sensor_schema(
@@ -420,10 +434,23 @@ async def to_code(config):
         sens = await text_sensor.new_text_sensor(conf)
         cg.add(var.set_preset_reporter_sensor(sens))
 
-    if CONF_REAL_FAN_SPEED in config:
-        conf = config[CONF_REAL_FAN_SPEED]
+    if CONF_ACTUAL_FAN_SPEED in config:
+        conf = config[CONF_ACTUAL_FAN_SPEED]
         sens = await sensor.new_sensor(conf)
-        cg.add(var.set_real_fan_speed_sensor(sens))
+        cg.add(var.set_actual_fan_speed_sensor(sens))
+        # Set custom percentages if provided
+        if CONF_OFF_PERCENT in conf:
+            cg.add(var.set_fan_speed_off_percent(conf[CONF_OFF_PERCENT]))
+        if CONF_MUTE_PERCENT in conf:
+            cg.add(var.set_fan_speed_mute_percent(conf[CONF_MUTE_PERCENT]))
+        if CONF_LOW_PERCENT in conf:
+            cg.add(var.set_fan_speed_low_percent(conf[CONF_LOW_PERCENT]))
+        if CONF_MID_PERCENT in conf:
+            cg.add(var.set_fan_speed_mid_percent(conf[CONF_MID_PERCENT]))
+        if CONF_HIGH_PERCENT in conf:
+            cg.add(var.set_fan_speed_high_percent(conf[CONF_HIGH_PERCENT]))
+        if CONF_TURBO_PERCENT in conf:
+            cg.add(var.set_fan_speed_turbo_percent(conf[CONF_TURBO_PERCENT]))
 
     if CONF_INVERTER_POWER_LIMIT_VALUE in config:
         conf = config[CONF_INVERTER_POWER_LIMIT_VALUE]
