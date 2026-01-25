@@ -74,6 +74,9 @@ ICON_DISPLAY = "mdi:clock-digital"
 CONF_PRESET_REPORTER = "preset_reporter"
 ICON_PRESET_REPORTER = "mdi:format-list-group"
 
+CONF_REAL_FAN_SPEED = "real_fan_speed"
+ICON_REAL_FAN_SPEED = "mdi:fan"
+
 CONF_VLOUVER_STATE = "vlouver_state"
 ICON_VLOUVER_STATE = "mdi:compare-vertical"
 
@@ -298,6 +301,17 @@ CONFIG_SCHEMA = cv.All(
                     cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
                 }
             ),
+            cv.Optional(CONF_REAL_FAN_SPEED): sensor.sensor_schema(
+                unit_of_measurement=UNIT_PERCENT,
+                icon=ICON_REAL_FAN_SPEED,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_POWER_FACTOR,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERNAL, default="true"): cv.boolean,
+                }
+            ),
             cv.Optional(CONF_INVERTER_POWER_LIMIT_VALUE): sensor.sensor_schema(
                 unit_of_measurement=UNIT_PERCENT,
                 icon=ICON_INVERTER_POWER_LIMIT_VALUE,
@@ -405,6 +419,11 @@ async def to_code(config):
         conf = config[CONF_PRESET_REPORTER]
         sens = await text_sensor.new_text_sensor(conf)
         cg.add(var.set_preset_reporter_sensor(sens))
+
+    if CONF_REAL_FAN_SPEED in config:
+        conf = config[CONF_REAL_FAN_SPEED]
+        sens = await sensor.new_sensor(conf)
+        cg.add(var.set_real_fan_speed_sensor(sens))
 
     if CONF_INVERTER_POWER_LIMIT_VALUE in config:
         conf = config[CONF_INVERTER_POWER_LIMIT_VALUE]

@@ -145,6 +145,10 @@ climate:
       name: AC Preset Reporter
       id: ac_preset_reporter
       internal: false
+    real_fan_speed:
+      name: AC Real Fan Speed
+      id: ac_real_fan_speed
+      internal: false
     vlouver_state:
       name: AC Vertical Louvers State
       id: ac_vlouver_state
@@ -230,8 +234,11 @@ climate:
 - **inverter_power_limit_value** (*Optional*): Configuration of the power limit value sensor. All settings are the same as for the **indoor_temperature** (see description above).  
 It reports the current value of the power limitation function for the inverter HVAC. This sensor represents the value only after the HVAC confirms the power limitation. The value is always in the range from 30% to 100%. This is the hardware limitation.
 
-- **preset_reporter** (*Optional*): Parameters of text sensor with current preset. All settings are the same as for the **display_state** (see description above).  
+- **preset_reporter** (*Optional*): Parameters of text sensor with current preset. All settings are the same as for the **display_state** (see description above).
   ESPHome Climate devices are not reporting their active presets (from **supported_presets** and **custom_presets** lists) to MQTT. This behavior has been noticed at least in version 1.20.0. In case you are using MQTT and want to receive information about active preset, you should declare this sensor in your yaml.
+
+- **real_fan_speed** (*Optional*): Value of the actual fan speed sensor.
+  This sensor reports the real fan speed as a percentage (0-100%). The mapping is: OFF=0%, MUTE=14%, LOW=29%, MID=57%, HIGH=86%, TURBO=100%. This value reflects the actual fan speed reported by the AC unit, which may differ from the requested fan mode.
 
 - **vlouver_state** (*Optional*): Parameters of vertical louvers state sensor. All settings are the same as for the **display_state** (see description above). The state of the vertical louvers is encoded by the integer value (see [aux_ac.vlouver_set action](#aux_ac_._vlouver_set) below).
 

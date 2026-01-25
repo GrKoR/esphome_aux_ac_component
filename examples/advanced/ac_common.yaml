@@ -104,6 +104,10 @@ climate:
       name: ${upper_devicename} Preset Reporter
       id: ${devicename}_preset_reporter
       internal: false
+    real_fan_speed:
+      name: ${upper_devicename} Real Fan Speed
+      id: ${devicename}_real_fan_speed
+      internal: false
     vlouver_state:
       name: ${upper_devicename} VLouvers State
       id: ${devicename}_vlouver_state

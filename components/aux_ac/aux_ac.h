@@ -2245,6 +2245,7 @@ namespace esphome
             esphome::binary_sensor::BinarySensor *sensor_display_ = nullptr;
             esphome::binary_sensor::BinarySensor *sensor_defrost_ = nullptr;
             esphome::text_sensor::TextSensor *sensor_preset_reporter_ = nullptr;
+            esphome::sensor::Sensor *sensor_real_fan_speed_ = nullptr;
             esphome::sensor::Sensor *sensor_inverter_power_limit_value_ = nullptr;
             esphome::binary_sensor::BinarySensor *sensor_inverter_power_limit_state_ = nullptr;
 
@@ -2394,6 +2395,7 @@ namespace esphome
             void set_display_sensor(binary_sensor::BinarySensor *display_sensor) { sensor_display_ = display_sensor; }
             void set_inverter_power_sensor(sensor::Sensor *inverter_power_sensor) { sensor_inverter_power_ = inverter_power_sensor; }
             void set_preset_reporter_sensor(text_sensor::TextSensor *preset_reporter_sensor) { sensor_preset_reporter_ = preset_reporter_sensor; }
+            void set_real_fan_speed_sensor(sensor::Sensor *real_fan_speed_sensor) { sensor_real_fan_speed_ = real_fan_speed_sensor; }
             void set_inverter_power_limit_value_sensor(sensor::Sensor *inverter_power_limit_value_sensor) { sensor_inverter_power_limit_value_ = inverter_power_limit_value_sensor; }
             void set_inverter_power_limit_state_sensor(binary_sensor::BinarySensor *inverter_power_limit_state_sensor) { sensor_inverter_power_limit_state_ = inverter_power_limit_state_sensor; }
 
@@ -2414,6 +2416,12 @@ namespace esphome
             }
             static inline bool is_v_swing(uint8_t v) {
                 return (v == AC_LOUVERV_SWING_UPDOWN);
+            }
+
+            // Convert real fan speed enum to percentage (0-100%)
+            // Maps: OFF=0%, MUTE=14%, LOW=29%, MID=57%, HIGH=86%, TURBO=100%
+            static inline float real_fan_speed_to_percent(ac_realFan speed) {
+                return (static_cast<float>(speed) / 7.0f) * 100.0f;
             }
 
             // возвращает, есть ли елементы в последовательности команд
@@ -2792,6 +2800,9 @@ namespace esphome
                 // мощность инвертора
                 if (sensor_inverter_power_ != nullptr)
                     sensor_inverter_power_->publish_state(_current_ac_state.inverter_power);
+                // real fan speed as percentage
+                if (sensor_real_fan_speed_ != nullptr)
+                    sensor_real_fan_speed_->publish_state(real_fan_speed_to_percent(_current_ac_state.realFanSpeed));
                 // флаг режима разморозки
                 if (sensor_defrost_ != nullptr)
                     sensor_defrost_->publish_state(_current_ac_state.defrost);
