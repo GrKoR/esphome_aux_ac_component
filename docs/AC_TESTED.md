@@ -27,7 +27,7 @@
 + Osaka (models: STVP-12HH3)
 + RCool (models: GRA12B0-KSZKLM641)
 + Rinnai (models: RINV25RC)
-+ Roda (models: RS-AL09F, RS-AL24F)
++ Roda (models: RS-AL09F, RS-AL12F, RS-AL24F)
 + Rovex (models: RS-07ALS1, RS-09ALS1, RS-12ALS1)
 + Royal Clima (models: CO-D 18HNI/CO-E 18HNI, CO-D 24HNI/CO-E 24HNI, RC-VNR29HN, RC-RNC28HN, RCI-SA30HN)
 + RVX (models: RS-12ALS)
