@@ -104,6 +104,18 @@ climate:
       name: ${upper_devicename} Preset Reporter
       id: ${devicename}_preset_reporter
       internal: false
+    actual_fan_speed:
+      name: ${upper_devicename} Actual Fan Speed
+      id: ${devicename}_actual_fan_speed
+      internal: false
+      # Optional: customize the percentage for each fan speed level
+      # These are the defaults when both MUTE and TURBO are enabled:
+      off_percent: 0
+      mute_percent: 20
+      low_percent: 40
+      mid_percent: 60
+      high_percent: 80
+      turbo_percent: 100
     vlouver_state:
       name: ${upper_devicename} VLouvers State
       id: ${devicename}_vlouver_state

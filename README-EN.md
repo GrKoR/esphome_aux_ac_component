@@ -145,6 +145,10 @@ climate:
       name: AC Preset Reporter
       id: ac_preset_reporter
       internal: false
+    actual_fan_speed:
+      name: AC Actual Fan Speed
+      id: ac_actual_fan_speed
+      internal: false
     vlouver_state:
       name: AC Vertical Louvers State
       id: ac_vlouver_state
@@ -230,8 +234,24 @@ climate:
 - **inverter_power_limit_value** (*Optional*): Configuration of the power limit value sensor. All settings are the same as for the **indoor_temperature** (see description above).  
 It reports the current value of the power limitation function for the inverter HVAC. This sensor represents the value only after the HVAC confirms the power limitation. The value is always in the range from 30% to 100%. This is the hardware limitation.
 
-- **preset_reporter** (*Optional*): Parameters of text sensor with current preset. All settings are the same as for the **display_state** (see description above).  
+- **preset_reporter** (*Optional*): Parameters of text sensor with current preset. All settings are the same as for the **display_state** (see description above).
   ESPHome Climate devices are not reporting their active presets (from **supported_presets** and **custom_presets** lists) to MQTT. This behavior has been noticed at least in version 1.20.0. In case you are using MQTT and want to receive information about active preset, you should declare this sensor in your yaml.
+
+- **actual_fan_speed** (*Optional*): Configuration of the actual fan speed sensor. This sensor reports the real fan speed as a percentage (0-100%). All settings are the same as for the **indoor_temperature** (see description above), plus the following optional percentage overrides:
+  - **off_percent** (*Optional*, integer 0-100): Custom percentage for OFF speed. Default: 0%
+  - **mute_percent** (*Optional*, integer 0-100): Custom percentage for MUTE speed.
+  - **low_percent** (*Optional*, integer 0-100): Custom percentage for LOW speed.
+  - **mid_percent** (*Optional*, integer 0-100): Custom percentage for MID speed.
+  - **high_percent** (*Optional*, integer 0-100): Custom percentage for HIGH speed.
+  - **turbo_percent** (*Optional*, integer 0-100): Custom percentage for TURBO speed.
+
+  When percentage options are not specified, defaults are calculated based on which modes are enabled in **custom_fan_modes**:
+  - Neither MUTE nor TURBO: OFF=0%, LOW=33%, MID=67%, HIGH=100%
+  - MUTE only: OFF=0%, MUTE=25%, LOW=50%, MID=75%, HIGH=100%
+  - TURBO only: OFF=0%, LOW=25%, MID=50%, HIGH=75%, TURBO=100%
+  - Both MUTE and TURBO: OFF=0%, MUTE=20%, LOW=40%, MID=60%, HIGH=80%, TURBO=100%
+
+  This value reflects the actual fan speed reported by the AC unit, which may differ from the requested fan mode.
 
 - **vlouver_state** (*Optional*): Parameters of vertical louvers state sensor. All settings are the same as for the **display_state** (see description above). The state of the vertical louvers is encoded by the integer value (see [aux_ac.vlouver_set action](#aux_ac_._vlouver_set) below).
 

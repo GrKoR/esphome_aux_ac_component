@@ -2245,7 +2245,16 @@ namespace esphome
             esphome::binary_sensor::BinarySensor *sensor_display_ = nullptr;
             esphome::binary_sensor::BinarySensor *sensor_defrost_ = nullptr;
             esphome::text_sensor::TextSensor *sensor_preset_reporter_ = nullptr;
+            esphome::sensor::Sensor *sensor_actual_fan_speed_ = nullptr;
             esphome::sensor::Sensor *sensor_inverter_power_limit_value_ = nullptr;
+
+            // Custom fan speed percentages (-1 means use auto-calculated default)
+            int8_t fan_speed_off_percent_ = -1;
+            int8_t fan_speed_mute_percent_ = -1;
+            int8_t fan_speed_low_percent_ = -1;
+            int8_t fan_speed_mid_percent_ = -1;
+            int8_t fan_speed_high_percent_ = -1;
+            int8_t fan_speed_turbo_percent_ = -1;
             esphome::binary_sensor::BinarySensor *sensor_inverter_power_limit_state_ = nullptr;
 
             // загружает на выполнение последовательность команд на включение/выключение табло с температурой
@@ -2394,7 +2403,16 @@ namespace esphome
             void set_display_sensor(binary_sensor::BinarySensor *display_sensor) { sensor_display_ = display_sensor; }
             void set_inverter_power_sensor(sensor::Sensor *inverter_power_sensor) { sensor_inverter_power_ = inverter_power_sensor; }
             void set_preset_reporter_sensor(text_sensor::TextSensor *preset_reporter_sensor) { sensor_preset_reporter_ = preset_reporter_sensor; }
+            void set_actual_fan_speed_sensor(sensor::Sensor *actual_fan_speed_sensor) { sensor_actual_fan_speed_ = actual_fan_speed_sensor; }
             void set_inverter_power_limit_value_sensor(sensor::Sensor *inverter_power_limit_value_sensor) { sensor_inverter_power_limit_value_ = inverter_power_limit_value_sensor; }
+
+            // Fan speed percentage setters
+            void set_fan_speed_off_percent(int8_t percent) { fan_speed_off_percent_ = percent; }
+            void set_fan_speed_mute_percent(int8_t percent) { fan_speed_mute_percent_ = percent; }
+            void set_fan_speed_low_percent(int8_t percent) { fan_speed_low_percent_ = percent; }
+            void set_fan_speed_mid_percent(int8_t percent) { fan_speed_mid_percent_ = percent; }
+            void set_fan_speed_high_percent(int8_t percent) { fan_speed_high_percent_ = percent; }
+            void set_fan_speed_turbo_percent(int8_t percent) { fan_speed_turbo_percent_ = percent; }
             void set_inverter_power_limit_state_sensor(binary_sensor::BinarySensor *inverter_power_limit_state_sensor) { sensor_inverter_power_limit_state_ = inverter_power_limit_state_sensor; }
 
             bool get_hw_initialized() { return _hw_initialized; };
@@ -2414,6 +2432,90 @@ namespace esphome
             }
             static inline bool is_v_swing(uint8_t v) {
                 return (v == AC_LOUVERV_SWING_UPDOWN);
+            }
+
+            // Convert real fan speed enum to percentage (0-100%)
+            // Uses custom percentages if configured, otherwise calculates defaults based on
+            // which custom_fan_modes are enabled (MUTE and/or TURBO):
+            // - Neither:    OFF=0%, LOW=33%, MID=67%, HIGH=100%
+            // - MUTE only:  OFF=0%, MUTE=25%, LOW=50%, MID=75%, HIGH=100%
+            // - TURBO only: OFF=0%, LOW=25%, MID=50%, HIGH=75%, TURBO=100%
+            // - Both:       OFF=0%, MUTE=20%, LOW=40%, MID=60%, HIGH=80%, TURBO=100%
+            inline float actual_fan_speed_to_percent(ac_realFan speed) {
+                // Check if custom percentage is configured for this speed level
+                switch (speed) {
+                    case AC_REAL_FAN_OFF:
+                        if (fan_speed_off_percent_ >= 0) return static_cast<float>(fan_speed_off_percent_);
+                        return 0.0f;  // OFF is always 0%
+                    case AC_REAL_FAN_MUTE:
+                        if (fan_speed_mute_percent_ >= 0) return static_cast<float>(fan_speed_mute_percent_);
+                        break;
+                    case AC_REAL_FAN_LOW:
+                        if (fan_speed_low_percent_ >= 0) return static_cast<float>(fan_speed_low_percent_);
+                        break;
+                    case AC_REAL_FAN_MID:
+                        if (fan_speed_mid_percent_ >= 0) return static_cast<float>(fan_speed_mid_percent_);
+                        break;
+                    case AC_REAL_FAN_HIGH:
+                        if (fan_speed_high_percent_ >= 0) return static_cast<float>(fan_speed_high_percent_);
+                        break;
+                    case AC_REAL_FAN_TURBO:
+                        if (fan_speed_turbo_percent_ >= 0) return static_cast<float>(fan_speed_turbo_percent_);
+                        break;
+                    default:
+                        return 0.0f;
+                }
+
+                // No custom percentage set, calculate default based on enabled modes
+                bool mute_enabled = false;
+                bool turbo_enabled = false;
+                for (const char* mode : _supported_custom_fan_modes) {
+                    if (strcmp(mode, Constants::MUTE) == 0) mute_enabled = true;
+                    if (strcmp(mode, Constants::TURBO) == 0) turbo_enabled = true;
+                }
+
+                // Return default percentage based on enabled modes
+                if (mute_enabled && turbo_enabled) {
+                    // Both enabled: MUTE=20%, LOW=40%, MID=60%, HIGH=80%, TURBO=100%
+                    switch (speed) {
+                        case AC_REAL_FAN_MUTE:  return 20.0f;
+                        case AC_REAL_FAN_LOW:   return 40.0f;
+                        case AC_REAL_FAN_MID:   return 60.0f;
+                        case AC_REAL_FAN_HIGH:  return 80.0f;
+                        case AC_REAL_FAN_TURBO: return 100.0f;
+                        default: return 0.0f;
+                    }
+                } else if (mute_enabled) {
+                    // MUTE only: MUTE=25%, LOW=50%, MID=75%, HIGH=100%
+                    switch (speed) {
+                        case AC_REAL_FAN_MUTE:  return 25.0f;
+                        case AC_REAL_FAN_LOW:   return 50.0f;
+                        case AC_REAL_FAN_MID:   return 75.0f;
+                        case AC_REAL_FAN_HIGH:  return 100.0f;
+                        case AC_REAL_FAN_TURBO: return 100.0f;  // Treat as max
+                        default: return 0.0f;
+                    }
+                } else if (turbo_enabled) {
+                    // TURBO only: LOW=25%, MID=50%, HIGH=75%, TURBO=100%
+                    switch (speed) {
+                        case AC_REAL_FAN_MUTE:  return 25.0f;   // Treat as LOW
+                        case AC_REAL_FAN_LOW:   return 25.0f;
+                        case AC_REAL_FAN_MID:   return 50.0f;
+                        case AC_REAL_FAN_HIGH:  return 75.0f;
+                        case AC_REAL_FAN_TURBO: return 100.0f;
+                        default: return 0.0f;
+                    }
+                } else {
+                    // Neither: LOW=33%, MID=67%, HIGH=100%
+                    switch (speed) {
+                        case AC_REAL_FAN_MUTE:  return 33.0f;   // Treat as LOW
+                        case AC_REAL_FAN_LOW:   return 33.0f;
+                        case AC_REAL_FAN_MID:   return 67.0f;
+                        case AC_REAL_FAN_HIGH:  return 100.0f;
+                        case AC_REAL_FAN_TURBO: return 100.0f;  // Treat as max
+                        default: return 0.0f;
+                    }
+                }
             }
 
             // возвращает, есть ли елементы в последовательности команд
@@ -2792,6 +2894,9 @@ namespace esphome
                 // мощность инвертора
                 if (sensor_inverter_power_ != nullptr)
                     sensor_inverter_power_->publish_state(_current_ac_state.inverter_power);
+                // actual fan speed as percentage
+                if (sensor_actual_fan_speed_ != nullptr)
+                    sensor_actual_fan_speed_->publish_state(actual_fan_speed_to_percent(_current_ac_state.realFanSpeed));
                 // флаг режима разморозки
                 if (sensor_defrost_ != nullptr)
                     sensor_defrost_->publish_state(_current_ac_state.defrost);
