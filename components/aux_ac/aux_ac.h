@@ -1447,8 +1447,7 @@ namespace esphome
                         small_info_body = (packet_small_info_body_t *)(_inPacket.body);
 
                         // в малом пакете передается большое количество установленных пользователем параметров работы
-                        // stateFloat = 8.0 + (float)(small_info_body->target_temp_int) + ((small_info_body->target_temp_frac_bool) ? 0.5 : 0.0);
-                        stateFloat = 8.0 + (float)(small_info_body->target_temp_int) + (small_info_body->target_temp_frac_dec / 10.0);
+                        stateFloat = 8.0 + (float)(small_info_body->target_temp_int) + (small_info_body->target_temp_frac_dec > 0 ? (small_info_body->target_temp_frac_dec / 10.0) : (small_info_body->target_temp_frac_bool ? 0.5 : 0.0));
                         stateChangedFlag = stateChangedFlag || (_current_ac_state.temp_target != stateFloat);
                         _current_ac_state.temp_target = stateFloat;
                         _current_ac_state.temp_target_matter = true;
