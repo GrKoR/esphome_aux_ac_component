@@ -34,7 +34,8 @@ logger:
     # hardware_uart: UART1
 
 api:
-  password: !secret api_pass
+  encryption:
+    key: !secret api_encryption_key
 
 ota:
   - platform: esphome
