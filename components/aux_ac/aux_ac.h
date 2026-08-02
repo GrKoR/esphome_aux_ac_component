@@ -757,6 +757,11 @@ namespace esphome
 // если нужный пакет не поступил в течение указанного времени, то последовательность прерывается с ошибкой
 #define AC_SEQUENCE_DEFAULT_TIMEOUT 580 // Brokly: пришлось увеличить с 500 до 580
 
+// Home Assistant often represents one user action as several climate calls
+// (mode, temperature, fan speed, swing, ...).  Coalesce such a burst into the
+// single complete SET_PARAMS packet expected by the AUX protocol.
+#define AC_COMMAND_COALESCE_DELAY 100
+
         enum sequence_item_type_t : uint8_t
         {
             AC_SIT_NONE = 0x00,  // пустой элемент последовательности
@@ -923,6 +928,12 @@ namespace esphome
             sequence_item_t _sequence[AC_SEQUENCE_MAX_LEN];
             uint8_t _sequence_current_step;
 
+            // A pending climate command is merged for a short period before it
+            // is put on the relatively small request/response sequence queue.
+            ac_command_t _pending_command;
+            bool _has_pending_command = false;
+            uint32_t _pending_command_msec = 0;
+
             // флаг успешного выполнения стартовой последовательности команд
             bool _startupSequenceComplete = false;
 
@@ -940,6 +951,55 @@ namespace esphome
                     _clearCommand(&_sequence[i].cmd);
                 }
                 _sequence_current_step = 0;
+            }
+
+            void _mergePendingCommand(const ac_command_t &cmd)
+            {
+                if (cmd.temp_target_matter)
+                {
+                    _pending_command.temp_target = cmd.temp_target;
+                    _pending_command.temp_target_matter = true;
+                }
+                if (cmd.power != AC_POWER_UNTOUCHED) _pending_command.power = cmd.power;
+                if (cmd.clean != AC_CLEAN_UNTOUCHED) _pending_command.clean = cmd.clean;
+                if (cmd.health != AC_HEALTH_UNTOUCHED) _pending_command.health = cmd.health;
+                if (cmd.health_status != AC_HEALTH_STATUS_UNTOUCHED) _pending_command.health_status = cmd.health_status;
+                if (cmd.mode != AC_MODE_UNTOUCHED) _pending_command.mode = cmd.mode;
+                if (cmd.t_unit != AC_TEMPERATURE_UNIT_UNTOUCHED) _pending_command.t_unit = cmd.t_unit;
+                if (cmd.sleep != AC_SLEEP_UNTOUCHED) _pending_command.sleep = cmd.sleep;
+                if (cmd.louver.louver_h != AC_LOUVERH_UNTOUCHED) _pending_command.louver.louver_h = cmd.louver.louver_h;
+                if (cmd.louver.louver_v != AC_LOUVERV_UNTOUCHED) _pending_command.louver.louver_v = cmd.louver.louver_v;
+                if (cmd.fanSpeed != AC_FANSPEED_UNTOUCHED) _pending_command.fanSpeed = cmd.fanSpeed;
+                if (cmd.fanTurbo != AC_FANTURBO_UNTOUCHED) _pending_command.fanTurbo = cmd.fanTurbo;
+                if (cmd.fanMute != AC_FANMUTE_UNTOUCHED) _pending_command.fanMute = cmd.fanMute;
+                if (cmd.display != AC_DISPLAY_UNTOUCHED) _pending_command.display = cmd.display;
+                if (cmd.mildew != AC_MILDEW_UNTOUCHED) _pending_command.mildew = cmd.mildew;
+                if (cmd.timer != AC_TIMER_UNTOUCHED)
+                {
+                    _pending_command.timer = cmd.timer;
+                    _pending_command.timer_hours = cmd.timer_hours;
+                    _pending_command.timer_minutes = cmd.timer_minutes;
+                }
+                if (cmd.power_lim_state != AC_POWLIMSTAT_UNTOUCHED) _pending_command.power_lim_state = cmd.power_lim_state;
+                if (cmd.power_lim_value != AC_POWLIMVAL_UNTOUCHED) _pending_command.power_lim_value = cmd.power_lim_value;
+
+                _has_pending_command = true;
+                _pending_command_msec = millis();
+            }
+
+            void _startPendingCommand()
+            {
+                if (!_has_pending_command || hasSequence())
+                    return;
+                if (millis() - _pending_command_msec < AC_COMMAND_COALESCE_DELAY)
+                    return;
+
+                if (commandSequence(&_pending_command))
+                {
+                    _debugMsg(F("Coalesced climate command loaded to sequence."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
+                    _has_pending_command = false;
+                    _clearCommand(&_pending_command);
+                }
             }
 
             // проверяет, есть ли свободные шаги в последовательности команд
@@ -2378,6 +2438,9 @@ namespace esphome
 
                 // очищаем последовательность пакетов
                 _clearSequence();
+                _clearCommand(&_pending_command);
+                _has_pending_command = false;
+                _pending_command_msec = 0;
 
                 // выполнена ли уже стартовая последовательность команд (сбор информации о статусе кондея)
                 _startupSequenceComplete = false;
@@ -3321,7 +3384,7 @@ namespace esphome
 
                 if (hasCommand)
                 {
-                    commandSequence(&cmd);
+                    _mergePendingCommand(cmd);
                     if (this->get_optimistic())
                     {
                         this->publish_all_states(); // Publish updated state
@@ -3965,6 +4028,10 @@ namespace esphome
                     _doIdleState();
                     break;
                 }
+
+                // Start the combined command only after the short coalescing
+                // window and once the active request/response sequence ends.
+                _startPendingCommand();
 
                 // раз в заданное количество миллисекунд запрашиваем обновление статуса кондиционера
                 if ((millis() - _dataMillis) > _update_period)
