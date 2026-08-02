@@ -932,6 +932,7 @@ namespace esphome
             // is put on the relatively small request/response sequence queue.
             ac_command_t _pending_command;
             bool _has_pending_command = false;
+            uint8_t _pending_command_count = 0;
             uint32_t _pending_command_msec = 0;
 
             // флаг успешного выполнения стартовой последовательности команд
@@ -984,6 +985,8 @@ namespace esphome
                 if (cmd.power_lim_value != AC_POWLIMVAL_UNTOUCHED) _pending_command.power_lim_value = cmd.power_lim_value;
 
                 _has_pending_command = true;
+                if (_pending_command_count < 0xFF)
+                    _pending_command_count++;
                 _pending_command_msec = millis();
             }
 
@@ -996,8 +999,9 @@ namespace esphome
 
                 if (commandSequence(&_pending_command))
                 {
-                    _debugMsg(F("Coalesced climate command loaded to sequence."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__);
+                    _debugMsg(F("Coalesced %u climate command(s) loaded to sequence."), ESPHOME_LOG_LEVEL_VERBOSE, __LINE__, _pending_command_count);
                     _has_pending_command = false;
+                    _pending_command_count = 0;
                     _clearCommand(&_pending_command);
                 }
             }
@@ -2440,6 +2444,7 @@ namespace esphome
                 _clearSequence();
                 _clearCommand(&_pending_command);
                 _has_pending_command = false;
+                _pending_command_count = 0;
                 _pending_command_msec = 0;
 
                 // выполнена ли уже стартовая последовательность команд (сбор информации о статусе кондея)
